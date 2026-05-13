@@ -1,0 +1,54 @@
+
+#include "Util.h"
+
+#pragma comment(lib,"d3dcompiler.lib")
+#pragma comment(lib, "D3D12.lib")
+#pragma comment(lib, "dxgi.lib")
+
+class App;
+
+class D3DContext
+{
+public:
+
+	D3DContext() =default;
+
+	virtual bool InitDirect3D();
+	virtual void CreateRtvAndDsvDescriptorHeaps();
+	virtual void OnResize();
+
+	void setApp(App*);
+
+protected:
+	void CreateCommandObjects();
+	void CreateSwapChain();
+
+	void FlushCommandQueue();
+
+protected:
+
+	Microsoft::WRL::ComPtr<IDXGIFactory4>					m_dxgiFactory;
+	Microsoft::WRL::ComPtr<IDXGISwapChain>					m_SwapChain;
+	Microsoft::WRL::ComPtr<ID3D12Device>					m_d3dDevice;
+
+
+	Microsoft::WRL::ComPtr<ID3D12Fence>						m_Fence;
+	UINT64													m_CurrentFence = 0;
+
+	DXGI_FORMAT												m_BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT												m_DepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+	UINT													m_4xMsaaQuality = 0;      // quality level of 4X MSAA
+	bool													m_4xMsaaState = false;    // 4X MSAA enabled
+
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue>				m_CommandQueue;
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator>			m_DirectCmdListAlloc;
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>		m_CommandList;
+
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_RtvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_DsvHeap;
+
+	static const int										SwapChainBufferCount = 2;
+
+	App*													m_win = nullptr;
+};

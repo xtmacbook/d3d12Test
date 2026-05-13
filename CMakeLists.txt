@@ -23,13 +23,31 @@ add_link_options(
 )
 
 
+set (COMMON_SOURCE 
+    src/common/App.cpp
+    src/common/D3DContext.cpp
+    src/common/Util.cpp
+    src/common/GameTimer.cpp
+)
+
+set (COMMON_SOURCE_HEADS
+    src/common/App.h
+    src/common/D3DContext.h
+    src/common/Util.h
+    src/common/GameTimer.h
+)
+
+source_group ("Source Files/common" FILES ${COMMON_SOURCE})
+source_group ("Header Files/common" FILES ${COMMON_SOURCE_HEADS})  
+
+
 INCLUDE_DIRECTORIES(include)
 
 add_executable(
-        ${PROJECT_NAME} 
+        ${PROJECT_NAME}
+        ${COMMON_SOURCE}
+        ${COMMON_SOURCE_HEADS}
         src/winMain.cpp
-        src/app.h
-        src/app.cpp
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE) 
