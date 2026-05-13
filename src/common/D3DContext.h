@@ -48,7 +48,14 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_RtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_DsvHeap;
 
+	UINT													m_RtvDescriptorSize = 0;
+	UINT													m_DsvDescriptorSize = 0;
+	UINT													m_CbvSrvUavDescriptorSize = 0;
+
 	static const int										SwapChainBufferCount = 2;
 
+	Microsoft::WRL::ComPtr<ID3D12Resource>					m_SwapChainBuffer[SwapChainBufferCount];
+	Microsoft::WRL::ComPtr<ID3D12Resource>					m_DepthStencilBuffer;
+	int														m_CurrBackBuffer = 0;
 	App*													m_win = nullptr;
 };

@@ -35,6 +35,7 @@ set (COMMON_SOURCE_HEADS
     src/common/D3DContext.h
     src/common/Util.h
     src/common/GameTimer.h
+    src/common/CD3dx12.h
 )
 
 source_group ("Source Files/common" FILES ${COMMON_SOURCE})

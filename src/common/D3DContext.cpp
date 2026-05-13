@@ -1,5 +1,6 @@
 #include "D3DContext.h"
 #include "App.h"
+#include "CD3dx12.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -80,7 +81,31 @@ void D3DContext::CreateRtvAndDsvDescriptorHeaps()
 
 void D3DContext::OnResize()
 {
+	FlushCommandQueue();
 
+	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
+
+	// Release the previous resources we will be recreating.
+	for (int i = 0; i < SwapChainBufferCount; ++i)
+		m_SwapChainBuffer[i].Reset();
+	m_DepthStencilBuffer.Reset();
+
+	// Resize the swap chain.
+	ThrowIfFailed(m_SwapChain->ResizeBuffers(
+		SwapChainBufferCount,
+		m_win->Width(), m_win->Height(),
+		m_BackBufferFormat,
+		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+
+	m_CurrBackBuffer = 0;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(m_RtvHeap->GetCPUDescriptorHandleForHeapStart());
+	for (UINT i = 0; i < SwapChainBufferCount; i++)
+	{
+		ThrowIfFailed(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&m_SwapChainBuffer[i])));
+		m_d3dDevice->CreateRenderTargetView(m_SwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
+		//rtvHeapHandle.Offset(1, m_RtvDescriptorSize);
+	}
 }
 
 void D3DContext::setApp(App* app)
