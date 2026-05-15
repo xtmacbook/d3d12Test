@@ -139,12 +139,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="common\App.h" />
+    <ClInclude Include="common\CD3dx12.h" />
+    <ClInclude Include="common\D3DContext.h" />
+    <ClInclude Include="common\GameTimer.h" />
+    <ClInclude Include="common\Util.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="osgEarth.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="common\App.cpp" />
+    <ClCompile Include="common\D3DContext.cpp" />
+    <ClCompile Include="common\GameTimer.cpp" />
+    <ClCompile Include="common\Util.cpp" />
     <ClCompile Include="osgEarth.cpp" />
   </ItemGroup>
   <ItemGroup>
