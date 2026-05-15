@@ -21,6 +21,8 @@ public:
 
 	void setApp(App*);
 
+	inline ID3D12Device* device() { return m_d3dDevice.Get(); }
+
 protected:
 	void CreateCommandObjects();
 	void CreateSwapChain();
