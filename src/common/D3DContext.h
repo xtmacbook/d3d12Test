@@ -13,6 +13,8 @@ public:
 
 	D3DContext() =default;
 
+	virtual ~D3DContext();
+
 	virtual bool InitDirect3D();
 	virtual void CreateRtvAndDsvDescriptorHeaps();
 	virtual void OnResize();
@@ -24,6 +26,11 @@ protected:
 	void CreateSwapChain();
 
 	void FlushCommandQueue();
+
+protected:
+
+	D3D12_CPU_DESCRIPTOR_HANDLE CurrentCPUBackBufferView()const;
+	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilCPUView()const;
 
 protected:
 
@@ -51,6 +58,10 @@ protected:
 	UINT													m_RtvDescriptorSize = 0;
 	UINT													m_DsvDescriptorSize = 0;
 	UINT													m_CbvSrvUavDescriptorSize = 0;
+
+
+	D3D12_VIEWPORT											m_ScreenViewport;
+	D3D12_RECT												m_ScissorRect;
 
 	static const int										SwapChainBufferCount = 2;
 

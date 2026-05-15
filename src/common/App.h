@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "GameTimer.h"
 
 class D3DContext;
 
@@ -26,11 +27,16 @@ public:
 
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+	void CalculateFrameStats();
+
 protected:
 	virtual void OnMouseDown(WPARAM btnState, int x, int y) { }
 	virtual void OnMouseUp(WPARAM btnState, int x, int y) { }
 	virtual void OnMouseMove(WPARAM btnState, int x, int y) { }
 	virtual void OnResize();
+
+	virtual void Update(const GameTimer& gt) {};
+	virtual void Draw(const GameTimer& gt) {};
 
 protected:
 
@@ -48,5 +54,7 @@ protected:
 	bool						m_Maximized = false;  // is the application maximized?
 	bool						m_Resizing = false;   // are the resize bars being dragged?
 	bool						m_FullscreenState = false;// fullscreen enabled
+
+	GameTimer					m_Timer;
 
 };

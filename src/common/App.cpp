@@ -20,6 +20,11 @@ App::App(HINSTANCE hInstance, D3DContext*context) :
 
 App::~App()
 {
+	if (m_d3d)
+	{
+		delete m_d3d;
+		m_d3d = nullptr;
+	}
 }
 
 App* App::GetApp()
@@ -50,17 +55,42 @@ int App::Height() const
 bool App::Initialize()
 {
 	if (!InitWindow()) return false;
-	if (m_d3d && m_d3d->InitDirect3D())
+	
+	if (m_d3d)
 	{
-		return true;
-
+		if (!m_d3d->InitDirect3D())
+			return false;
 	}
-	return false;
+
+	OnResize();
+
+	return true;
 }
 
 int App::Run()
 {
-	return 0;
+	m_Timer.Reset();
+
+	MSG msg = { };
+
+	while (msg.message != WM_QUIT)
+	{
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		else
+		{
+			m_Timer.Tick();
+
+			CalculateFrameStats();
+			Update(m_Timer);
+			Draw(m_Timer);
+		}
+	}
+
+	return (int)msg.wParam;
 }
 
 bool App::InitWindow()
@@ -98,6 +128,7 @@ bool App::InitWindow()
 	}
 
 	ShowWindow(m_hWindow, SW_SHOW);
+	UpdateWindow(m_hWindow);
 
 	return true;
 }
@@ -149,6 +180,34 @@ LRESULT App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 	}
 	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
+void App::CalculateFrameStats()
+{
+	static int frameCnt = 0;
+	static float timeElapsed = 0.0f;
+
+	frameCnt++;
+
+	// Compute averages over one second period.
+	if ((m_Timer.TotalTime() - timeElapsed) >= 1.0f)
+	{
+		float fps = (float)frameCnt; // fps = frameCnt / 1
+		float mspf = 1000.0f / fps;
+
+		std::wstring fpsStr = std::to_wstring(fps);
+		std::wstring mspfStr = std::to_wstring(mspf);
+
+		std::wstring windowText =
+			L"    fps: " + fpsStr +
+			L"   mspf: " + mspfStr;
+
+		SetWindowText(m_hWindow, windowText.c_str());
+
+		// Reset for next average.
+		frameCnt = 0;
+		timeElapsed += 1.0f;
+	}
 }
 
 void App::OnResize()
