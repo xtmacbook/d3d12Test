@@ -45,6 +45,12 @@
     <ClInclude Include="common\Util.h">
       <Filter>源文件\common</Filter>
     </ClInclude>
+    <ClInclude Include="MainApp.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MainD3dContext.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="osgEarth.cpp">
@@ -61,6 +67,12 @@
     </ClCompile>
     <ClCompile Include="common\Util.cpp">
       <Filter>源文件\common</Filter>
+    </ClCompile>
+    <ClCompile Include="MainApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MainD3dContext.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

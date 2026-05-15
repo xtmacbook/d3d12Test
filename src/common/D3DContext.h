@@ -1,3 +1,4 @@
+#pragma once
 
 #include "Util.h"
 
@@ -23,11 +24,11 @@ public:
 
 	inline ID3D12Device* device() { return m_d3dDevice.Get(); }
 
+	void FlushCommandQueue();
+
 protected:
 	void CreateCommandObjects();
 	void CreateSwapChain();
-
-	void FlushCommandQueue();
 
 protected:
 

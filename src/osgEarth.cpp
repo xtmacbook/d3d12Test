@@ -1,5 +1,5 @@
 ﻿
-#include "common/app.h"
+#include "MainApp.h"
 #include "common/D3DContext.h"
 
 #include <windows.h>
@@ -13,7 +13,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 {
 	D3DContext d3dContext;
 
-	App app(hInstance, &d3dContext);
+	MainApp app(hInstance, &d3dContext);
 
 	if (!app.Initialize()) return 0;
 

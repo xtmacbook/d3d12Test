@@ -145,6 +145,8 @@
     <ClInclude Include="common\GameTimer.h" />
     <ClInclude Include="common\Util.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="MainApp.h" />
+    <ClInclude Include="MainD3dContext.h" />
     <ClInclude Include="osgEarth.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
@@ -154,6 +156,8 @@
     <ClCompile Include="common\D3DContext.cpp" />
     <ClCompile Include="common\GameTimer.cpp" />
     <ClCompile Include="common\Util.cpp" />
+    <ClCompile Include="MainApp.cpp" />
+    <ClCompile Include="MainD3dContext.cpp" />
     <ClCompile Include="osgEarth.cpp" />
   </ItemGroup>
   <ItemGroup>

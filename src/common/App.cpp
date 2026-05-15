@@ -22,8 +22,7 @@ App::~App()
 {
 	if (m_d3d)
 	{
-		delete m_d3d;
-		m_d3d = nullptr;
+		m_d3d->FlushCommandQueue();
 	}
 }
 
