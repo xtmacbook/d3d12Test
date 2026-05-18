@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Util.h"
+#include "GameTimer.h"
 
 #pragma comment(lib,"d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
@@ -26,6 +27,10 @@ public:
 
 	void FlushCommandQueue();
 
+	virtual void Update(const GameTimer& gt) {};
+	virtual void Draw(const GameTimer& gt) {};
+
+
 protected:
 	void CreateCommandObjects();
 	void CreateSwapChain();
@@ -34,6 +39,7 @@ protected:
 
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentCPUBackBufferView()const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilCPUView()const;
+	ID3D12Resource* CurrentBackBuffer()const;
 
 protected:
 

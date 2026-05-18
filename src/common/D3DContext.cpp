@@ -49,6 +49,12 @@ bool D3DContext::InitDirect3D()
 	ThrowIfFailed(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
 		IID_PPV_ARGS(&m_Fence)));
 
+	// ------------------------------------------------ Get Descriptor Size ------------------------------------------------
+	m_RtvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	m_DsvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	m_CbvSrvUavDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
 	msQualityLevels.Format = m_BackBufferFormat;
 	msQualityLevels.SampleCount = 4;
@@ -133,7 +139,7 @@ void D3DContext::OnResize()
 	depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 
 	depthStencilDesc.SampleDesc.Count = (m_4xMsaaState) ? 4 : 1;
-	depthStencilDesc.SampleDesc.Quality = (m_4xMsaaState) ? (m_4xMsaaQuality - 1) : 1;
+	depthStencilDesc.SampleDesc.Quality = (m_4xMsaaState) ? (m_4xMsaaQuality - 1) : 0;
 
 	depthStencilDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	depthStencilDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -149,7 +155,7 @@ void D3DContext::OnResize()
 		&depthStencilDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		&optClear,
-		IID_PPV_ARGS(&m_DepthStencilBuffer)));
+		IID_PPV_ARGS(m_DepthStencilBuffer.GetAddressOf())));
 
 	// ------------------------------------------------ Create descriptor(view) to mip level 0 of entire resource  ------------------------------------------------
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
@@ -284,4 +290,9 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DContext::CurrentCPUBackBufferView() const
 D3D12_CPU_DESCRIPTOR_HANDLE D3DContext::DepthStencilCPUView() const
 {
 	return m_DsvHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+ID3D12Resource* D3DContext::CurrentBackBuffer() const
+{
+	return m_SwapChainBuffer[m_CurrBackBuffer].Get();
 }
