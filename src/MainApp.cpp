@@ -5,12 +5,20 @@ MainApp::MainApp(HINSTANCE hInstance, D3DContext* context)
 {
 }
 
+bool MainApp::Initialize()
+{
+	if (!App::Initialize())
+		return false;
+
+	return true;
+}
+
 void MainApp::Update(const GameTimer& gt)
 {
-	if (m_d3d) m_d3d->Update(gt);
+	App::Update(gt);
 }
 
 void MainApp::Draw(const GameTimer& gt)
 {
-	if (m_d3d) m_d3d->Draw(gt);
+	App::Draw(gt);
 }

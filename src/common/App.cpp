@@ -1,5 +1,6 @@
 #include "app.h"
 #include "D3DContext.h"
+#include "MathHelper.h"
 
 #include <windowsx.h>
 
@@ -39,6 +40,11 @@ HINSTANCE App::AppInst() const
 HWND App::MainWnd() const
 {
 	return m_hWindow;
+}
+
+float App::AspectRatio() const
+{
+	return static_cast<float>(m_ClientWidth) / m_ClientHeight;
 }
 
 int App::Width() const
@@ -285,7 +291,69 @@ void App::CalculateFrameStats()
 	}
 }
 
+void App::GetViewState(float& theta, float& phi, float& radius)
+{
+	theta = m_Theta;
+	phi = m_Phi;
+	radius = m_Radius;
+}
+
+void App::OnMouseDown(WPARAM btnState, int x, int y)
+{
+	m_LastMousePos.x = x;
+	m_LastMousePos.y = y;
+
+	SetCapture(m_hWindow);
+}
+
+void App::OnMouseUp(WPARAM btnState, int x, int y)
+{
+	ReleaseCapture();
+}
+
+void App::OnMouseMove(WPARAM btnState, int x, int y)
+{
+	if ((btnState & MK_LBUTTON) != 0)
+	{
+		// Make each pixel correspond to a quarter of a degree.
+		float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(x - m_LastMousePos.x));
+		float dy = DirectX::XMConvertToRadians(0.25f * static_cast<float>(y - m_LastMousePos.y));
+
+		// Update angles based on input to orbit camera around box.
+		m_Theta += dx;
+		m_Phi += dy;
+
+		// Restrict the angle mPhi.
+		m_Phi = MathHelper::Clamp(m_Phi, 0.1f, MathHelper::Pi - 0.1f);
+	}
+	else if ((btnState & MK_RBUTTON) != 0)
+	{
+		// Make each pixel correspond to 0.005 unit in the scene.
+		float dx = 0.005f * static_cast<float>(x - m_LastMousePos.x);
+		float dy = 0.005f * static_cast<float>(y - m_LastMousePos.y);
+
+		// Update the camera radius based on input.
+		m_Radius += dx - dy;
+
+		// Restrict the radius.
+		m_Radius = MathHelper::Clamp(m_Radius, 3.0f, 15.0f);
+	}
+
+	m_LastMousePos.x = x;
+	m_LastMousePos.y = y;
+}
+
 void App::OnResize()
 {
 	if (m_d3d) m_d3d->OnResize();
+}
+
+void App::Update(const GameTimer& gt)
+{
+	if (m_d3d) m_d3d->Update(gt);
+}
+
+void App::Draw(const GameTimer& gt)
+{
+	if (m_d3d) m_d3d->Draw(gt);
 }

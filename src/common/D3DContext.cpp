@@ -1,9 +1,9 @@
 #include "D3DContext.h"
 #include "App.h"
-#include "CD3dx12.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+using namespace DirectX::PackedVector;
 
 D3DContext::~D3DContext()
 {
@@ -98,6 +98,10 @@ void D3DContext::CreateRtvAndDsvDescriptorHeaps()
 
 void D3DContext::OnResize()
 {
+	// The window resized, so update the aspect ratio and recompute the projection matrix.
+	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, m_win->AspectRatio(), 1.0f, 1000.0f);
+	DirectX::XMStoreFloat4x4(&m_Proj, P);
+
 	FlushCommandQueue();
 
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
@@ -277,6 +281,25 @@ void D3DContext::FlushCommandQueue()
 		CloseHandle(eventHandle);
 	}
 
+}
+
+void D3DContext::Update(const GameTimer& gt)
+{
+	float radius, phi, theta;
+	m_win->GetViewState(theta,phi,radius);
+
+	// Convert Spherical to Cartesian coordinates.
+	float x = radius * sinf(phi) * cosf(theta);
+	float z = radius * sinf(phi) * sinf(theta);
+	float y = radius * cosf(phi);
+
+	// Build the view matrix.
+	XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
+	XMVECTOR target = XMVectorZero();
+	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	XMStoreFloat4x4(&m_View, view);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3DContext::CurrentCPUBackBufferView() const

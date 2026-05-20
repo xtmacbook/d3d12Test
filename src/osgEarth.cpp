@@ -1,9 +1,8 @@
 ﻿
+#pragma once
+
 #include "MainApp.h"
 #include "MainD3dContext.h"
-
-#include <windows.h>
-#include <DirectXColors.h>
 
 using namespace DirectX;
 

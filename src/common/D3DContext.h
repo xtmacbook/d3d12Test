@@ -2,6 +2,7 @@
 
 #include "Util.h"
 #include "GameTimer.h"
+#include "MathHelper.h"
 
 #pragma comment(lib,"d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
@@ -27,7 +28,7 @@ public:
 
 	void FlushCommandQueue();
 
-	virtual void Update(const GameTimer& gt) {};
+	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt) {};
 
 
@@ -40,6 +41,12 @@ protected:
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentCPUBackBufferView()const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilCPUView()const;
 	ID3D12Resource* CurrentBackBuffer()const;
+
+protected:
+
+	DirectX::XMFLOAT4X4 m_World					= MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 m_View					= MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 m_Proj					= MathHelper::Identity4x4();
 
 protected:
 

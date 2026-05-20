@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <DirectXMath.h>
 #include "GameTimer.h"
 
 class D3DContext;
@@ -18,6 +19,8 @@ public:
 	HINSTANCE AppInst()const;
 	HWND      MainWnd()const;
 
+	float       AspectRatio()const;
+
 	int			Width()const;
 	int			Height()const;
 
@@ -31,14 +34,16 @@ public:
 
 	void CalculateFrameStats();
 
+	void GetViewState(float& theta, float& phi, float& radius);
+
 protected:
-	virtual void OnMouseDown(WPARAM btnState, int x, int y) { }
-	virtual void OnMouseUp(WPARAM btnState, int x, int y) { }
-	virtual void OnMouseMove(WPARAM btnState, int x, int y) { }
+	virtual void OnMouseDown(WPARAM btnState, int x, int y);
+	virtual void OnMouseUp(WPARAM btnState, int x, int y);
+	virtual void OnMouseMove(WPARAM btnState, int x, int y);
 	virtual void OnResize();
 
-	virtual void Update(const GameTimer& gt) {};
-	virtual void Draw(const GameTimer& gt) {};
+	virtual void Update(const GameTimer& gt);
+	virtual void Draw(const GameTimer& gt);
 
 protected:
 
@@ -58,5 +63,10 @@ protected:
 	bool						m_FullscreenState = false;// fullscreen enabled
 
 	GameTimer					m_Timer;
+
+	float						m_Theta = 1.5f * DirectX::XM_PI;
+	float						m_Phi = DirectX::XM_PIDIV4;
+	float						m_Radius = 5.0f;
+	POINT						m_LastMousePos;
 
 };
