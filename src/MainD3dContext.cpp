@@ -1,19 +1,13 @@
 #include "MainD3dContext.h"
 #include "common/Util.h"
-
+#include "Data.h"
+#include "Geometry.h"
 
 #include <array>
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
-
-struct Vertex
-{
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
-};
-
 
 bool MainD3DContext::InitDirect3D()
 {

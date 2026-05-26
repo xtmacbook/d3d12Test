@@ -60,6 +60,18 @@
     <ClInclude Include="MainD3dContext.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Data.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameResource.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameResourceContext.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="common\GeometryGenerator.h">
+      <Filter>源文件\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="osgEarth.rc">
@@ -101,6 +113,18 @@
     </ClCompile>
     <ClCompile Include="osgEarth.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Data.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameResource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameResourceContext.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="common\GeometryGenerator.cpp">
+      <Filter>源文件\common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

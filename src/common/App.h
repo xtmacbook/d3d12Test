@@ -41,6 +41,7 @@ protected:
 	virtual void OnMouseUp(WPARAM btnState, int x, int y);
 	virtual void OnMouseMove(WPARAM btnState, int x, int y);
 	virtual void OnResize();
+	void OnKeyboardInput(const GameTimer& gt);
 
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt);
@@ -68,5 +69,6 @@ protected:
 	float						m_Phi = DirectX::XM_PIDIV4;
 	float						m_Radius = 5.0f;
 	POINT						m_LastMousePos;
+
 
 };

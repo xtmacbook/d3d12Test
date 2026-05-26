@@ -1,4 +1,4 @@
-#include "D3DContext.h"
+﻿#include "D3DContext.h"
 #include "App.h"
 
 using Microsoft::WRL::ComPtr;
@@ -98,10 +98,6 @@ void D3DContext::CreateRtvAndDsvDescriptorHeaps()
 
 void D3DContext::OnResize()
 {
-	// The window resized, so update the aspect ratio and recompute the projection matrix.
-	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, m_win->AspectRatio(), 1.0f, 1000.0f);
-	DirectX::XMStoreFloat4x4(&m_Proj, P);
-
 	FlushCommandQueue();
 
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
@@ -192,11 +188,20 @@ void D3DContext::OnResize()
 	m_ScreenViewport.MaxDepth = 1.0f;
 
 	m_ScissorRect = { 0, 0, m_win->Width(), m_win->Height() };
+
+	// The window resized, so update the aspect ratio and recompute the projection matrix.
+	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, m_win->AspectRatio(), 1.0f, 1000.0f);
+	DirectX::XMStoreFloat4x4(&m_Proj, P);
 }
 
 void D3DContext::setApp(App* app)
 {
 	m_win = app;
+}
+
+void D3DContext::setWireFrame(bool frame)
+{
+	m_IsWireframe = frame;
 }
 
 void D3DContext::CreateCommandObjects()
@@ -266,7 +271,7 @@ void D3DContext::FlushCommandQueue()
 	// Add an instruction to the command queue to set a new fence point.  Because we 
 	// are on the GPU timeline, the new fence point won't be set until the GPU finishes
 	// processing all the commands prior to this Signal().
-	ThrowIfFailed(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence));
+	ThrowIfFailed(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence)); //更新m_Fence为特定的值
 
 	// Wait until the GPU has completed commands up to this fence point.
 	if (m_Fence->GetCompletedValue() < m_CurrentFence)
@@ -285,21 +290,7 @@ void D3DContext::FlushCommandQueue()
 
 void D3DContext::Update(const GameTimer& gt)
 {
-	float radius, phi, theta;
-	m_win->GetViewState(theta,phi,radius);
-
-	// Convert Spherical to Cartesian coordinates.
-	float x = radius * sinf(phi) * cosf(theta);
-	float z = radius * sinf(phi) * sinf(theta);
-	float y = radius * cosf(phi);
-
-	// Build the view matrix.
-	XMVECTOR pos = XMVectorSet(x, y, z, 1.0f);
-	XMVECTOR target = XMVectorZero();
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&m_View, view);
+	UpdateCamera(gt);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3DContext::CurrentCPUBackBufferView() const
@@ -318,4 +309,23 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DContext::DepthStencilCPUView() const
 ID3D12Resource* D3DContext::CurrentBackBuffer() const
 {
 	return m_SwapChainBuffer[m_CurrBackBuffer].Get();
+}
+
+void D3DContext::UpdateCamera(const GameTimer& gt)
+{
+	float radius, phi, theta;
+	m_win->GetViewState(theta, phi, radius);
+
+	// Convert Spherical to Cartesian coordinates.
+	m_EyePos.x = radius * sinf(phi) * cosf(theta);
+	m_EyePos.z = radius * sinf(phi) * sinf(theta);
+	m_EyePos.y = radius * cosf(phi);
+
+	// Build the view matrix.
+	XMVECTOR pos = XMVectorSet(m_EyePos.x, m_EyePos.y, m_EyePos.z, 1.0f);
+	XMVECTOR target = XMVectorZero();
+	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
+	XMStoreFloat4x4(&m_View, view);
 }

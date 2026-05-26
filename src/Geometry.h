@@ -8,7 +8,6 @@
 #include <string>
 
 
-using namespace DirectX;
 
 
 struct SubmeshGeometry
@@ -44,6 +43,7 @@ struct MeshGeometry
 	// the Submeshes individually.
 	std::unordered_map<std::string, SubmeshGeometry> m_DrawArgs;
 
+	//这里的view相当与descriptor
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
 	{
 		D3D12_VERTEX_BUFFER_VIEW vbv;

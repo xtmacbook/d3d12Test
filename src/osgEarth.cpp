@@ -2,7 +2,9 @@
 #pragma once
 
 #include "MainApp.h"
-#include "MainD3dContext.h"
+#include "FrameResourceContext.h"
+#include "Geometry.h"
+#include "FrameResource.h"
 
 using namespace DirectX;
 
@@ -10,7 +12,7 @@ using namespace DirectX;
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 	PSTR cmdLine, int nCmdShow)
 {
-	MainD3DContext d3dContext;
+	FrameResourceContext d3dContext;
 
 	MainApp app(hInstance, &d3dContext);
 

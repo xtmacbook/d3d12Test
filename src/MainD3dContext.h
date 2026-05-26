@@ -2,17 +2,12 @@
 
 #include "common/D3DContext.h"
 #include "common/UploadBuffer.h"
-#include "common/MathHelper.h"
-#include "Geometry.h"
 
 #include <memory>
+#include <vector>
 
 struct MeshGeometry;
-
-struct ObjectConstants
-{
-	XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
-};
+struct ObjectConstants;
 
 class MainD3DContext :public D3DContext
 {
@@ -24,13 +19,13 @@ public:
 	virtual void Draw(const GameTimer& gt);
 
 protected:
-	void BuildDescriptorHeaps();
-	void BuildConstantBuffers();
+	virtual void BuildDescriptorHeaps();
+	virtual void BuildConstantBuffers();
 
-	void BuildRootSignature();
-	void BuildShadersAndInputLayout();
+	virtual void BuildRootSignature();
+	virtual void BuildShadersAndInputLayout();
 
-	void BuildPSO();
+	virtual void BuildPSO();
 
 	virtual void BuildGeometry();
 	

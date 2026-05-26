@@ -143,9 +143,13 @@
     <ClInclude Include="common\D3DContext.h" />
     <ClInclude Include="common\d3dx12.h" />
     <ClInclude Include="common\GameTimer.h" />
+    <ClInclude Include="common\GeometryGenerator.h" />
     <ClInclude Include="common\MathHelper.h" />
     <ClInclude Include="common\UploadBuffer.h" />
     <ClInclude Include="common\Util.h" />
+    <ClInclude Include="Data.h" />
+    <ClInclude Include="FrameResource.h" />
+    <ClInclude Include="FrameResourceContext.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="MainApp.h" />
@@ -165,8 +169,12 @@
     <ClCompile Include="common\App.cpp" />
     <ClCompile Include="common\D3DContext.cpp" />
     <ClCompile Include="common\GameTimer.cpp" />
+    <ClCompile Include="common\GeometryGenerator.cpp" />
     <ClCompile Include="common\MathHelper.cpp" />
     <ClCompile Include="common\Util.cpp" />
+    <ClCompile Include="Data.cpp" />
+    <ClCompile Include="FrameResource.cpp" />
+    <ClCompile Include="FrameResourceContext.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="MainApp.cpp" />
     <ClCompile Include="MainD3dContext.cpp" />

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Util.h"
 #include "GameTimer.h"
@@ -26,11 +26,14 @@ public:
 
 	inline ID3D12Device* device() { return m_d3dDevice.Get(); }
 
+	/*同步CPU和GPU,但是目前是阻止CPU的运行,GPU完成提交的命令后继续CPU的执行*/
 	void FlushCommandQueue();
 
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt) {};
 
+
+	void setWireFrame(bool);
 
 protected:
 	void CreateCommandObjects();
@@ -41,13 +44,14 @@ protected:
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentCPUBackBufferView()const;
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilCPUView()const;
 	ID3D12Resource* CurrentBackBuffer()const;
+	void UpdateCamera(const GameTimer& gt);
 
 protected:
 
-	DirectX::XMFLOAT4X4 m_World					= MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 m_View					= MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 m_Proj					= MathHelper::Identity4x4();
-
+	DirectX::XMFLOAT4X4 m_World								= MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 m_View								= MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 m_Proj								= MathHelper::Identity4x4();
+	DirectX::XMFLOAT3	m_EyePos							= { .0,.0,.0 };
 protected:
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4>					m_dxgiFactory;
@@ -85,4 +89,7 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource>					m_DepthStencilBuffer;
 	int														m_CurrBackBuffer = 0;
 	App*													m_win = nullptr;
+
+	bool													m_IsWireframe = false;
+
 };

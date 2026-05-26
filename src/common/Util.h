@@ -1,7 +1,4 @@
-#pragma once
-
-
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <wrl.h>
 
 #include <dxgi1_4.h>
@@ -13,10 +10,13 @@
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
 
+#pragma once
+
 #include "d3dx12.h"
 
-#include <string>
 
+#include <string>
+ 
 inline std::wstring AnsiToWstring(const std::string& str)
 {
     WCHAR buffer[512];
@@ -43,6 +43,13 @@ public:
         return (byteSize + 255) & ~255;
     }
 
+    /*
+      1.Gpu上创建buffer;
+      2.创建uploader buffer;
+      3.通过map 将cpu数据(MemcpySubresource)放入到uploader buffer,
+      4.通过pCmdList->CopyBufferRegion将uploader buffer数据推送到第一步创建的buffer中
+
+    */
     static Microsoft::WRL::ComPtr<ID3D12Resource> CreateDefaultBuffer(
         ID3D12Device* device,
         ID3D12GraphicsCommandList* cmdList,
