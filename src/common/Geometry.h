@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include "common/MathHelper.h"
-#include "common/Util.h"
+#include "MathHelper.h"
+#include "Util.h"
 
 #include <unordered_map>
 #include <string>
@@ -70,10 +70,4 @@ struct MeshGeometry
 		m_VertexBufferUploader = nullptr;
 		m_IndexBufferUploader = nullptr;
 	}
-};
-
-
-struct BuildGeometry
-{
-
 };

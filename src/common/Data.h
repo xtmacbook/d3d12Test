@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "common/Util.h"
-#include "common/MathHelper.h"
+#include "Util.h"
+#include "MathHelper.h"
 
 struct MeshGeometry;
 
@@ -21,10 +21,16 @@ struct ObjectConstants
 
 */
 
-struct Vertex
+struct VertexC
 {
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT4 Color;
+};
+
+struct VertexN
+{
+	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Normal;
 };
 
 /*
@@ -48,6 +54,11 @@ struct PassConstants
 	float						m_DeltaTime = 0.0f;
 };
 
+struct PassConstantsWithLight : public PassConstants
+{
+	DirectX::XMFLOAT4			m_AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
+	Light						m_Lights[MaxLights];
+};
 
 // Lightweight structure stores parameters to draw a shape.  This will
 // vary from app-to-app.
@@ -78,4 +89,11 @@ struct RenderItem
 	UINT							m_IndexCount = 0;
 	UINT							m_StartIndexLocation = 0;
 	int								m_BaseVertexLocation = 0;
+};
+
+struct RenderItemWithMaterial : public RenderItem
+{
+	DirectX::XMFLOAT4X4 m_TexTransform = MathHelper::Identity4x4();
+
+	Material* m_Material = nullptr;
 };

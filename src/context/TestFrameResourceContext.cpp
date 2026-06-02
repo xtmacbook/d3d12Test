@@ -1,8 +1,9 @@
-﻿#include "FrameResourceContext.h"
-#include "FrameResource.h"
-#include "common/App.h"
-#include "common/GeometryGenerator.h"
-#include "Geometry.h"
+﻿#include "TestFrameResourceContext.h"
+
+#include "../common/FrameResource.h"
+#include "../common/App.h"
+#include "../common/GeometryGenerator.h"
+#include "../common/Geometry.h"
 
 
 using namespace DirectX;
@@ -10,9 +11,7 @@ using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
 
-const int	FrameResourceContext::m_NumFrameResources = 3;
-
-bool FrameResourceContext::InitDirect3D()
+bool DefaultFrameResourceContext::InitDirect3D()
 {
 	if (!D3DContext::InitDirect3D()) return false;
 
@@ -39,48 +38,78 @@ bool FrameResourceContext::InitDirect3D()
 	return true;
 }
 
-void FrameResourceContext::Update(const GameTimer& gt)
+void DefaultFrameResourceContext::Update(const GameTimer& gt)
 {
-	D3DContext::Update(gt);
-
-	// Cycle through the circular frame resource array.
-	m_CurrFrameResourceIndex = (m_CurrFrameResourceIndex + 1) %
-		m_NumFrameResources;
-
-	m_currFrameResource = m_frameResources[m_CurrFrameResourceIndex].get();
-
-	/* Has the GPU finished processing the commands of the current frame
-	 resource. If not, wait until the GPU has completed commands up to
-	 this fence point.*/
-
-	if (m_currFrameResource->m_Fence != 0 &&
-		m_Fence->GetCompletedValue() < m_currFrameResource->m_Fence)
-	{
-		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
-
-		ThrowIfFailed(m_Fence->SetEventOnCompletion(m_currFrameResource->m_Fence, eventHandle));
-
-		WaitForSingleObject(eventHandle, INFINITE);
-		CloseHandle(eventHandle);
-	}
-
+	FrameResourceContextInterface::Update(gt);
 	UpdateObjectCBs(gt);
 	UpdateMainPassCB(gt);
 }
 
-void FrameResourceContext::Draw(const GameTimer& gt)
+void DefaultFrameResourceContext::UpdateObjectCBs(const GameTimer& gt)
 {
-	auto cmdListAlloc = m_currFrameResource->m_CmdListAlloc;
+	for (auto& item : m_AllRitems)
+	{
+		// Only update the cbuffer data if the constants have changed.  
+		// This needs to be tracked per frame resource.
+		if (item->m_NumFramesDirty > 0)
+		{
+			XMMATRIX world = XMLoadFloat4x4(&item->m_World);
 
-	ThrowIfFailed(cmdListAlloc->Reset());
+			ObjectConstants objConstants;
+			XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(world));
+
+			m_currFrameResource->CopyConstData(item->m_ObjCBIndex, &objConstants);
+			item->m_NumFramesDirty--;
+		}
+	}
+}
+
+void DefaultFrameResourceContext::UpdateMainPassCB(const GameTimer& gt)
+{
+	XMMATRIX view = XMLoadFloat4x4(&m_View);
+	XMMATRIX proj = XMLoadFloat4x4(&m_Proj);
+
+	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
+	XMStoreFloat4x4(&m_MainPassCB.m_View, XMMatrixTranspose(view));
+	XMStoreFloat4x4(&m_MainPassCB.m_InvView, XMMatrixTranspose(invView));
+	XMStoreFloat4x4(&m_MainPassCB.m_Proj, XMMatrixTranspose(proj));
+	XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));
+	XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));
+	XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));
+	m_MainPassCB.m_EyePosW = m_EyePos;
+	m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)m_win->Width(), (float)m_win->Height());
+	m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_win->Width(), 1.0f / m_win->Height());
+	m_MainPassCB.m_NearZ = 1.0f;
+	m_MainPassCB.m_FarZ = 1000.0f;
+	m_MainPassCB.m_TotalTime = gt.TotalTime();
+	m_MainPassCB.m_DeltaTime = gt.DeltaTime();
+
+	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
+}
+
+
+void DefaultFrameResourceContext::BuildFrameResources()
+{
+	for (int i = 0; i < m_NumFrameResources; i++)
+	{
+		m_frameResources.emplace_back(std::make_unique<FrameResource>(m_d3dDevice.Get(), 1, m_AllRitems.size()));
+	}
+}
+
+void DefaultFrameResourceContext::DrawFrameResource(ID3D12CommandAllocator* cmdListAlloc)
+{
 
 	if (m_IsWireframe)
 	{
-		ThrowIfFailed(m_CommandList->Reset(cmdListAlloc.Get(), m_PSOs["opaque_wireframe"].Get()));
+		ThrowIfFailed(m_CommandList->Reset(cmdListAlloc, m_PSOs["opaque_wireframe"].Get()));
 	}
 	else
 	{
-		ThrowIfFailed(m_CommandList->Reset(cmdListAlloc.Get(), m_PSOs["opaque"].Get()));
+		ThrowIfFailed(m_CommandList->Reset(cmdListAlloc, m_PSOs["opaque"].Get()));
 	}
 
 	m_CommandList->RSSetViewports(1, &m_ScreenViewport);
@@ -123,79 +152,9 @@ void FrameResourceContext::Draw(const GameTimer& gt)
 	// Swap the back and front buffers
 	ThrowIfFailed(m_SwapChain->Present(0, 0));
 	m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
-
-	/* [...] Build and submit command lists for this frame.
-	 Advance the fence value to mark commands up to this fence point.*/
-
-	m_currFrameResource->m_Fence = ++m_CurrentFence;
-	/* Add an instruction to the command queue to set a new fence point.
-	 Because we are on the GPU timeline, the new fence point won’t be
-	 set until the GPU finishes processing all the commands prior to
-	 this Signal().*/
-	m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence);
-	/* Note that GPU could still be working on commands from previous
-	 frames, but that is okay, because we are not touching any frame
-	 resources associated with those frames.*/
 }
 
-void FrameResourceContext::UpdateObjectCBs(const GameTimer& gt)
-{
-	UploadBuffer<ObjectConstants>* curObjCB = m_currFrameResource->m_ObjectCB.get();
-
-	for (auto& item : m_AllRitems)
-	{
-		// Only update the cbuffer data if the constants have changed.  
-		// This needs to be tracked per frame resource.
-		if (item->m_NumFramesDirty > 0)
-		{
-			XMMATRIX world = XMLoadFloat4x4(&item->m_World);
-
-			ObjectConstants objConstants;
-			XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(world));
-
-			curObjCB->CopyData(item->m_ObjCBIndex, objConstants);
-			item->m_NumFramesDirty--;
-		}
-	}
-}
-
-void FrameResourceContext::UpdateMainPassCB(const GameTimer& gt)
-{
-	XMMATRIX view = XMLoadFloat4x4(&m_View);
-	XMMATRIX proj = XMLoadFloat4x4(&m_Proj);
-
-	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
-	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
-	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
-	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
-
-	XMStoreFloat4x4(&m_MainPassCB.m_View, XMMatrixTranspose(view));
-	XMStoreFloat4x4(&m_MainPassCB.m_InvView, XMMatrixTranspose(invView));
-	XMStoreFloat4x4(&m_MainPassCB.m_Proj, XMMatrixTranspose(proj));
-	XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));
-	XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));
-	XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));
-	m_MainPassCB.m_EyePosW = m_EyePos;
-	m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)m_win->Width(), (float)m_win->Height());
-	m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_win->Width(), 1.0f / m_win->Height());
-	m_MainPassCB.m_NearZ = 1.0f;
-	m_MainPassCB.m_FarZ = 1000.0f;
-	m_MainPassCB.m_TotalTime = gt.TotalTime();
-	m_MainPassCB.m_DeltaTime = gt.DeltaTime();
-
-	auto currPassCB = m_currFrameResource->m_PassCB.get();
-	currPassCB->CopyData(0, m_MainPassCB);
-}
-
-void FrameResourceContext::BuildFrameResources()
-{
-	for (int i = 0; i < m_NumFrameResources; i++)
-	{
-		m_frameResources.emplace_back(std::make_unique<FrameResource>(m_d3dDevice.Get(),1,m_AllRitems.size()));
-	}
-}
-
-void FrameResourceContext::BuildDescriptorHeaps()
+void DefaultFrameResourceContext::BuildDescriptorHeaps()
 {
 
 	UINT objCount = (UINT)m_OpaqueRitems.size();
@@ -215,7 +174,7 @@ void FrameResourceContext::BuildDescriptorHeaps()
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&objCbvHeapDesc,IID_PPV_ARGS(&m_ObjCbvHeap)));
 }
 
-void FrameResourceContext::BuildRenderItems()
+void DefaultFrameResourceContext::BuildRenderItems()
 {
 	auto boxRitem = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&boxRitem->m_World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
@@ -294,7 +253,7 @@ void FrameResourceContext::BuildRenderItems()
 		m_OpaqueRitems.push_back(e.get());
 }
 
-void FrameResourceContext::BuildPSO()
+void DefaultFrameResourceContext::BuildPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
 	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -332,7 +291,7 @@ void FrameResourceContext::BuildPSO()
 	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&opaqueWireframePsoDesc, IID_PPV_ARGS(&m_PSOs["opaque_wireframe"])));
 }
 
-void FrameResourceContext::BuildConstantBufferViews()
+void DefaultFrameResourceContext::BuildConstantBufferViews()
 {
 	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
@@ -340,11 +299,9 @@ void FrameResourceContext::BuildConstantBufferViews()
 
 	for (int frameIndx = 0; frameIndx < m_NumFrameResources; frameIndx++)
 	{
-		auto objectCB = m_frameResources[frameIndx]->m_ObjectCB->Resource();
-
 		for (UINT i = 0; i < objCount; ++i)
 		{
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objectCB->GetGPUVirtualAddress();
+			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = m_frameResources[frameIndx]->getConstGpuAddress();
 
 			cbAddress += i * objCBByteSize;
 
@@ -366,8 +323,7 @@ void FrameResourceContext::BuildConstantBufferViews()
 	// Last three descriptors are the pass CBVs for each frame resource.
 	for (int frameIndex = 0; frameIndex < m_NumFrameResources; ++frameIndex)
 	{
-		auto passCB = m_frameResources[frameIndex]->m_PassCB->Resource();
-		D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
+		D3D12_GPU_VIRTUAL_ADDRESS cbAddress = m_frameResources[frameIndex]->getPassGpuAddress();
 
 		// Offset to the pass cbv in the descriptor heap.
 		int heapIndex = m_PassCbvOffset + frameIndex;
@@ -380,13 +336,16 @@ void FrameResourceContext::BuildConstantBufferViews()
 
 		m_d3dDevice->CreateConstantBufferView(&cbvDesc, handle);
 	}
+
+
 }
 
-void FrameResourceContext::BuildRootSignature()
+void DefaultFrameResourceContext::BuildRootSignature()
 {
 	/*
 	* 
-	* shader需要的resources已经改变了,因为CBV需要根据跟新的频率,需要设置两个descriptor tables
+	* shader需要的resources已经改变了,因为CBV需要根据跟新的频率,
+	需要设置两个descriptor tables
 	*/
 
 	D3D12_DESCRIPTOR_RANGE cbvTable0;
@@ -437,9 +396,12 @@ void FrameResourceContext::BuildRootSignature()
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
+
+ 
+
 }
 
-void FrameResourceContext::BuildShadersAndInputLayout()
+void DefaultFrameResourceContext::BuildShadersAndInputLayout()
 {
 	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"Shaders\\shape.hlsl", nullptr, "VS", "vs_5_1");
 	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"Shaders\\shape.hlsl", nullptr, "PS", "ps_5_1");
@@ -451,7 +413,7 @@ void FrameResourceContext::BuildShadersAndInputLayout()
 	};
 }
 
-void FrameResourceContext::BuildGeometry()
+void DefaultFrameResourceContext::BuildGeometry()
 {
 	/*
 	 
@@ -510,7 +472,7 @@ void FrameResourceContext::BuildGeometry()
 		sphere.Vertices.size() +
 		cylinder.Vertices.size();
 
-	std::vector<Vertex> vertices(totalVertexCount);
+	std::vector<VertexC> vertices(totalVertexCount);
 
 	UINT k = 0;
 	for (size_t i = 0; i < box.Vertices.size(); ++i, ++k)
@@ -543,7 +505,7 @@ void FrameResourceContext::BuildGeometry()
 	indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
 	indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
 
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexC);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	auto geo = std::make_unique<MeshGeometry>();
@@ -561,7 +523,7 @@ void FrameResourceContext::BuildGeometry()
 	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(m_d3dDevice.Get(),
 		m_CommandList.Get(), indices.data(), ibByteSize, geo->m_IndexBufferUploader);
 
-	geo->m_VertexByteStride = sizeof(Vertex);
+	geo->m_VertexByteStride = sizeof(VertexC);
 	geo->m_VertexBufferByteSize = vbByteSize;
 	geo->m_IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo->m_IndexBufferByteSize = ibByteSize;
@@ -571,14 +533,12 @@ void FrameResourceContext::BuildGeometry()
 	geo->m_DrawArgs["sphere"] = sphereSubmesh;
 	geo->m_DrawArgs["cylinder"] = cylinderSubmesh;
 
-	m_Geometries[geo->Name] = std::move(geo);
+	m_Geometries[geo->Name] = std::move(geo); //
 }
 
-void FrameResourceContext::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
+void DefaultFrameResourceContext::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
 {
 	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-
-	auto objectCB = m_currFrameResource->m_ObjectCB->Resource();
 
 	// For each render item...
 	for (size_t i = 0; i < ritems.size(); ++i)

@@ -142,14 +142,19 @@
     <ClInclude Include="common\App.h" />
     <ClInclude Include="common\D3DContext.h" />
     <ClInclude Include="common\d3dx12.h" />
+    <ClInclude Include="common\Data.h" />
+    <ClInclude Include="common\FrameResource.h" />
     <ClInclude Include="common\GameTimer.h" />
+    <ClInclude Include="common\Geometry.h" />
     <ClInclude Include="common\GeometryGenerator.h" />
     <ClInclude Include="common\MathHelper.h" />
     <ClInclude Include="common\UploadBuffer.h" />
     <ClInclude Include="common\Util.h" />
-    <ClInclude Include="Data.h" />
-    <ClInclude Include="FrameResource.h" />
-    <ClInclude Include="FrameResourceContext.h" />
+    <ClInclude Include="context\FrameResourceContext.h" />
+    <ClInclude Include="context\MainD3dContext.h" />
+    <ClInclude Include="context\TestFrameResourceContext.h" />
+    <ClInclude Include="context\Waves.h" />
+    <ClInclude Include="context\WavesContext.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="MainApp.h" />
@@ -168,16 +173,19 @@
   <ItemGroup>
     <ClCompile Include="common\App.cpp" />
     <ClCompile Include="common\D3DContext.cpp" />
+    <ClCompile Include="common\Data.cpp" />
+    <ClCompile Include="common\FrameResource.cpp" />
     <ClCompile Include="common\GameTimer.cpp" />
+    <ClCompile Include="common\Geometry.cpp" />
     <ClCompile Include="common\GeometryGenerator.cpp" />
     <ClCompile Include="common\MathHelper.cpp" />
     <ClCompile Include="common\Util.cpp" />
-    <ClCompile Include="Data.cpp" />
-    <ClCompile Include="FrameResource.cpp" />
-    <ClCompile Include="FrameResourceContext.cpp" />
-    <ClCompile Include="Geometry.cpp" />
+    <ClCompile Include="context\FrameResourceContext.cpp" />
+    <ClCompile Include="context\MainD3dContext.cpp" />
+    <ClCompile Include="context\TestFrameResourceContext.cpp" />
+    <ClCompile Include="context\Waves.cpp" />
+    <ClCompile Include="context\WavesContext.cpp" />
     <ClCompile Include="MainApp.cpp" />
-    <ClCompile Include="MainD3dContext.cpp" />
     <ClCompile Include="osgEarth.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

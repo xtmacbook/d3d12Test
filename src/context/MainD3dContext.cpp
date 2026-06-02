@@ -1,7 +1,7 @@
 #include "MainD3dContext.h"
-#include "common/Util.h"
-#include "Data.h"
-#include "Geometry.h"
+#include "../common/Util.h"
+#include "../common/Data.h"
+#include "../common/Geometry.h"
 
 #include <array>
 
@@ -50,7 +50,6 @@ void MainD3DContext::Update(const GameTimer& gt)
 
 void MainD3DContext::Draw(const GameTimer& gt)
 {
-
 	ThrowIfFailed(m_DirectCmdListAlloc->Reset());
 
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), m_PSO.Get()));
@@ -74,8 +73,8 @@ void MainD3DContext::Draw(const GameTimer& gt)
 
 	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
-	//Sets a CPU descriptor handle for the vertex buffers. 
-	m_CommandList->IASetVertexBuffers(0,1,&m_BoxGeo->VertexBufferView());
+	//Sets a CPU descriptor handle for the vertex buffers.
+	m_CommandList->IASetVertexBuffers(0, 1, &m_BoxGeo->VertexBufferView());
 	//Sets the view for the index buffer.S
 	m_CommandList->IASetIndexBuffer(&m_BoxGeo->IndexBufferView());
 	m_CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -90,7 +89,6 @@ void MainD3DContext::Draw(const GameTimer& gt)
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
 	ThrowIfFailed(m_CommandList->Close());
-
 
 	// Add the command list to the queue for execution.
 	ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
@@ -133,17 +131,23 @@ void MainD3DContext::BuildConstantBuffers()
 	cbvDesc.BufferLocation = cbAddress;
 	cbvDesc.SizeInBytes = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
-	m_d3dDevice->CreateConstantBufferView(&cbvDesc,m_CbvHeap->GetCPUDescriptorHandleForHeapStart());
+	m_d3dDevice->CreateConstantBufferView(&cbvDesc, m_CbvHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 void MainD3DContext::BuildRootSignature()
 {
 	/*
-		1. Shader programs typically require resources as input (constant buffers, textures, samplers). 
-		2. The root signature defines the resources the shader programs expect. 
+		1. Shader programs typically require resources as input (constant buffers, textures, samplers).
+		2. The root signature defines the resources the shader programs expect.
 		3. If we think of the shader programs as a function, and  the input resources as function parameters,
-			then the root signature can be thought of as defining the function signature.  
+			then the root signature can be thought of as defining the function signature.
 		4. Root signatures is array of root parameters
+		5. root signature is defined by an array of root parameters:
+			a. Descriptor Table
+			b. Root descriptor (inline descriptor): Expects a descriptor to be set directly that identifies the resource to be bound;
+				the descriptor does not need to be in a heap.
+			c. Root constant: Expects a list of 32-bit constant values to be bound directly.
+
 	*/
 
 	// Root parameter can be a table, root descriptor or root constants.
@@ -163,7 +167,6 @@ void MainD3DContext::BuildRootSignature()
 	//slotRootParameter[0].DescriptorTable.NumDescriptorRanges = 1;
 	//slotRootParameter[0].DescriptorTable.pDescriptorRanges = &cbvTable;
 
-
 	//// A root signature is an array of root parameters.
 	//D3D12_ROOT_SIGNATURE_DESC rootSigDesc{1,slotRootParameter,0,nullptr,D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT};
 
@@ -177,7 +180,6 @@ void MainD3DContext::BuildRootSignature()
 	//ThrowIfFailed(hr);
 
 	//ThrowIfFailed(m_d3dDevice->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
-
 
 	// Root parameter can be a table, root descriptor or root constants.
 	CD3DX12_ROOT_PARAMETER slotRootParameter[1];
@@ -230,40 +232,40 @@ void MainD3DContext::BuildPSO()
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 
 	psoDesc.pRootSignature = m_RootSignature.Get();
-	
-	psoDesc.VS = { reinterpret_cast<BYTE*>( m_vsByteCode->GetBufferPointer()),m_vsByteCode->GetBufferSize() };
+
+	psoDesc.VS = { reinterpret_cast<BYTE*>(m_vsByteCode->GetBufferPointer()),m_vsByteCode->GetBufferSize() };
 	psoDesc.PS = { reinterpret_cast<BYTE*>(m_psByteCode->GetBufferPointer()),m_psByteCode->GetBufferSize() };
-	psoDesc.InputLayout = { m_InputLayout.data(), (UINT) m_InputLayout.size()};
-	
+	psoDesc.InputLayout = { m_InputLayout.data(), (UINT)m_InputLayout.size() };
+
 	psoDesc.NumRenderTargets = 1;
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	
+
 	psoDesc.RTVFormats[0] = m_BackBufferFormat;
 	psoDesc.DSVFormat = m_DepthStencilFormat;
-	
+
 	psoDesc.SampleDesc.Count = m_4xMsaaState ? 4 : 1;
 	psoDesc.SampleDesc.Quality = m_4xMsaaState ? (m_4xMsaaQuality - 1) : 0;
 
 	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	
+
 	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_PSO)));
 }
 
 void MainD3DContext::BuildGeometry()
 {
-	std::array<Vertex, 8> vertices =
+	std::array<VertexC, 8> vertices =
 	{
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) })
+		VertexC({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
+		VertexC({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) }),
+		VertexC({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) }),
+		VertexC({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) }),
+		VertexC({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) }),
+		VertexC({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
+		VertexC({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) }),
+		VertexC({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) })
 	};
 
 	std::array<std::uint16_t, 36> indices =
@@ -293,7 +295,7 @@ void MainD3DContext::BuildGeometry()
 		4, 3, 7
 	};
 
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexC);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	m_BoxGeo = std::make_unique<MeshGeometry>();
@@ -311,7 +313,7 @@ void MainD3DContext::BuildGeometry()
 	m_BoxGeo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(m_d3dDevice.Get(),
 		m_CommandList.Get(), indices.data(), ibByteSize, m_BoxGeo->m_IndexBufferUploader);
 
-	m_BoxGeo->m_VertexByteStride = sizeof(Vertex);
+	m_BoxGeo->m_VertexByteStride = sizeof(VertexC);
 	m_BoxGeo->m_VertexBufferByteSize = vbByteSize;
 	m_BoxGeo->m_IndexBufferByteSize = ibByteSize;
 	m_BoxGeo->m_IndexFormat = DXGI_FORMAT_R16_UINT;

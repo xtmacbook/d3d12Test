@@ -13,10 +13,12 @@
 #pragma once
 
 #include "d3dx12.h"
-
+#include "MathHelper.h"
 
 #include <string>
  
+#define MaxLights 16
+
 inline std::wstring AnsiToWstring(const std::string& str)
 {
     WCHAR buffer[512];
@@ -79,6 +81,56 @@ public:
     int             m_lineNumber = -1;
 };
 
+
+struct MaterialConstants
+{
+    DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
+    float Roughness = 0.25f;
+
+    // Used in texture mapping.
+    DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+};
+
+// Simple struct to represent a material for our demos.  A production 3D engine
+// would likely create a class hierarchy of Materials.
+struct Material
+{
+    // Unique material name for lookup.
+    std::string Name;
+
+    // Index into constant buffer corresponding to this material.
+    int MatCBIndex = -1;
+
+    // Index into SRV heap for diffuse texture.
+    int DiffuseSrvHeapIndex = -1;
+
+    // Index into SRV heap for normal texture.
+    int NormalSrvHeapIndex = -1;
+
+    // Dirty flag indicating the material has changed and we need to update the constant buffer.
+    // Because we have a material constant buffer for each FrameResource, we have to apply the
+    // update to each FrameResource.  Thus, when we modify a material we should set 
+    // NumFramesDirty = gNumFrameResources so that each frame resource gets the update.
+    int NumFramesDirty = 3;
+
+    // Material constant buffer data used for shading.
+    DirectX::XMFLOAT4   DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DirectX::XMFLOAT3   FresnelR0 = { 0.01f, 0.01f, 0.01f };
+    float               Roughness = .25f; //0-1,0:代表完全光滑 shininess = 1 – roughness
+    DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+};
+ 
+struct Light
+{
+    DirectX::XMFLOAT3 Strength = { 0.5f, 0.5f, 0.5f };
+    float FalloffStart = 1.0f;                          // point/spot light only
+    DirectX::XMFLOAT3 Direction = { 0.0f, -1.0f, 0.0f };// directional/spot light only
+    float FalloffEnd = 10.0f;                           // point/spot light only
+    DirectX::XMFLOAT3 Position = { 0.0f, 0.0f, 0.0f };  // point/spot light only
+    float SpotPower = 64.0f;                            // spot light only
+};
+
 #ifndef ThrowIfFailed
 #define ThrowIfFailed(x)                                              \
 {                                                                     \
@@ -89,3 +141,31 @@ public:
 #endif
 
 void errorExit();
+
+#define UPDATE_MAIN_PASS  XMMATRIX view = XMLoadFloat4x4(&m_View);\
+XMMATRIX proj = XMLoadFloat4x4(&m_Proj);\
+XMMATRIX viewProj = XMMatrixMultiply(view, proj);\
+XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);\
+XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);\
+XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);\
+XMStoreFloat4x4(&m_MainPassCB.m_View, XMMatrixTranspose(view));\
+XMStoreFloat4x4(&m_MainPassCB.m_InvView, XMMatrixTranspose(invView));\
+XMStoreFloat4x4(&m_MainPassCB.m_Proj, XMMatrixTranspose(proj));\
+XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));\
+XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));\
+XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));\
+m_MainPassCB.m_EyePosW = m_EyePos;\
+m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)m_win->Width(), (float)m_win->Height());\
+m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_win->Width(), 1.0f / m_win->Height());\
+m_MainPassCB.m_NearZ = 1.0f;\
+m_MainPassCB.m_FarZ = 1000.0f;\
+m_MainPassCB.m_TotalTime = gt.TotalTime();\
+m_MainPassCB.m_DeltaTime = gt.DeltaTime(); 
+
+#define BEFORE_DRAW_SET 	m_CommandList->RSSetViewports(1, &m_ScreenViewport);\
+m_CommandList->RSSetScissorRects(1, &m_ScissorRect);\
+m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));\
+m_CommandList->ClearRenderTargetView(CurrentCPUBackBufferView(), Colors::LightSteelBlue, 0, nullptr);\
+m_CommandList->ClearDepthStencilView(DepthStencilCPUView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);\
+m_CommandList->OMSetRenderTargets(1, &CurrentCPUBackBufferView(), true, &DepthStencilCPUView());\
+m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());

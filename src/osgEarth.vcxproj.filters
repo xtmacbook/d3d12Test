@@ -16,6 +16,9 @@
     <Filter Include="源文件\common">
       <UniqueIdentifier>{bed7103d-4ae8-4751-bd74-5bef3539a7e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\context">
+      <UniqueIdentifier>{a23268b0-c636-435f-943d-54853067ad10}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -60,17 +63,32 @@
     <ClInclude Include="MainD3dContext.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Data.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameResource.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameResourceContext.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
     <ClInclude Include="common\GeometryGenerator.h">
       <Filter>源文件\common</Filter>
+    </ClInclude>
+    <ClInclude Include="common\FrameResource.h">
+      <Filter>源文件\common</Filter>
+    </ClInclude>
+    <ClInclude Include="common\Geometry.h">
+      <Filter>源文件\common</Filter>
+    </ClInclude>
+    <ClInclude Include="common\Data.h">
+      <Filter>源文件\common</Filter>
+    </ClInclude>
+    <ClInclude Include="context\FrameResourceContext.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="context\MainD3dContext.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="context\WavesContext.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="context\Waves.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="context\TestFrameResourceContext.h">
+      <Filter>源文件\context</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -102,29 +120,38 @@
     <ClCompile Include="common\Util.cpp">
       <Filter>源文件\common</Filter>
     </ClCompile>
-    <ClCompile Include="Geometry.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="MainApp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="MainD3dContext.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="osgEarth.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Data.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="FrameResource.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="FrameResourceContext.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="common\GeometryGenerator.cpp">
       <Filter>源文件\common</Filter>
+    </ClCompile>
+    <ClCompile Include="common\FrameResource.cpp">
+      <Filter>源文件\common</Filter>
+    </ClCompile>
+    <ClCompile Include="common\Geometry.cpp">
+      <Filter>源文件\common</Filter>
+    </ClCompile>
+    <ClCompile Include="common\Data.cpp">
+      <Filter>源文件\common</Filter>
+    </ClCompile>
+    <ClCompile Include="context\FrameResourceContext.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="context\MainD3dContext.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="context\WavesContext.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="context\Waves.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="context\TestFrameResourceContext.cpp">
+      <Filter>源文件\context</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

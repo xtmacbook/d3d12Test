@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/D3DContext.h"
-#include "common/UploadBuffer.h"
+#include "../common/D3DContext.h"
+#include "../common/UploadBuffer.h"
 
 #include <memory>
 #include <vector>
@@ -28,7 +28,7 @@ protected:
 	virtual void BuildPSO();
 
 	virtual void BuildGeometry();
-	
+
 private:
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_CbvHeap = nullptr;
 	std::unique_ptr<UploadBuffer<ObjectConstants>>	m_ObjectCB = nullptr;
@@ -42,7 +42,4 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>		m_PSO = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC>			m_InputLayout;
-
-
-
 };
