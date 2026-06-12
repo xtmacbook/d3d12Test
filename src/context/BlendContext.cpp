@@ -22,7 +22,7 @@ public:
 		m_ObjectCB = std::make_unique<UploadBuffer<ObjectConstantsWithTexTran>>(device, objectCount, true);
 		m_PassCB = std::make_unique<UploadBuffer<PassConstantsWithFrog>>(device, passCount, true);
 		m_MaterialCB = std::make_unique<UploadBuffer<MaterialConstantsWithTexTran>>(device, materialCount, true);
-		m_WavesVB = std::make_unique<UploadBuffer<VertexNT>>(device, waveVertCount, true);
+		m_WavesVB = std::make_unique<UploadBuffer<VertexNT>>(device, waveVertCount, false);
 
 	}
 
@@ -289,6 +289,9 @@ void BlendContext::BuildPSOs()
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
 	BlendPSO(&transparentPsoDesc);
 	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&m_PSOs["transparent"])));
+
+
+	//alpha test
 }
 
 void BlendContext::BuildMaterials()
@@ -369,7 +372,7 @@ void BlendContext::BuildRenderItems()
 
 void BlendContext::Update(const GameTimer& gt)
 {
-	D3DContext::Update(gt);
+	D3DContext::Update(gt);  
 	FrameResourceContextInterface::Update(gt, m_Fence.Get());
 
 	UpdateObjectCBs(gt);
@@ -481,7 +484,11 @@ void BlendContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	CD3DX12_GPU_DESCRIPTOR_HANDLE sampler(m_SamplerDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 	m_CommandList->SetGraphicsRootDescriptorTable(4, sampler);
 
-	DrawLand(m_CommandList.Get(), m_AllRitems[1].get());
+	DrawRenderItem(m_CommandList.Get(), m_RitemLayer[(int)RenderLayer::Opaque][0]);
+
+	m_CommandList->SetPipelineState(m_PSOs["transparent"].Get());
+
+	DrawRenderItem(m_CommandList.Get(), m_AllRitems[0].get());
 
 	// Indicate a state transition on the resource usage.
 	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -498,7 +505,7 @@ void BlendContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 }
 
 
-void BlendContext::DrawLand(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritem)
+void BlendContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritem)
 {
 	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstantsWithTexTran));
 	UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialConstantsWithTexTran));
@@ -530,4 +537,8 @@ void BlendContext::DrawLand(ID3D12GraphicsCommandList* cmdList, const RenderItem
 		1, renderItem->m_StartIndexLocation,
 		renderItem->m_BaseVertexLocation, 0);
 
+}
+
+void BlendContext::DrawWater(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems)
+{
 }

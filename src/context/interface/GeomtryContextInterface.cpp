@@ -182,7 +182,7 @@ void GeometryContextInterface::buildWave(ID3D12Device* md3dDevice, ID3D12Graphic
 	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(md3dDevice,
 		mCommandList, indices.data(), ibByteSize, geo->m_IndexBufferUploader);
 
-	geo->m_VertexByteStride = sizeof(VertexN);
+	geo->m_VertexByteStride = sizeof(VertexNT);
 	geo->m_VertexBufferByteSize = vbByteSize;
 	geo->m_IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo->m_IndexBufferByteSize = ibByteSize;

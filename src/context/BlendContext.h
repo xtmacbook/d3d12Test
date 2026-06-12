@@ -42,7 +42,8 @@ public:
 	virtual void Draw(const GameTimer& gt);
 	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
 	
-	void DrawLand(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
+	void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
+	void DrawWater(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
 
 protected:
 	
