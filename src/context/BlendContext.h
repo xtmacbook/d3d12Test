@@ -43,7 +43,6 @@ public:
 	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
 	
 	void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
-	void DrawWater(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
 
 protected:
 	

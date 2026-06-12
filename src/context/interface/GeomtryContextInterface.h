@@ -12,6 +12,13 @@ struct MeshGeometry;
 class Waves;
 class GameTimer;
 
+struct BoxProfile
+{
+	float width = 1.0;
+	float height = 1.0;
+	float depth = 1.0;
+};
+
 class GeometryContextInterface 
 {
 
@@ -23,7 +30,7 @@ public:
 
 	virtual void updateGeometry(const GameTimer& gt);
 
-	void buildBox(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+	void buildBox(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList, BoxProfile);
 	
 	void buildLand(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 

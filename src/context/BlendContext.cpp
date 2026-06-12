@@ -168,7 +168,7 @@ void BlendContext::BuildShadersAndInputLayout()
 
 void BlendContext::BuildShapeGeometry(ID3D12Device* d3Device, ID3D12GraphicsCommandList* mCommandList)
 {
-	buildBox(d3Device, mCommandList);
+	buildBox(d3Device, mCommandList, { 8.0f, 8.0f, 8.0f });
 	buildLand(d3Device, mCommandList);
 	buildWave(d3Device, mCommandList);
 }
@@ -286,12 +286,20 @@ void BlendContext::BuildPSOs()
 	opaquePsoDesc.DSVFormat = m_DepthStencilFormat;
 	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&m_PSOs["opaque"])));
 
+	//transparent
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
 	BlendPSO(&transparentPsoDesc);
 	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&m_PSOs["transparent"])));
 
-
 	//alpha test
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPsoDesc = opaquePsoDesc;
+	alphaTestedPsoDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(m_Shaders["alphaTestedPS"]->GetBufferPointer()),
+		m_Shaders["alphaTestedPS"]->GetBufferSize()
+	};
+	alphaTestedPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&alphaTestedPsoDesc, IID_PPV_ARGS(&m_PSOs["alphaTested"])));
 }
 
 void BlendContext::BuildMaterials()
@@ -480,15 +488,20 @@ void BlendContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	//set pass buffer
 	m_CommandList->SetGraphicsRootConstantBufferView(m_rpi.m_PASS_RootParameterIndex, m_currFrameResource->getPassGpuAddress());
 
-
 	CD3DX12_GPU_DESCRIPTOR_HANDLE sampler(m_SamplerDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 	m_CommandList->SetGraphicsRootDescriptorTable(4, sampler);
 
+	//land
 	DrawRenderItem(m_CommandList.Get(), m_RitemLayer[(int)RenderLayer::Opaque][0]);
+	
+	//box
+	m_CommandList->SetPipelineState(m_PSOs["alphaTested"].Get());
+	DrawRenderItem(m_CommandList.Get(), m_RitemLayer[(int)RenderLayer::AlphaTested][0]);
 
+	//water
 	m_CommandList->SetPipelineState(m_PSOs["transparent"].Get());
-
 	DrawRenderItem(m_CommandList.Get(), m_AllRitems[0].get());
+
 
 	// Indicate a state transition on the resource usage.
 	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -537,8 +550,4 @@ void BlendContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const Rend
 		1, renderItem->m_StartIndexLocation,
 		renderItem->m_BaseVertexLocation, 0);
 
-}
-
-void BlendContext::DrawWater(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems)
-{
 }

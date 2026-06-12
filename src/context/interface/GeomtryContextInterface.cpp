@@ -16,7 +16,7 @@ GeometryContextInterface::GeometryContextInterface()
 
 void GeometryContextInterface::BuildShapeGeometry(ID3D12Device* md3dDevice, ID3D12GraphicsCommandList* mCommandList)
 {
-	buildBox(md3dDevice,mCommandList);
+	buildBox(md3dDevice,mCommandList,BoxProfile());
 }
 
 void GeometryContextInterface::updateGeometry(const GameTimer& gt)
@@ -24,10 +24,10 @@ void GeometryContextInterface::updateGeometry(const GameTimer& gt)
 	if (m_Waves) updateWave(gt);
 }
 
-void GeometryContextInterface::buildBox(ID3D12Device* md3dDevice, ID3D12GraphicsCommandList* mCommandList)
+void GeometryContextInterface::buildBox(ID3D12Device* md3dDevice, ID3D12GraphicsCommandList* mCommandList, BoxProfile profile)
 {
 	GeometryGenerator geoGen;
-	GeometryGenerator::MeshData box = geoGen.CreateBox(1.0f, 1.0f, 1.0f, 3);
+	GeometryGenerator::MeshData box = geoGen.CreateBox(profile.width,profile.height,profile.depth , 3);
 
 	SubmeshGeometry boxSubmesh;
 	boxSubmesh.m_IndexCount = (UINT)box.Indices32.size();
