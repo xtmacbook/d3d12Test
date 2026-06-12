@@ -1,14 +1,22 @@
 ﻿#include "util.h"
+#include <comdef.h>
 
 using Microsoft::WRL::ComPtr;
 
-DxException::DxException(HRESULT hr, const std::wstring& functionName, const std::wstring& filename, int lineNumber)
+DxException::DxException(HRESULT hr, const std::wstring& functionName, const std::wstring& filename, int lineNumber):
+    m_ErrorCode(hr),
+    m_functionName(functionName),
+    m_filename(filename),
+    m_lineNumber(lineNumber)
 {
 }
 
 std::wstring DxException::toString() const
 {
-	return std::wstring();
+    _com_error err(m_ErrorCode);
+    std::wstring msg = err.ErrorMessage();
+
+    return m_functionName + L" failed in " + m_filename + L"; line " + std::to_wstring(m_lineNumber) + L"; error: " + msg;
 }
 
 void errorExit()

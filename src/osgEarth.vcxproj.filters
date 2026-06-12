@@ -19,6 +19,15 @@
     <Filter Include="源文件\context">
       <UniqueIdentifier>{a23268b0-c636-435f-943d-54853067ad10}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\shaders">
+      <UniqueIdentifier>{bdd13e65-a382-42f6-9924-964d14ed3f3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\context\interface">
+      <UniqueIdentifier>{a88ef1e5-c4fb-446c-91f4-bdc40b6b5383}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\doc">
+      <UniqueIdentifier>{b3f1f3b0-2eb3-45a5-bc7f-cc12f357aaf6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -75,9 +84,6 @@
     <ClInclude Include="common\Data.h">
       <Filter>源文件\common</Filter>
     </ClInclude>
-    <ClInclude Include="context\FrameResourceContext.h">
-      <Filter>源文件\context</Filter>
-    </ClInclude>
     <ClInclude Include="context\MainD3dContext.h">
       <Filter>源文件\context</Filter>
     </ClInclude>
@@ -88,6 +94,30 @@
       <Filter>源文件\context</Filter>
     </ClInclude>
     <ClInclude Include="context\TestFrameResourceContext.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="TexContext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="context\TexContext.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="common\DDSTextureLoader.h">
+      <Filter>源文件\common</Filter>
+    </ClInclude>
+    <ClInclude Include="context\interface\BlendContextInterface.h">
+      <Filter>源文件\context\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="context\interface\GeomtryContextInterface.h">
+      <Filter>源文件\context\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="context\interface\TexContextInterface.h">
+      <Filter>源文件\context\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="context\interface\FrameResourceContextInterface.h">
+      <Filter>源文件\context\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="context\BlendContext.h">
       <Filter>源文件\context</Filter>
     </ClInclude>
   </ItemGroup>
@@ -138,9 +168,6 @@
     <ClCompile Include="common\Data.cpp">
       <Filter>源文件\common</Filter>
     </ClCompile>
-    <ClCompile Include="context\FrameResourceContext.cpp">
-      <Filter>源文件\context</Filter>
-    </ClCompile>
     <ClCompile Include="context\MainD3dContext.cpp">
       <Filter>源文件\context</Filter>
     </ClCompile>
@@ -153,5 +180,34 @@
     <ClCompile Include="context\TestFrameResourceContext.cpp">
       <Filter>源文件\context</Filter>
     </ClCompile>
+    <ClCompile Include="context\TexContext.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="common\DDSTextureLoader.cpp">
+      <Filter>源文件\common</Filter>
+    </ClCompile>
+    <ClCompile Include="context\interface\BlendContextInterface.cpp">
+      <Filter>源文件\context\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="context\interface\GeomtryContextInterface.cpp">
+      <Filter>源文件\context\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="context\interface\TexContextInterface.cpp">
+      <Filter>源文件\context\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="context\interface\FrameResourceContextInterface.cpp">
+      <Filter>源文件\context\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="context\BlendContext.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resource.md">
+      <Filter>源文件\doc</Filter>
+    </Text>
+    <Text Include="memory mgr.md">
+      <Filter>源文件\doc</Filter>
+    </Text>
   </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 ﻿
 #pragma once
-#include "FrameResourceContext.h"
+#include "interface/FrameResourceContextInterface.h"
 #include "../common/Util.h"
 #include "Waves.h"
 
@@ -15,13 +15,16 @@ enum class RenderLayer : int
 
 class Waves;
 
-class WavesContext : public FrameResourceContextInterface
+class WavesContext : 
+	public FrameResourceContextInterface,
+	public D3DContext
 {
 public:
 
 	virtual bool InitDirect3D()override;
 
 	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
+	virtual void Draw(const GameTimer& gt);
 
 	virtual void Update(const GameTimer& gt)override;
 

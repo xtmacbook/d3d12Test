@@ -4,20 +4,43 @@
 #include "MainApp.h"
 #include "common/Geometry.h"
 #include "common/FrameResource.h"
+
+#include "context/TestFrameResourceContext.h"
 #include "context/WavesContext.h"
+#include "context/TexContext.h"
+#include "context/BlendContext.h"
+
 
 using namespace DirectX;
+
 
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 	PSTR cmdLine, int nCmdShow)
 {
-	WavesContext d3dContext;
+#if defined(DEBUG) | defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 
-	MainApp app(hInstance, &d3dContext);
+	try
+	{
+		BlendContext d3dContext;
+		
+		MainApp app(hInstance, &d3dContext);
 
-	if (!app.Initialize()) return 0;
-
-	app.Run();
+		app.setRadius(50.0);
+		app.setPixelUnitScale(0.2, 0.2);
+		app.setSceneClampRange(5.0f, 150.f);
+		
+		if (!app.Initialize()) return 0;
+		
+		app.Run();
+	}
+	catch (DxException& e)
+	{
+		MessageBox(nullptr, e.toString().c_str(), L"HR Failed", MB_OK);
+		return 0;
+	}
+		
 	return 0;
 }

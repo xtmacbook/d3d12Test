@@ -2,7 +2,7 @@
 #include "../common/D3DContext.h"
 #include "../common/FrameResource.h"
 #include "../common/Data.h"
-#include "FrameResourceContext.h"
+#include "interface/FrameResourceContextInterface.h"
 
 #include <vector>
 #include <memory>
@@ -11,13 +11,17 @@
  
 struct RenderItem;
 
-class DefaultFrameResourceContext : public FrameResourceContextInterface
+class DefaultFrameResourceContext : 
+	public FrameResourceContextInterface,
+	public D3DContext
 {
 public:
 
 	virtual bool InitDirect3D();
 
 	virtual void Update(const GameTimer& gt);
+
+	virtual void Draw(const GameTimer& gt);
 
 	virtual void UpdateObjectCBs(const GameTimer& gt);
 

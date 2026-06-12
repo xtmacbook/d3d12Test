@@ -60,7 +60,7 @@ public:
 	}
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getMaterialGpuAddress() override
 	{
-		return m_WavesVB->Resource()->GetGPUVirtualAddress();
+		return m_MaterialCB->Resource()->GetGPUVirtualAddress();
 	}
 
 	std::unique_ptr<UploadBuffer<PassConstantsWithLight>>    m_PassCB = nullptr;
@@ -105,14 +105,6 @@ void WavesContext::DrawFrameResource(ID3D12CommandAllocator*allocator)
 	ThrowIfFailed(m_CommandList->Reset(allocator, m_PSOs["opaque"].Get()));
 	BEFORE_DRAW_SET;
 
-	/*m_CommandList->RSSetViewports(1, &m_ScreenViewport); 
-	m_CommandList->RSSetScissorRects(1, &m_ScissorRect); 
-	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)); 
-	m_CommandList->ClearRenderTargetView(CurrentCPUBackBufferView(), Colors::LightSteelBlue, 0, nullptr); 
-	m_CommandList->ClearDepthStencilView(DepthStencilCPUView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr); 
-	m_CommandList->OMSetRenderTargets(1, &CurrentCPUBackBufferView(), true, &DepthStencilCPUView());
-	m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());*/
-
 	m_CommandList->SetGraphicsRootConstantBufferView(2, m_currFrameResource->getPassGpuAddress());
 
 	DrawRenderItems(m_CommandList.Get(), m_RitemLayer[(int)RenderLayer::Opaque]);
@@ -131,9 +123,16 @@ void WavesContext::DrawFrameResource(ID3D12CommandAllocator*allocator)
 	m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
 }
 
+void WavesContext::Draw(const GameTimer& gt)
+{
+	FrameResourceContextInterface::Draw(gt, m_CurrentFence, m_Fence.Get(), m_CommandQueue.Get());
+}
+
 void WavesContext::Update(const GameTimer& gt)
 {
-	FrameResourceContextInterface::Update(gt);
+
+	D3DContext::Update(gt);
+	FrameResourceContextInterface::Update(gt, m_Fence.Get());
 
 	UpdateObjectCBS(gt);
 	UpdateMaterialCBs(gt);
@@ -143,8 +142,8 @@ void WavesContext::Update(const GameTimer& gt)
 
 void WavesContext::BuildShadersAndInputLayout()
 {
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"Shaders\\Waves.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"Shaders\\Waves.hlsl", nullptr, "PS", "ps_5_1");
+	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders\\Waves.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders\\Waves.hlsl", nullptr, "PS", "ps_5_1");
 
 	m_InputLayout =
 	{
@@ -402,7 +401,6 @@ void WavesContext::UpdateObjectCBS(const GameTimer& gt)
 		if (itemWithM->m_NumFramesDirty > 0)
 		{
 			XMMATRIX world = XMLoadFloat4x4(&itemWithM->m_World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&itemWithM->m_TexTransform);
 
 			ObjectConstants objConstants;
 			XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(world));
@@ -469,8 +467,6 @@ void WavesContext::UpdateMaterialCBs(const GameTimer& gt)
 		Material* material = item.second.get();
 		if (material->NumFramesDirty > 0)
 		{
-			XMMATRIX matTransform = XMLoadFloat4x4(&material->MatTransform);
-
 			MaterialConstants matConstants;
 			matConstants.DiffuseAlbedo = material->DiffuseAlbedo;
 			matConstants.FresnelR0 = material->FresnelR0;

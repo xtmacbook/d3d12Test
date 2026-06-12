@@ -216,8 +216,8 @@ void MainD3DContext::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
-	m_vsByteCode = D3DUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
-	m_psByteCode = D3DUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_0");
+	m_vsByteCode = D3DUtil::CompileShader(L"../Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
+	m_psByteCode = D3DUtil::CompileShader(L"../Shaders\\color.hlsl", nullptr, "PS", "ps_5_0");
 
 	m_InputLayout =
 	{

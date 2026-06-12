@@ -4,22 +4,46 @@
 
 struct MeshGeometry;
 
-/*
-	和每个object有关系,当object的world matrix变化才更新
-*/
-struct ObjectConstants
+struct Material
 {
-	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+	// Unique material name for lookup.
+	std::string							Name;
+
+	// Index into constant buffer corresponding to this material.
+	int									MatCBIndex = -1;
+
+	// Index into SRV heap for diffuse texture.
+	int									DiffuseSrvHeapIndex = -1;
+
+	// Index into SRV heap for normal texture.
+	int									NormalSrvHeapIndex = -1;
+
+	// Dirty flag indicating the material has changed and we need to update the constant buffer.
+	// Because we have a material constant buffer for each FrameResource, we have to apply the
+	// update to each FrameResource.  Thus, when we modify a material we should set 
+	// NumFramesDirty = gNumFrameResources so that each frame resource gets the update.
+	int									NumFramesDirty = 3;
+
+	// Material constant buffer data used for shading.
+	DirectX::XMFLOAT4   DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT3   FresnelR0 = { 0.01f, 0.01f, 0.01f };
+	float               Roughness = .25f; //0-1,0:代表完全光滑 shininess = 1 – roughness
 };
 
-/*
-	The Data fixed over a given rendering pass such as 
-	the eye position, 
-	the view and projection matrices,
-	and information about the screen (render target) dimensions; 
-	game timing information, which is useful data to have access to in shader programs.
+struct MaterialWithTexTran : public Material
+{
+	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+};
 
-*/
+struct Light
+{
+	DirectX::XMFLOAT3		Strength = { 0.5f, 0.5f, 0.5f };
+	float					FalloffStart = 1.0f;                          // point/spot light only
+	DirectX::XMFLOAT3		Direction = { 0.0f, -1.0f, 0.0f };// directional/spot light only
+	float					FalloffEnd = 10.0f;                           // point/spot light only
+	DirectX::XMFLOAT3		Position = { 0.0f, 0.0f, 0.0f };  // point/spot light only
+	float					SpotPower = 64.0f;                            // spot light only
+};
 
 struct VertexC
 {
@@ -31,6 +55,48 @@ struct VertexN
 {
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
+};
+
+struct VertexNT
+{
+	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 TexC;
+};
+
+struct Texture
+{
+	std::string m_Name;
+	std::wstring m_Filename;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_Resource = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> m_UploadHeap = nullptr;
+};
+
+/*
+	和每个object有关系,当object的world matrix变化才更新
+*/
+struct ObjectConstants
+{
+	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+};
+
+struct ObjectConstantsWithTexTran : public ObjectConstants
+{
+	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+};
+
+
+struct MaterialConstants
+{
+	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
+	float			  Roughness = 0.25f;
+};
+
+struct MaterialConstantsWithTexTran : public MaterialConstants
+{
+	// Used in texture mapping.
+	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 
 /*
@@ -45,11 +111,15 @@ struct PassConstants
 	DirectX::XMFLOAT4X4			m_ViewProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4			m_InvViewProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT3			m_EyePosW = { 0.0f, 0.0f, 0.0f };
+
 	float						m_cbPerObjectPad1 = 0.0f;
+	
 	DirectX::XMFLOAT2			m_RenderTargetSize = { 0.0f, 0.0f };
 	DirectX::XMFLOAT2			m_InvRenderTargetSize = { 0.0f, 0.0f };
+	
 	float						m_NearZ = 0.0f;
 	float						m_FarZ = 0.0f;
+	
 	float						m_TotalTime = 0.0f;
 	float						m_DeltaTime = 0.0f;
 };
@@ -60,15 +130,21 @@ struct PassConstantsWithLight : public PassConstants
 	Light						m_Lights[MaxLights];
 };
 
+struct PassConstantsWithFrog : public PassConstantsWithLight
+{
+	DirectX::XMFLOAT4 FogColor = { 0.7f, 0.7f, 0.7f, 1.0f };
+	float gFogStart = 5.0f;
+	float gFogRange = 150.0f;
+	DirectX::XMFLOAT2 cbPerObjectPad2;
+};
+
+
 // Lightweight structure stores parameters to draw a shape.  This will
 // vary from app-to-app.
 struct RenderItem
 {
 	RenderItem() = default;
 
-	// World matrix of the shape that describes the object's local space
-	// relative to the world space, which defines the position, orientation,
-	// and scale of the object in the world.
 	DirectX::XMFLOAT4X4				m_World = MathHelper::Identity4x4();
 
 	// Dirty flag indicating the object data has changed and we need to update the constant buffer.
@@ -82,10 +158,8 @@ struct RenderItem
 
 	MeshGeometry*					m_Geo = nullptr;
 
-	// Primitive topology.
 	D3D12_PRIMITIVE_TOPOLOGY		m_PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	// DrawIndexedInstanced parameters.
 	UINT							m_IndexCount = 0;
 	UINT							m_StartIndexLocation = 0;
 	int								m_BaseVertexLocation = 0;
@@ -93,7 +167,10 @@ struct RenderItem
 
 struct RenderItemWithMaterial : public RenderItem
 {
-	DirectX::XMFLOAT4X4 m_TexTransform = MathHelper::Identity4x4();
+	Material*				m_Material = nullptr;
+};
 
-	Material* m_Material = nullptr;
+struct RenderItemWithTex : public RenderItemWithMaterial
+{
+	DirectX::XMFLOAT4X4		m_TexTransform = MathHelper::Identity4x4();
 };
