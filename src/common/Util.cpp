@@ -98,7 +98,7 @@ Microsoft::WRL::ComPtr<ID3DBlob> D3DUtil::CompileShader(const std::wstring& file
 {
     UINT compileFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)  
-    compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+    compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION; //此处关闭了shader的优化
 #endif
 
     HRESULT hr = S_OK;

@@ -20,7 +20,7 @@ public:
 
 
 		m_ObjectCB = std::make_unique<UploadBuffer<ObjectConstantsWithTexTran>>(device, objectCount, true);
-		m_PassCB = std::make_unique<UploadBuffer<PassConstantsWithFrog>>(device, objectCount, true);
+		m_PassCB = std::make_unique<UploadBuffer<PassConstantsWithFrog>>(device, passCount, true);
 		m_MaterialCB = std::make_unique<UploadBuffer<MaterialConstantsWithTexTran>>(device, materialCount, true);
 		m_WavesVB = std::make_unique<UploadBuffer<VertexNT>>(device, waveVertCount, true);
 
@@ -93,7 +93,7 @@ bool BlendContext::InitDirect3D()
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
 	//load textures
-	std::map<std::string, std::wstring> textureFiles;
+	std::unordered_map<std::string, std::wstring> textureFiles;
 	textureFiles["grassTex"] = L"../Textures/grass.dds";
 	textureFiles["waterTex"] = L"../Textures/water1.dds";
 	textureFiles["fenceTex"] = L"../Textures/WireFence.dds";
@@ -154,9 +154,9 @@ void BlendContext::BuildShadersAndInputLayout()
 	};
 
 
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders\\Blend.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders\\Blend.hlsl", defines, "PS", "ps_5_1");
-	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(L"../Shaders\\Blend.hlsl", alphaTestDefines, "PS", "ps_5_0");
+	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders/Blend.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders/Blend.hlsl", defines, "PS", "ps_5_1");
+	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(L"../Shaders/Blend.hlsl", alphaTestDefines, "PS", "ps_5_0");
 
 	m_InputLayout =
 	{
@@ -451,7 +451,7 @@ void BlendContext::UpdateMainPassCB(const GameTimer& gt)
 
 	m_MainPassCB.m_AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
 	m_MainPassCB.m_Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+	m_MainPassCB.m_Lights[0].Strength = { 0.9f, 0.9f, 0.8f };
 	m_MainPassCB.m_Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
 	m_MainPassCB.m_Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
 	m_MainPassCB.m_Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
@@ -511,12 +511,12 @@ void BlendContext::DrawLand(ID3D12GraphicsCommandList* cmdList, const RenderItem
 	cmdList->IASetPrimitiveTopology(ritem->m_PrimitiveType);
 
 	//set object const buffer 
-	UINT64 offset = ritem->m_ObjCBIndex * objCBByteSize;
+	UINT64 offset = static_cast<UINT64>(ritem->m_ObjCBIndex) * objCBByteSize;
 	D3D12_GPU_VIRTUAL_ADDRESS startAddress = m_currFrameResource->getConstGpuAddress();
 	cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_CONST_RootParameterIndex, startAddress + offset);
 
 	//set material
-	offset = renderItem->m_Material->MatCBIndex * matCBByteSize;
+	offset = static_cast<UINT64>(renderItem->m_Material->MatCBIndex) * matCBByteSize;
 	startAddress = m_currFrameResource->getMaterialGpuAddress();
 	cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_Material_RootParameterIndex, startAddress + offset);
 

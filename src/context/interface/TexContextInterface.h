@@ -16,7 +16,7 @@ class TexContextInterface
 
 public:
 	
-	virtual bool loadTextures(ID3D12Device*, ID3D12GraphicsCommandList*,std::map<std::string,std::wstring>&);
+	virtual bool loadTextures(ID3D12Device*, ID3D12GraphicsCommandList*,std::unordered_map<std::string,std::wstring>&);
 
 	virtual void BuildSampleDescriptorHeap(ID3D12Device*);
 

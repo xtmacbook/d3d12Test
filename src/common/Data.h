@@ -110,6 +110,7 @@ struct PassConstants
 	DirectX::XMFLOAT4X4			m_InvProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4			m_ViewProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4			m_InvViewProj = MathHelper::Identity4x4();
+
 	DirectX::XMFLOAT3			m_EyePosW = { 0.0f, 0.0f, 0.0f };
 
 	float						m_cbPerObjectPad1 = 0.0f;
@@ -130,12 +131,17 @@ struct PassConstantsWithLight : public PassConstants
 	Light						m_Lights[MaxLights];
 };
 
-struct PassConstantsWithFrog : public PassConstantsWithLight
+struct PassConstantsWithFrog : public PassConstants
 {
+	DirectX::XMFLOAT4			m_AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 	DirectX::XMFLOAT4 FogColor = { 0.7f, 0.7f, 0.7f, 1.0f };
 	float gFogStart = 5.0f;
 	float gFogRange = 150.0f;
 	DirectX::XMFLOAT2 cbPerObjectPad2;
+
+	Light						m_Lights[MaxLights];
+
 };
 
 

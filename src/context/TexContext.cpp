@@ -75,7 +75,7 @@ bool TexContext::InitDirect3D()
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
 	//load textures
-	std::map<std::string, std::wstring> textureFiles;
+	std::unordered_map<std::string, std::wstring> textureFiles;
 	textureFiles["woodCrateTex"] = L"../Textures/WoodCrate01.dds";
 	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
 

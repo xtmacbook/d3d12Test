@@ -59,7 +59,7 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>										m_RootSignature = nullptr;
 	
-	PassConstantsWithLight															m_MainPassCB;
+	PassConstantsWithFrog															m_MainPassCB;
 
 	RootParameterIndexs																m_rpi;
 };
