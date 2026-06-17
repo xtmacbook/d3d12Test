@@ -120,6 +120,15 @@
     <ClInclude Include="context\BlendContext.h">
       <Filter>源文件\context</Filter>
     </ClInclude>
+    <ClInclude Include="context\MirrorWithStencil.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
+    <ClInclude Include="context\interface\LayoutInterface.h">
+      <Filter>源文件\context\interface</Filter>
+    </ClInclude>
+    <ClInclude Include="context\ComContext.h">
+      <Filter>源文件\context</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="osgEarth.rc">
@@ -199,6 +208,15 @@
       <Filter>源文件\context\interface</Filter>
     </ClCompile>
     <ClCompile Include="context\BlendContext.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="context\MirrorWithStencil.cpp">
+      <Filter>源文件\context</Filter>
+    </ClCompile>
+    <ClCompile Include="context\interface\LayoutInterface.cpp">
+      <Filter>源文件\context\interface</Filter>
+    </ClCompile>
+    <ClCompile Include="context\ComContext.cpp">
       <Filter>源文件\context</Filter>
     </ClCompile>
   </ItemGroup>

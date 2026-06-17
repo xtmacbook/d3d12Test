@@ -45,7 +45,6 @@ void TexContextInterface::BuildSampleDescriptor(ID3D12Device* md3dDevice, ID3D12
 	samplerDesc.MipLODBias = 0.0f;
 	samplerDesc.MaxAnisotropy = 1;
 	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-
 	md3dDevice->CreateSampler(&samplerDesc,
 		m_SamplerDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }

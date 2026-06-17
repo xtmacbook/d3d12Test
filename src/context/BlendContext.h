@@ -3,6 +3,7 @@
 #include "interface/TexContextInterface.h"
 #include "interface/GeomtryContextInterface.h"
 #include "interface/BlendContextInterface.h"
+#include "interface/LayoutInterface.h"
 
 #include <array>
 
@@ -11,6 +12,7 @@ class BlendContext :
 	public TexContextInterface,
 	public GeometryContextInterface,
 	public BlendContextInterface,
+	public LayoutInterface,
 	public D3DContext
 {
 
@@ -46,8 +48,6 @@ public:
 
 protected:
 	
-	std::vector<D3D12_INPUT_ELEMENT_DESC>											m_InputLayout;
-	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>>				m_Shaders;
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
 	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_Textures;
 

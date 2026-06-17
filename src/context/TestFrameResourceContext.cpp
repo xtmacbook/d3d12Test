@@ -102,7 +102,7 @@ void DefaultFrameResourceContext::BuildFrameResources()
 {
 	for (int i = 0; i < m_NumFrameResources; i++)
 	{
-		m_frameResources.emplace_back(std::make_unique<FrameResource>(m_d3dDevice.Get(), 1, m_AllRitems.size()));
+		m_frameResources.emplace_back(std::make_unique<FrameResource <ObjectConstants,PassConstants>  >(m_d3dDevice.Get(), 1, m_AllRitems.size()));
 	}
 }
 

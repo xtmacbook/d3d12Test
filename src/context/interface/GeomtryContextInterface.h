@@ -30,13 +30,17 @@ public:
 
 	virtual void updateGeometry(const GameTimer& gt);
 
-	void buildBox(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList, BoxProfile);
+	void BuildBox(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList, BoxProfile);
 	
-	void buildLand(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+	void BuildLand(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
-	void buildWave(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+	void BuildWave(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
-	Waves* getWave();
+	void BuildSkull(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+
+	void BuildMirror(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+
+	Waves* GetWave();
 
 protected:
 	void updateWave(const GameTimer& gt);

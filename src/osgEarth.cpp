@@ -9,6 +9,7 @@
 #include "context/WavesContext.h"
 #include "context/TexContext.h"
 #include "context/BlendContext.h"
+#include "context//MirrorWithStencil.h"
 
 
 using namespace DirectX;
@@ -24,11 +25,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		BlendContext d3dContext;
+		MirrorWithStencil d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 
-		app.setRadius(50.0);
+		app.setRadius(12.0f);
 		app.setPixelUnitScale(0.2, 0.2);
 		app.setSceneClampRange(5.0f, 150.f);
 		

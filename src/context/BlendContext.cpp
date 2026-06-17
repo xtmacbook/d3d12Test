@@ -134,43 +134,21 @@ void BlendContext::BuildFrameResources()
 		m_frameResources.emplace_back(std::make_unique<BlendFrameResource>(m_d3dDevice.Get(),
 			1,
 			m_AllRitems.size(),
-			(UINT)m_Materials.size(), getWave()->VertexCount()));
+			(UINT)m_Materials.size(), GetWave()->VertexCount()));
 
 }
 
 void BlendContext::BuildShadersAndInputLayout()
 {
-	const D3D_SHADER_MACRO defines[] =
-	{
-		"FOG", "1",
-		NULL, NULL
-	};
-
-	const D3D_SHADER_MACRO alphaTestDefines[] =
-	{
-		"FOG", "1",
-		"ALPHA_TEST", "1",
-		NULL, NULL
-	};
-
-
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders/Blend.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders/Blend.hlsl", defines, "PS", "ps_5_1");
-	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(L"../Shaders/Blend.hlsl", alphaTestDefines, "PS", "ps_5_0");
-
-	m_InputLayout =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-	};
+	BuildShaders();
+	BuildLayout();
 }
 
 void BlendContext::BuildShapeGeometry(ID3D12Device* d3Device, ID3D12GraphicsCommandList* mCommandList)
 {
-	buildBox(d3Device, mCommandList, { 8.0f, 8.0f, 8.0f });
-	buildLand(d3Device, mCommandList);
-	buildWave(d3Device, mCommandList);
+	BuildBox(d3Device, mCommandList, { 8.0f, 8.0f, 8.0f });
+	BuildLand(d3Device, mCommandList);
+	BuildWave(d3Device, mCommandList);
 }
 
 void BlendContext::BuildRootSignature()
@@ -388,7 +366,7 @@ void BlendContext::Update(const GameTimer& gt)
 	UpdateMainPassCB(gt);
 	updateGeometry(gt);
 
-	Waves* waveGeom = getWave();
+	Waves* waveGeom = GetWave();
 	if (waveGeom)
 	{
 		for (int i = 0; i < waveGeom->VertexCount(); ++i)

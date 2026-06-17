@@ -3,6 +3,7 @@
 #include "MathHelper.h"
 
 struct MeshGeometry;
+struct SubmeshGeometry;
 
 struct Material
 {
@@ -59,6 +60,12 @@ struct VertexN
 
 struct VertexNT
 {
+	VertexNT() = default;
+	VertexNT(float x, float y, float z, float nx, float ny, float nz, float u, float v) :
+		Pos(x, y, z),
+		Normal(nx, ny, nz),
+		TexC(u, v) {}
+
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexC;
@@ -169,6 +176,9 @@ struct RenderItem
 	UINT							m_IndexCount = 0;
 	UINT							m_StartIndexLocation = 0;
 	int								m_BaseVertexLocation = 0;
+
+	void FillWithDrawArgs(const SubmeshGeometry*);
+
 };
 
 struct RenderItemWithMaterial : public RenderItem

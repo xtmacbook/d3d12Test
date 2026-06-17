@@ -7,64 +7,6 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
-class FrameResourceWithMaterial : public FrameResourceInterface
-{
-public:
-
-	FrameResourceWithMaterial(ID3D12Device* device, UINT passCount, UINT objectCount,
-		UINT materialCount)
-	{
-		ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-			IID_PPV_ARGS(m_CmdListAlloc.GetAddressOf())));
-
-
-		m_ObjectCB = std::make_unique<UploadBuffer<ObjectConstantsWithTexTran>>(device, objectCount, true);
-		m_PassCB = std::make_unique<UploadBuffer<PassConstantsWithLight>>(device, objectCount, true);
-		m_MaterialCB = std::make_unique<UploadBuffer<MaterialConstantsWithTexTran>>(device, materialCount, true);
-
-	}
-
-	FrameResourceWithMaterial(const FrameResourceWithMaterial& rhs) = delete;
-	FrameResourceWithMaterial& operator=(const FrameResourceWithMaterial& rhs) = delete;
-	~FrameResourceWithMaterial() {};
-
-
-	virtual void CopyConstData(int elementIndex, void* data) override
-	{
-		ObjectConstantsWithTexTran* content = static_cast<ObjectConstantsWithTexTran*>(data);
-		m_ObjectCB->CopyData(elementIndex, *content);
-	}
-	virtual void CopyPassData(int elementIndex, void* data) override
-	{
-		PassConstantsWithLight* content = static_cast<PassConstantsWithLight*>(data);
-		m_PassCB->CopyData(elementIndex, *content);
-	}
-	virtual void CopyMaterialData(int elementIndex, void* data)
-	{
-		MaterialConstantsWithTexTran* content = static_cast<MaterialConstantsWithTexTran*>(data);
-		m_MaterialCB->CopyData(elementIndex, *content);
-	}
-
-	virtual D3D12_GPU_VIRTUAL_ADDRESS getConstGpuAddress() override
-	{
-		return m_ObjectCB->Resource()->GetGPUVirtualAddress();
-
-	}
-	virtual D3D12_GPU_VIRTUAL_ADDRESS getPassGpuAddress() override
-	{
-		return m_PassCB->Resource()->GetGPUVirtualAddress();
-
-	}
-	virtual D3D12_GPU_VIRTUAL_ADDRESS getMaterialGpuAddress() override
-	{
-		return m_MaterialCB->Resource()->GetGPUVirtualAddress();
-	}
-
-	std::unique_ptr<UploadBuffer<PassConstantsWithLight>>				m_PassCB = nullptr;
-	std::unique_ptr<UploadBuffer<ObjectConstantsWithTexTran>>           m_ObjectCB = nullptr;
-	std::unique_ptr<UploadBuffer<MaterialConstantsWithTexTran>>			m_MaterialCB = nullptr;
-
-};
 
 
 bool TexContext::InitDirect3D()
@@ -111,7 +53,7 @@ void TexContext::BuildFrameResources()
 	//pass
 	//material
 	for (int i = 0; i < m_NumFrameResources; i++)
-		m_frameResources.emplace_back(std::make_unique<FrameResourceWithMaterial>(m_d3dDevice.Get(),
+		m_frameResources.emplace_back(std::make_unique<FrameResourceWithMaterial <ObjectConstantsWithTexTran, PassConstantsWithLight, MaterialConstantsWithTexTran> >(m_d3dDevice.Get(),
 			1, 
 			m_AllRitems.size(), 
 			(UINT)m_Materials.size()));
