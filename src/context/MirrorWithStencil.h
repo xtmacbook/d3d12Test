@@ -5,9 +5,43 @@
 
 
 /*
+* 
+	
+A:	Stencil Test:
+	if(Stecil Ref & StencilReadMask  (operator Func)  value & StencilReadMask)
+		accept pixel
+	else
+		reject pixel
+
+
+B:	Depth Setting:
+		DepthEnable:  如果为false,则无论顺序和是否遮挡,都会绘制,elements in the depth buffer are not updated either, regardless of the DepthWriteMask setting.
+
+		DepthWriteMask: 
+			D3D12_DEPTH_WRITE_MASK_ZERO ：
+				不允许写入到depth buffer, 但如果DepthEnable为true,depth testing 会发生
+			D3D12_DEPTH_WRITE_MASK_ALL:
+				允许写入到depth buffer,
+		 DepthFunc:  define the depth test comparison function.
+
+
+C:  Stencil Setting:
+	StencilEnable:
+	StencilReadMask:
+	StencilWriteMask: 
+	FrontFace:  
+    BackFace:
+
+	D3D12_DEPTH_STENCILOP_DESC:
+		StencilFailOp:如果stencil test失败后的stencil buffer如何操作 
+		StencilDepthFailOp: stencil test 成功但是depth test失败后stencil buffer如何的操作
+		StencilPassOp: depth test和stencil test都成功的stencil buffer如何操作
+		StencilFunc:  
+
+
 	1. Render the floor, walls, and skull to the back buffer as normal
 	2. Clear the stencil buffer to 0
-	3. Render the mirror only to the stencil buffer. We can disable color writes to the back buffer  and we can disable writes to the depth buffer by setting
+	3. Render the mirror only to the stencil buffer. We can disable color writes to the back buffer  and we can disable writes to the depth buffer
 	4. Now we render the reflected skull to the back buffer and stencil buffer this is done using a StencilRef of 1, and the stencil operator D3D12_COMPARISON_EQUAL. 
 	5. Finally, we render the mirror to the back buffer as normal. However,  we need to render the mirror with transparency blending. 
 

@@ -409,8 +409,8 @@ void DefaultFrameResourceContext::BuildRootSignature()
 
 void DefaultFrameResourceContext::BuildShadersAndInputLayout()
 {
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders\\shape.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders\\shape.hlsl", nullptr, "PS", "ps_5_1");
+	m_Shaders["standardVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/shape.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/shape.hlsl", nullptr, "PS", "ps_5_1");
 
 	m_InputLayout =
 	{

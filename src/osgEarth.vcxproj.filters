@@ -19,9 +19,6 @@
     <Filter Include="源文件\context">
       <UniqueIdentifier>{a23268b0-c636-435f-943d-54853067ad10}</UniqueIdentifier>
     </Filter>
-    <Filter Include="源文件\shaders">
-      <UniqueIdentifier>{bdd13e65-a382-42f6-9924-964d14ed3f3c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="源文件\context\interface">
       <UniqueIdentifier>{a88ef1e5-c4fb-446c-91f4-bdc40b6b5383}</UniqueIdentifier>
     </Filter>

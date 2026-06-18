@@ -201,7 +201,7 @@ void GeometryContextInterface::BuildWave(ID3D12Device* md3dDevice, ID3D12Graphic
 
 void GeometryContextInterface::BuildSkull(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList)
 {
-	std::ifstream fin("../Models/skull.txt");
+	std::ifstream fin(SourcePath() + L"/Models/skull.txt");
 
 	if (!fin)
 	{

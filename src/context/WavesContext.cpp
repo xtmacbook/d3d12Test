@@ -142,8 +142,8 @@ void WavesContext::Update(const GameTimer& gt)
 
 void WavesContext::BuildShadersAndInputLayout()
 {
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders\\Waves.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders\\Waves.hlsl", nullptr, "PS", "ps_5_1");
+	m_Shaders["standardVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Waves.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Waves.hlsl", nullptr, "PS", "ps_5_1");
 
 	m_InputLayout =
 	{

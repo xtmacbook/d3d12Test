@@ -26,6 +26,8 @@ inline std::wstring AnsiToWstring(const std::string& str)
     return std::wstring(buffer);
 }
 
+std::wstring SourcePath();
+
 class D3DUtil
 {
 public:

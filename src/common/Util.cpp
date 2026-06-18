@@ -19,6 +19,11 @@ std::wstring DxException::toString() const
     return m_functionName + L" failed in " + m_filename + L"; line " + std::to_wstring(m_lineNumber) + L"; error: " + msg;
 }
 
+std::wstring SourcePath()
+{
+    return L"D:/workspace/osgEarth/";
+}
+
 void errorExit()
 {
     LPVOID lpMsgBuf;

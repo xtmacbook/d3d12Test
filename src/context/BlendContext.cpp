@@ -94,9 +94,9 @@ bool BlendContext::InitDirect3D()
 
 	//load textures
 	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["grassTex"] = L"../Textures/grass.dds";
-	textureFiles["waterTex"] = L"../Textures/water1.dds";
-	textureFiles["fenceTex"] = L"../Textures/WireFence.dds";
+	textureFiles["grassTex"] = SourcePath() +  L"/Textures/grass.dds";
+	textureFiles["waterTex"] = SourcePath() +  L"/Textures/water1.dds";
+	textureFiles["fenceTex"] = SourcePath() +  L"/Textures/WireFence.dds";
 	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
 
 	BuildSRVDescriptorHeap(m_d3dDevice.Get());

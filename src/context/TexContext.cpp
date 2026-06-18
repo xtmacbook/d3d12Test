@@ -18,7 +18,7 @@ bool TexContext::InitDirect3D()
 
 	//load textures
 	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["woodCrateTex"] = L"../Textures/WoodCrate01.dds";
+	textureFiles["woodCrateTex"] = SourcePath() + L"/Textures/WoodCrate01.dds";
 	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
 
 	BuildSRVDescriptorHeap(m_d3dDevice.Get());
@@ -62,8 +62,8 @@ void TexContext::BuildFrameResources()
 
 void TexContext::BuildShadersAndInputLayout()
 {
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(L"../Shaders\\Tex.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(L"../Shaders\\Tex.hlsl", nullptr, "PS", "ps_5_1");
+	m_Shaders["standardVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders\\Tex.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders\\Tex.hlsl", nullptr, "PS", "ps_5_1");
 
 	m_InputLayout =
 	{
