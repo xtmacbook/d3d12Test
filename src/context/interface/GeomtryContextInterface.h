@@ -40,6 +40,8 @@ public:
 
 	void BuildMirror(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
+	void BuildSprites(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList);
+
 	Waves* GetWave();
 
 protected:

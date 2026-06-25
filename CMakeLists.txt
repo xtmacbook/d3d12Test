@@ -74,6 +74,7 @@ set (CONTEXT_SOURCE
     src/context/TexContext.cpp
     src/context/Waves.cpp
     src/context/WavesContext.cpp
+    src/context/GSContext.cpp
 )
 set (CONTEXT_SOURCE_HEADS
     src/context/BlendContext.h
@@ -84,7 +85,8 @@ set (CONTEXT_SOURCE_HEADS
     src/context/TestFrameResourceContext.h
     src/context/TexContext.h
     src/context/Waves.h
-    src/context/WavesContext.h
+    src/context/WavesContext.cpp
+    src/context/GSContext.h
 )
 
 

@@ -1,91 +1,70 @@
 ﻿#include "GSContext.h"
+#include "../common/Geometry.h"
 
-void GSContext::BuildShaders()
-{
-}
+using namespace DirectX;
+using namespace DirectX::PackedVector;
+using Microsoft::WRL::ComPtr;
 
-void GSContext::BuildLayout()
+void GSContext::BuildShadersAndInputLayout()
 {
-	std::vector<D3D12_INPUT_ELEMENT_DESC> mTreeSpriteInputLayout =
+	BlendContext::BuildShadersAndInputLayout();
+
+	BuildGeometryShader();
+	m_TreeSpriteInputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 }
 
-bool GSContext::InitDirect3D()
+void GSContext::BuildShapeGeometry(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList)
 {
-	if (!D3DContext::InitDirect3D()) return false;
-
-	// Reset the command list to prep for initialization commands.
-	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
-
-	//load textures
-	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["grassTex"] = SourcePath() + L"/Textures/grass.dds";
-	textureFiles["waterTex"] = SourcePath() + L"/Textures/water1.dds";
-	textureFiles["fenceTex"] = SourcePath() + L"/Textures/WireFence.dds";
-	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
-
-	BuildSRVDescriptorHeap(m_d3dDevice.Get());
-	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
-	BuildSampleDescriptorHeap(m_d3dDevice.Get());
-	BuildSampleDescriptor(m_d3dDevice.Get(), m_CommandList.Get());
-
-	BuildShapeGeometry(m_d3dDevice.Get(), m_CommandList.Get());
-
-	BuildMaterials();
-	BuildRootSignature();
-	BuildShadersAndInputLayout();
-
-	BuildRenderItems();
-	BuildFrameResources();
-
-	BuildPSOs();
-
-	// Execute the initialization commands.
-	ThrowIfFailed(m_CommandList->Close());
-	ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
-	m_CommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-
-	// Wait until initialization is complete.
-	FlushCommandQueue();
-
-	return true;
-}
-
-void GSContext::BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList)
-{
-}
-
-void GSContext::BuildFrameResources()
-{
-}
-
-void GSContext::BuildPSOs()
-{
+	BlendContext::BuildShapeGeometry(device,mCommandList);
+	BuildSprites(device, mCommandList);
 }
 
 void GSContext::BuildMaterials()
 {
+	BlendContext::BuildMaterials();
+
+	auto treeSprites = std::make_unique<Material>();
+	treeSprites->Name = "treeSprites";
+	treeSprites->MatCBIndex = 3;
+	treeSprites->DiffuseSrvHeapIndex = 3;
+	treeSprites->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	treeSprites->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	treeSprites->Roughness = 0.125f;
+
+	m_Materials["treeSprites"] = std::move(treeSprites);
 }
 
 void GSContext::BuildRenderItems()
 {
+	BlendContext::BuildRenderItems();
+
+	auto spritePoint = std::make_unique<RenderItemWithTex>();
+	spritePoint->m_ObjCBIndex = 2;
+	XMStoreFloat4x4(&spritePoint->m_World, XMMatrixTranslation(3.0f, 2.0f, -9.0f));
+	spritePoint->m_Material = m_Materials["treeSprites"].get();
+	spritePoint->m_Geo = m_Geometries["treeSpritesGeo"].get();
+	spritePoint->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+	spritePoint->m_IndexCount = spritePoint->m_Geo->m_DrawArgs["box"].m_IndexCount;
+	spritePoint->m_StartIndexLocation = spritePoint->m_Geo->m_DrawArgs["box"].m_StartIndexLocation;
+	spritePoint->m_BaseVertexLocation = spritePoint->m_Geo->m_DrawArgs["box"].m_BaseVertexLocation;
+	m_AllRitems.push_back(std::move(spritePoint));
 }
 
-void GSContext::Update(const GameTimer& gt)
+void GSContext::BuildGeometryShader()
 {
-}
+	const D3D_SHADER_MACRO alphaTestDefines[] =
+	{
+		"FOG", "1",
+		"ALPHA_TEST", "1",
+		NULL, NULL
+	};
 
-void GSContext::UpdateMainPassCB(const GameTimer& gt)
-{
-}
-
-void GSContext::Draw(const GameTimer& gt)
-{
-}
-
-void GSContext::DrawFrameResource(ID3D12CommandAllocator*)
-{
+	m_Shaders["treeVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/TreeSprite.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["treeGS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/TreeSprite.hlsl", nullptr, "PS", "ps_5_1");
+	m_Shaders["treePS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/TreeSprite.hlsl", alphaTestDefines, "PS", "ps_5_1");
 }

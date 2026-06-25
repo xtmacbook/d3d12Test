@@ -16,13 +16,7 @@ bool MirrorWithStencil::InitDirect3D()
 	// Reset the command list to prep for initialization commands.
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
-	//load textures
-	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["bricksTex"] = SourcePath() + L"/Textures/bricks3.dds";
-	textureFiles["checkboardTex"] = SourcePath() + L"/Textures/checkboard.dds";
-	textureFiles["iceTex"] = SourcePath() + L"/Textures/ice.dds";
-	textureFiles["white1x1Tex"] = SourcePath() + L"/Textures/white1x1.dds";
-	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
+	initTextures(m_d3dDevice.Get(), m_CommandList.Get());
 
 	BuildSRVDescriptorHeap(m_d3dDevice.Get());
 	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
@@ -265,6 +259,17 @@ void MirrorWithStencil::BuildRenderItems()
 		
 	m_AllRitems.push_back(std::move(reflectedSkullRitem));
 	m_AllRitems.push_back(std::move(mirrorRitem));
+}
+
+void MirrorWithStencil::initTextures(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList)
+{
+	//load textures
+	std::unordered_map<std::string, std::wstring> textureFiles;
+	textureFiles["bricksTex"] = SourcePath() + L"/Textures/bricks3.dds";
+	textureFiles["checkboardTex"] = SourcePath() + L"/Textures/checkboard.dds";
+	textureFiles["iceTex"] = SourcePath() + L"/Textures/ice.dds";
+	textureFiles["white1x1Tex"] = SourcePath() + L"/Textures/white1x1.dds";
+	loadTextures(device, mCommandList, textureFiles);
 }
 
 void MirrorWithStencil::Update(const GameTimer& gt)

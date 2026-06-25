@@ -93,12 +93,7 @@ bool BlendContext::InitDirect3D()
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
 	//load textures
-	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["grassTex"] = SourcePath() +  L"/Textures/grass.dds";
-	textureFiles["waterTex"] = SourcePath() +  L"/Textures/water1.dds";
-	textureFiles["fenceTex"] = SourcePath() + L"/Textures/WireFence.dds";
-	textureFiles["treeArrayTex"] = SourcePath() +  L"/Textures/treeArray2.dds";
-	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
+	initTextures(m_d3dDevice.Get(), m_CommandList.Get());
 
 	BuildSRVDescriptorHeap(m_d3dDevice.Get());
 	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
@@ -150,6 +145,16 @@ void BlendContext::BuildShapeGeometry(ID3D12Device* d3Device, ID3D12GraphicsComm
 	BuildBox(d3Device, mCommandList, { 8.0f, 8.0f, 8.0f });
 	BuildLand(d3Device, mCommandList);
 	BuildWave(d3Device, mCommandList);
+}
+
+void BlendContext::initTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
+{
+	std::unordered_map<std::string, std::wstring> textureFiles;
+	textureFiles["grassTex"] = SourcePath() + L"/Textures/grass.dds";
+	textureFiles["waterTex"] = SourcePath() + L"/Textures/water1.dds";
+	textureFiles["fenceTex"] = SourcePath() + L"/Textures/WireFence.dds";
+	textureFiles["treeArrayTex"] = SourcePath() + L"/Textures/treeArray2.dds";
+	loadTextures(device, mCommandList, textureFiles);
 }
 
 void BlendContext::BuildRootSignature()

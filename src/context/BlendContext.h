@@ -31,10 +31,12 @@ public:
 	virtual void BuildShadersAndInputLayout();
 	virtual void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList)override;
 
+	virtual void initTextures(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList);
+
 	void BuildRootSignature();
 	void BuildPSOs();
-	void BuildMaterials();
-	void BuildRenderItems();
+	virtual void BuildMaterials();
+	virtual void BuildRenderItems();
 
 	virtual void Update(const GameTimer& gt) override;
 	void UpdateObjectCBs(const GameTimer& gt);

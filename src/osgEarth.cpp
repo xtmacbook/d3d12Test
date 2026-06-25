@@ -10,6 +10,7 @@
 #include "context/TexContext.h"
 #include "context/BlendContext.h"
 #include "context//MirrorWithStencil.h"
+#include "context/GSContext.h"
 
 
 using namespace DirectX;
@@ -25,7 +26,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		MirrorWithStencil d3dContext;
+		GSContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 

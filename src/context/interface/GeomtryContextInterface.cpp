@@ -390,6 +390,62 @@ void GeometryContextInterface::BuildMirror(ID3D12Device*device, ID3D12GraphicsCo
 	m_Geometries[geo->Name] = std::move(geo);
 }
 
+void GeometryContextInterface::BuildSprites(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
+{
+	static const int treeCount = 16;
+	std::array<VertexS, 16> vertices;
+	for (UINT i = 0; i < treeCount; ++i)
+	{
+		float x = MathHelper::RandF(-45.0f, 45.0f);
+		float z = MathHelper::RandF(-45.0f, 45.0f);
+		float y = GetHillsHeight(x, z);
+
+		// Move tree slightly above land height.
+		y += 8.0f;
+
+		vertices[i].Pos = XMFLOAT3(x, y, z);
+		vertices[i].Size = XMFLOAT2(20.0f, 20.0f);
+	}
+
+	std::array<std::uint16_t, 16> indices =
+	{
+		0, 1, 2, 3, 4, 5, 6, 7,
+		8, 9, 10, 11, 12, 13, 14, 15
+	};
+
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexS);
+	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = "treeSpritesGeo";
+
+	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->m_VertexBufferCPU));
+	CopyMemory(geo->m_VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->m_IndexBufferCPU));
+	CopyMemory(geo->m_IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+	geo->m_VertexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
+		mCommandList, vertices.data(), vbByteSize, geo->m_VertexBufferUploader);
+
+	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
+		mCommandList, indices.data(), ibByteSize, geo->m_IndexBufferUploader);
+
+	geo->m_VertexByteStride = sizeof(VertexS);
+	geo->m_VertexBufferByteSize = vbByteSize;
+	geo->m_IndexFormat = DXGI_FORMAT_R16_UINT;
+	geo->m_IndexBufferByteSize = ibByteSize;
+
+	SubmeshGeometry submesh;
+	submesh.m_IndexCount = (UINT)indices.size();
+	submesh.m_StartIndexLocation = 0;
+	submesh.m_BaseVertexLocation = 0;
+
+	geo->m_DrawArgs["points"] = submesh;
+
+	m_Geometries["treeSpritesGeo"] = std::move(geo);
+}
+
 Waves* GeometryContextInterface::GetWave()
 {
 	if(m_Waves)

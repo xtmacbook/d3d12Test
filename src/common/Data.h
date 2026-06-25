@@ -46,6 +46,12 @@ struct Light
 	float					SpotPower = 64.0f;                            // spot light only
 };
 
+struct VertexS
+{
+	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT2 Size;
+};
+
 struct VertexC
 {
 	DirectX::XMFLOAT3 Pos;

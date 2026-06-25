@@ -1,38 +1,37 @@
 ﻿#pragma once
 
-#include "ComContext.h"
+#include "BlendContext.h"
+
 #include <array>
 
-/*
-*
-*/
 
-class GSContext : public ComContext
+class GSContext : public BlendContext
 {
-
 public:
+	
+	void BuildShadersAndInputLayout()override;
 
-	virtual void BuildShaders()override;
+	void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList)override;
 
-	virtual void BuildLayout()override;
+	void BuildMaterials()override;
 
-	virtual bool InitDirect3D()override;
-	virtual void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList)override;
-	virtual void BuildFrameResources()override;
+	void BuildRenderItems() override;
 
-	void BuildPSOs();
-	void BuildMaterials();
-	void BuildRenderItems();
-
-	virtual void Update(const GameTimer& gt) override;
-	void UpdateMainPassCB(const GameTimer& gt);
-
-	virtual void Draw(const GameTimer& gt);
-	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
 
 protected:
-	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>>	m_PSOs;
+	void BuildGeometryShader();
 
-	PassConstantsWithFrog															m_MainPassCB;
+	private:
+	std::vector<D3D12_INPUT_ELEMENT_DESC> m_TreeSpriteInputLayout ;
 
 };
+
+
+
+//geoemtry
+//texture
+//layout
+//gshader
+
+
+//update camera

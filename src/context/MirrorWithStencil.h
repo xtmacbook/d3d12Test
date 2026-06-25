@@ -56,9 +56,11 @@ public:
 	virtual void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList)override;
 	virtual void BuildFrameResources()override;
 
-	void BuildPSOs();
-	void BuildMaterials();
-	void BuildRenderItems();
+	virtual void BuildPSOs();
+	virtual void BuildMaterials();
+	virtual void BuildRenderItems();
+
+	virtual void initTextures(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
 	virtual void Update(const GameTimer& gt) override;
 	void UpdateMainPassCB(const GameTimer& gt);
