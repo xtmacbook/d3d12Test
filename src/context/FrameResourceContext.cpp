@@ -9,7 +9,6 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
-const int	FrameResourceContextInterface::m_NumFrameResources = 3;
 
 void FrameResourceContextInterface::Update(const GameTimer& gt)
 {

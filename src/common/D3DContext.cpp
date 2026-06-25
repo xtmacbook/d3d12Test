@@ -329,3 +329,6 @@ void D3DContext::UpdateCamera(const GameTimer& gt)
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&m_View, view);
 }
+
+
+ 
