@@ -149,11 +149,11 @@ void BlendContext::BuildShapeGeometry(ID3D12Device* d3Device, ID3D12GraphicsComm
 
 void BlendContext::initTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 {
-	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["grassTex"] = SourcePath() + L"/Textures/grass.dds";
-	textureFiles["waterTex"] = SourcePath() + L"/Textures/water1.dds";
-	textureFiles["fenceTex"] = SourcePath() + L"/Textures/WireFence.dds";
-	textureFiles["treeArrayTex"] = SourcePath() + L"/Textures/treeArray2.dds";
+	std::vector<TextureLoadDesc> textureFiles;
+	textureFiles.emplace_back( "grassTex", SourcePath() + L"/Textures/grass.dds",false );
+	textureFiles.emplace_back("waterTex", SourcePath() + L"/Textures/water1.dds", false);
+	textureFiles.emplace_back("fenceTex", SourcePath() + L"/Textures/WireFence.dds", false);
+	textureFiles.emplace_back("treeArrayTex", SourcePath() + L"/Textures/treeArray2.dds",true);
 	loadTextures(device, mCommandList, textureFiles);
 }
 

@@ -17,7 +17,7 @@ void LayoutInterface::BuildShaders()
 
 	m_Shaders["standardVS"] = D3DUtil::CompileShader(SourcePath() +  L"/Shaders/Default.hlsl", nullptr, "VS", "vs_5_1");
 	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Default.hlsl", defines, "PS", "ps_5_1");
-	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Default.hlsl", alphaTestDefines, "PS", "ps_5_0");
+	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Default.hlsl", alphaTestDefines, "PS", "ps_5_1");
 }
 
 void LayoutInterface::BuildLayout()

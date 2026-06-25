@@ -3,19 +3,21 @@
 #include "../../common/data.h"
 
 bool TexContextInterface::loadTextures(ID3D12Device* md3dDevice, 
-	ID3D12GraphicsCommandList* mCommandList, std::unordered_map<std::string, std::wstring>&files)
+	ID3D12GraphicsCommandList* mCommandList, std::vector<TextureLoadDesc>&files)
 {
 
 	for (auto item : files)
 	{
 		auto woodCrateTex = std::make_unique<Texture>();
-		woodCrateTex->m_Name = item.first;;
-		woodCrateTex->m_Filename = item.second;
+		woodCrateTex->m_Name = item.Name;;
+		woodCrateTex->m_Filename = item.FileName;
 
 		ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
 			mCommandList, woodCrateTex->m_Filename.c_str(),
 			woodCrateTex->m_Resource, woodCrateTex->m_UploadHeap));
-
+		
+		(item.TextureArray)?
+			m_TextureArrs[woodCrateTex->m_Name] = std::move(woodCrateTex):
 		m_Textures[woodCrateTex->m_Name] = std::move(woodCrateTex);
 	}
 
@@ -53,7 +55,7 @@ void TexContextInterface::BuildSRVDescriptorHeap(ID3D12Device* md3dDevice)
 {
 	//create srv descriptor headp
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = m_Textures.size();
+	srvHeapDesc.NumDescriptors = m_Textures.size() + m_TextureArrs.size();
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
@@ -96,6 +98,28 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
 
 		idx++;
+	}
+
+	for (auto iter = m_TextureArrs.begin(); iter != m_TextureArrs.end(); iter++)
+	{
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(
+			m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+		hDescriptor.Offset(idx, CbvSrvUavDescriptorSize);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = iter->second->m_Resource->GetDesc().Format;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = -1;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.MipLevels = -1;
+		srvDesc.Texture2DArray.FirstArraySlice = 0;
+		srvDesc.Texture2DArray.ArraySize = iter->second->m_Resource->GetDesc().DepthOrArraySize;
+		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
+		idx++;
+
 	}
 }
 
@@ -161,4 +185,7 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> TexContextInterface::getStaticS
 	anisotropicWrap, anisotropicClamp };
 
 }
- 
+
+TextureLoadDesc::TextureLoadDesc(std::string n, std::wstring fn, bool a):Name(n),FileName(fn), TextureArray(a)
+{
+}

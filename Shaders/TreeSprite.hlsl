@@ -1,4 +1,4 @@
-﻿// Defaults for number of lights.
+// Defaults for number of lights.
 #ifndef NUM_DIR_LIGHTS
 #define NUM_DIR_LIGHTS 3
 #endif

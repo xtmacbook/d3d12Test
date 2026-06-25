@@ -264,11 +264,11 @@ void MirrorWithStencil::BuildRenderItems()
 void MirrorWithStencil::initTextures(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList)
 {
 	//load textures
-	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["bricksTex"] = SourcePath() + L"/Textures/bricks3.dds";
-	textureFiles["checkboardTex"] = SourcePath() + L"/Textures/checkboard.dds";
-	textureFiles["iceTex"] = SourcePath() + L"/Textures/ice.dds";
-	textureFiles["white1x1Tex"] = SourcePath() + L"/Textures/white1x1.dds";
+	std::vector<TextureLoadDesc> textureFiles;
+	textureFiles.emplace_back("bricksTex", SourcePath() + L"/Textures/bricks3.dds");
+	textureFiles.emplace_back("checkboardTex", SourcePath() + L"/Textures/checkboard.dds");
+	textureFiles.emplace_back("iceTex", SourcePath() + L"/Textures/ice.dds");
+	textureFiles.emplace_back("white1x1Tex", SourcePath() + L"/Textures/white1x1.dds");
 	loadTextures(device, mCommandList, textureFiles);
 }
 

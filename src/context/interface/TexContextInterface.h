@@ -11,12 +11,23 @@
 
 struct Texture;
 
+struct TextureLoadDesc
+{
+	TextureLoadDesc() = default;
+
+	TextureLoadDesc(std::string n, std::wstring fn, bool array = false);
+
+	std::string Name;
+	std::wstring FileName;
+	bool TextureArray = false;
+};
+
 class TexContextInterface 
 {
 
 public:
-	
-	virtual bool loadTextures(ID3D12Device*, ID3D12GraphicsCommandList*,std::unordered_map<std::string,std::wstring>&);
+
+	virtual bool loadTextures(ID3D12Device*, ID3D12GraphicsCommandList*,std::vector<TextureLoadDesc>&);
 
 	virtual void BuildSampleDescriptorHeap(ID3D12Device*);
 
@@ -31,6 +42,7 @@ public:
 protected:
 
 	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_Textures;
+	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_TextureArrs;
 
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source

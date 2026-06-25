@@ -17,9 +17,10 @@ bool TexContext::InitDirect3D()
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
 	//load textures
-	std::unordered_map<std::string, std::wstring> textureFiles;
-	textureFiles["woodCrateTex"] = SourcePath() + L"/Textures/WoodCrate01.dds";
+	std::vector<TextureLoadDesc> textureFiles;
+	textureFiles.emplace_back("woodCrateTex", SourcePath() + L"/Textures/WoodCrate01.dds");
 	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
+
 
 	BuildSRVDescriptorHeap(m_d3dDevice.Get());
 	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);

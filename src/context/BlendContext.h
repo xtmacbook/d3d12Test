@@ -34,7 +34,7 @@ public:
 	virtual void initTextures(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList);
 
 	void BuildRootSignature();
-	void BuildPSOs();
+	virtual void BuildPSOs();
 	virtual void BuildMaterials();
 	virtual void BuildRenderItems();
 
