@@ -22,6 +22,18 @@ struct TextureLoadDesc
 	bool TextureArray = false;
 };
 
+struct TextureOutDes
+{
+	int Width;
+	int Height;
+	DXGI_FORMAT Format;
+};
+
+struct TextureOutResouce
+{
+	Microsoft::WRL::ComPtr<ID3D12Resource> Texture;
+};
+
 class TexContextInterface 
 {
 
@@ -36,6 +48,8 @@ public:
 	void BuildSRVDescriptorHeap(ID3D12Device* md3dDevice);
 
 	void BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvUavDescriptorSize);
+
+	void BuildUAVTexture(ID3D12Device*, TextureOutDes, TextureOutResouce&);
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> getStaticSamplerDescriptor();
 

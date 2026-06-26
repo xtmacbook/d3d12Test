@@ -27,16 +27,4 @@ protected:
 	private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_TreeSpriteInputLayout ;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>>				m_SpriteShaders;
-
-
 };
-
-
-
-//geoemtry
-//texture
-//layout
-//gshader
-
-
-//update camera

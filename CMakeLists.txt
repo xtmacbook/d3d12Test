@@ -56,12 +56,14 @@ set (CONTEXT_INTERFACE_SOURCE
     src/context/interface/GeomtryContextInterface.cpp
     src/context/interface/LayoutInterface.cpp
     src/context/interface/TexContextInterface.cpp
+    src/context/interface/ComputeShaderInterface.cpp
 )
 set (CONTEXT_INTERFACE_SOURCE_HEADS
     src/context/interface/BlendContextInterface.h
     src/context/interface/FrameResourceContextInterface.h
     src/context/interface/GeomtryContextInterface.h
     src/context/interface/LayoutInterface.h
+    src/context/interface/ComputeShaderInterface.h
 )
 
 set (CONTEXT_SOURCE
@@ -75,6 +77,7 @@ set (CONTEXT_SOURCE
     src/context/Waves.cpp
     src/context/WavesContext.cpp
     src/context/GSContext.cpp
+    src/context/ComputeShader.cpp
 )
 set (CONTEXT_SOURCE_HEADS
     src/context/BlendContext.h
@@ -85,8 +88,10 @@ set (CONTEXT_SOURCE_HEADS
     src/context/TestFrameResourceContext.h
     src/context/TexContext.h
     src/context/Waves.h
-    src/context/WavesContext.cpp
+    src/context/WavesContext.h
     src/context/GSContext.h
+    src/context/ComputeShader.h
+    
 )
 
 

@@ -123,6 +123,56 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 	}
 }
 
+void TexContextInterface::BuildUAVTexture(ID3D12Device* device, TextureOutDes desc, TextureOutResouce&resouce)
+{
+	D3D12_RESOURCE_DESC texDesc;
+	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Alignment = 0;
+	texDesc.Width = desc.Width;
+	texDesc.Height = desc.Height;
+	texDesc.DepthOrArraySize = 1;
+	texDesc.MipLevels = 1;
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; //如果绑定到UAV的话必须是这个flag
+	ThrowIfFailed(device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(&resouce.Texture)));
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = desc.Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = desc.Format;
+	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.Texture2D.MipSlice = 0;
+
+
+	//the texture will be bound as a UAV and as a SRV(but not simultaneously).
+	/*
+	This is common, as we often use the compute shader to perform some operation on a
+	texture (so the texture will be bound to the compute shader as a UAV), and then
+	after, we want to texture geometry with it, so it will be bound to the vertex or pixel
+	shader as a SRV.
+	*/
+	/*device->CreateShaderResourceView(mBlurMap0.Get(),
+		&srvDesc, mBlur0CpuSrv);
+
+	device->CreateUnorderedAccessView(mBlurMap0.Get(),
+		nullptr, &uavDesc, mBlur0CpuUav);*/
+}
+
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> TexContextInterface::getStaticSamplerDescriptor()
 {
 	/*
