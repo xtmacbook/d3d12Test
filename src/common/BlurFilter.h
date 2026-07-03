@@ -63,8 +63,6 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mBlurMap0;
 	Microsoft::WRL::ComPtr<ID3D12Resource> mBlurMap1;
-	D3D12_RESOURCE_STATES mBlurMap0State = D3D12_RESOURCE_STATE_COMMON;
-	D3D12_RESOURCE_STATES mBlurMap1State = D3D12_RESOURCE_STATE_COMMON;
 
 	std::unique_ptr<UploadBuffer<BlurWeights> >         m_WeightsCB;
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>			m_BlurSignature = nullptr;

@@ -43,8 +43,8 @@ void BlurFilter::BuildDescriptors()
 	TextureOutResouce outRes0{ mBlurMap0, mBlur0CpuSrv, mBlur0CpuUav };
 	TextureOutResouce outRes1{ mBlurMap1, mBlur1CpuSrv, mBlur1CpuUav };
 
-	TexContextInterface::BuildUAVTextureResouceView(md3dDevice, desc, outRes0);
-	TexContextInterface::BuildUAVTextureResouceView(md3dDevice, desc, outRes1);
+	TexContextInterface::BuildUAVTextureResouceView(md3dDevice, desc, mBlurMap0, mBlur0CpuSrv, mBlur0CpuUav);
+	TexContextInterface::BuildUAVTextureResouceView(md3dDevice, desc, mBlurMap1, mBlur1CpuSrv, mBlur1CpuUav);
 
 }
 
@@ -120,9 +120,6 @@ void BlurFilter::BuildResources()
 
 	TexContextInterface::BuildUAVTextureResouce(md3dDevice, desc,  mBlurMap0 );
 	TexContextInterface::BuildUAVTextureResouce(md3dDevice, desc,  mBlurMap1);
-	// Resources are created in COMMON state.
-	mBlurMap0State = D3D12_RESOURCE_STATE_COMMON;
-	mBlurMap1State = D3D12_RESOURCE_STATE_COMMON;
 }
 
 void BlurFilter::BuildDescriptors(
@@ -159,18 +156,15 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mBlurMap0.
 		Get(),
-		mBlurMap0State, D3D12_RESOURCE_STATE_COPY_DEST));
-	mBlurMap0State = D3D12_RESOURCE_STATE_COPY_DEST;
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
 	cmdList->CopyResource(mBlurMap0.Get(), input);
 
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mBlurMap0.
 		Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
-	mBlurMap0State = D3D12_RESOURCE_STATE_GENERIC_READ;
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mBlurMap1.
 		Get(),
-		mBlurMap1State, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-	mBlurMap1State = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
 	for (int i = 0; i < blurCount; ++i)
 	{
@@ -186,14 +180,12 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 
 		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
 			mBlurMap0.Get(),
-			mBlurMap0State,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
 			D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		mBlurMap0State = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
 			mBlurMap1.Get(),
-			mBlurMap1State,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 			D3D12_RESOURCE_STATE_GENERIC_READ));
-		mBlurMap1State = D3D12_RESOURCE_STATE_GENERIC_READ;
 		//
 		// Vertical Blur pass.
 		//
@@ -208,24 +200,12 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 
 		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
 			mBlurMap0.Get(),
-			mBlurMap0State,
+			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 			D3D12_RESOURCE_STATE_GENERIC_READ));
-		mBlurMap0State = D3D12_RESOURCE_STATE_GENERIC_READ;
 		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
 			mBlurMap1.Get(),
-			mBlurMap1State,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
 			D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		mBlurMap1State = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-	}
-
-	// Ensure mBlurMap0 is in COPY_SOURCE for the caller's copy back to the back buffer.
-	if (mBlurMap0State != D3D12_RESOURCE_STATE_COPY_SOURCE)
-	{
-		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-			mBlurMap0.Get(),
-			mBlurMap0State,
-			D3D12_RESOURCE_STATE_COPY_SOURCE));
-		mBlurMap0State = D3D12_RESOURCE_STATE_COPY_SOURCE;
 	}
 
 }
