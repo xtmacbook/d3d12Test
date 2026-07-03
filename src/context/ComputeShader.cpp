@@ -1,23 +1,114 @@
-#include "ComputeShader.h"
+﻿#include "ComputeShader.h"
+#include "../common/App.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
-void ComputeShaderContext::BindOutputResources(ID3D12Device*device)
+bool ComputeShaderContext::InitDirect3D()
 {
-	TextureOutDes desc;
-	TextureOutResouce resouce;
-	BuildUAVTexture(m_d3dDevice.Get(), desc, resouce);
+	if (!D3DContext::InitDirect3D()) return false;
+
+	m_BlurFilter = 
+		std::make_unique<BlurFilter>(m_d3dDevice.Get(), m_win->Width(), m_win->Height(),
+			DXGI_FORMAT_R8G8B8A8_UNORM);
+
+	// Reset the command list to prep for initialization commands.
+	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
+
+	//load textures
+	initTextures(m_d3dDevice.Get(), m_CommandList.Get());
+
+	BuildSRVDescriptorHeap(m_d3dDevice.Get());
+	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
+	BuildSampleDescriptorHeap(m_d3dDevice.Get());
+	BuildSampleDescriptor(m_d3dDevice.Get(), m_CommandList.Get());
+
+	//因为前面有三个纹理占用了几个个描述符
+	int offsetInDescriptors =  m_Textures.size() + m_TextureArrs.size();
+	m_BlurFilter->BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(
+			m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+			offsetInDescriptors, m_CbvSrvUavDescriptorSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(
+			m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart(),
+			offsetInDescriptors, m_CbvSrvUavDescriptorSize),
+		m_CbvSrvUavDescriptorSize);
+
+	BuildShapeGeometry(m_d3dDevice.Get(), m_CommandList.Get());
+	BuildMaterials();
+	BuildRootSignature();
+	BuildShadersAndInputLayout();
+
+	BuildRenderItems();
+	BuildFrameResources();
+
+	BuildPSOs();
+
+	// Execute the initialization commands.
+	ThrowIfFailed(m_CommandList->Close());
+	ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
+	m_CommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+	// Wait until initialization is complete.
+	FlushCommandQueue();
+
+	return true;
 }
 
-void ComputeShaderContext::CreateComputePipeLineState()
+void ComputeShaderContext::OnResize()
 {
-	D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
-	ZeroMemory(&computePsoDesc, sizeof(D3D12_COMPUTE_PIPELINE_STATE_DESC));
-
-	//computePsoDesc.pRootSignature = nullptr;
+	BlendContext::OnResize();
+	m_BlurFilter->OnResize(m_win->Width(), m_win->Height());
 }
+
+void ComputeShaderContext::BuildSRVDescriptorHeap(ID3D12Device* md3dDevice)
+{
+	const int blurDescriptorCount = 4;
+
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.NumDescriptors = m_Textures.size() + m_TextureArrs.size() + blurDescriptorCount;
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
+		&srvHeapDesc, IID_PPV_ARGS(&m_SrvDescriptorHeap)));
+}
+
+void ComputeShaderContext::BuildShadersAndInputLayout()
+{
+	BlendContext::BuildShadersAndInputLayout();
+	m_BlurFilter->BuildCSShader();
+}
+
+void ComputeShaderContext::BuildRootSignature()
+{
+	BlendContext::BuildRootSignature();
+	m_BlurFilter->BuildRootSignature();
+}
+
+void ComputeShaderContext::BuildPSOs()
+{
+	BlendContext::BuildPSOs();
+	m_BlurFilter->BuildComputePipeLineState();
+}
+
+bool ComputeShaderContext::DrawPostProcessFrameResource(ID3D12CommandAllocator* allocator)
+{
+	m_BlurFilter->Execute(m_CommandList.Get(), CurrentBackBuffer(), 4);
+
+	// Prepare to copy blurred output to the back buffer.
+	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+
+	m_CommandList->CopyResource(CurrentBackBuffer(), m_BlurFilter->Output());
+
+	// Transition to PRESENT state.
+	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT));
+	
+	return true;
+}
+
 
 struct CSData
 {
@@ -59,12 +150,12 @@ void ComputeShaderContext::CreateStructedBuffer(ID3D12Device* device, ID3D12Grap
 	//	&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 	//	D3D12_HEAP_FLAG_NONE,
 	//	&CD3DX12_RESOURCE_DESC::Buffer(byteSize,
-	//		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS), ע��˴���unorder access
+	//		D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS), 注意此处的unorder access
 	//	D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 	//	nullptr,
 	//	IID_PPV_ARGS(&mOutputBuffer)));
 
-	 //���������root signature
+	 //后面可能是root signature
 
 }
 
@@ -121,41 +212,4 @@ void ComputeShaderContext::CopyCSResultToSysMemory(ID3D12Device* device, ID3D12G
 
 }
 
-void ComputeShaderContext::BuildComputeShaderRootSignature()
-{
-	CD3DX12_DESCRIPTOR_RANGE srvTable;
-	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-	CD3DX12_DESCRIPTOR_RANGE uavTable;
-	uavTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
-	// Perfomance TIP: Order from most frequent to least frequent.
-	slotRootParameter[0].InitAsConstants(12, 0);
-	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable);
-	slotRootParameter[2].InitAsDescriptorTable(1, &uavTable);
-
-	D3D12_ROOT_SIGNATURE_DESC descRootSignature;
-	descRootSignature.NumStaticSamplers = 0;
-	descRootSignature.pStaticSamplers = nullptr;
-	descRootSignature.pParameters = slotRootParameter;
-	descRootSignature.NumParameters = _countof(slotRootParameter);
-	descRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-	ComPtr<ID3DBlob> serializedRootSig = nullptr;
-	ComPtr<ID3DBlob> errorBlob = nullptr;
-	HRESULT hr = D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1,
-		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
-
-	if (errorBlob != nullptr)
-	{
-		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-	}
-	ThrowIfFailed(hr);
-
-	ThrowIfFailed(m_d3dDevice->CreateRootSignature(
-		0,
-		serializedRootSig->GetBufferPointer(),
-		serializedRootSig->GetBufferSize(),
-		IID_PPV_ARGS(m_BlurSignature.GetAddressOf())));
-
-}

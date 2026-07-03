@@ -32,6 +32,9 @@ struct TextureOutDes
 struct TextureOutResouce
 {
 	Microsoft::WRL::ComPtr<ID3D12Resource> Texture;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE		  CPUSrvHndle;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE		  CPUUavHndle;
 };
 
 class TexContextInterface 
@@ -45,11 +48,15 @@ public:
 
 	virtual void BuildSampleDescriptor(ID3D12Device* md3dDevice, ID3D12GraphicsCommandList* mCommandList);
 	
-	void BuildSRVDescriptorHeap(ID3D12Device* md3dDevice);
+	virtual void BuildSRVDescriptorHeap(ID3D12Device* md3dDevice);
 
-	void BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvUavDescriptorSize);
+	virtual void BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvUavDescriptorSize);
 
-	void BuildUAVTexture(ID3D12Device*, TextureOutDes, TextureOutResouce&);
+	static void BuildUAVTexture(ID3D12Device*, TextureOutDes, TextureOutResouce&);
+
+	static void BuildUAVTextureResouce(ID3D12Device*, TextureOutDes, Microsoft::WRL::ComPtr<ID3D12Resource>&);
+
+	static void BuildUAVTextureResouceView(ID3D12Device*, TextureOutDes, TextureOutResouce&);
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> getStaticSamplerDescriptor();
 

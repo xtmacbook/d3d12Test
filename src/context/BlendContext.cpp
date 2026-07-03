@@ -486,10 +486,12 @@ void BlendContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	m_CommandList->SetPipelineState(m_PSOs["transparent"].Get());
 	DrawRenderItem(m_CommandList.Get(), m_AllRitems[0].get());
 
-
-	// Indicate a state transition on the resource usage.
-	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	if (!DrawPostProcessFrameResource(allocator))
+	{
+		// Indicate a state transition on the resource usage.
+		m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	}
 
 	ThrowIfFailed(m_CommandList->Close());
 	// Add the command list to the queue for execution.
@@ -499,6 +501,11 @@ void BlendContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	// Swap the back and front buffers
 	ThrowIfFailed(m_SwapChain->Present(0, 0));
 	m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
+}
+
+bool BlendContext::DrawPostProcessFrameResource(ID3D12CommandAllocator*)
+{
+	return false;
 }
 
 

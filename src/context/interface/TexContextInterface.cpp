@@ -123,7 +123,14 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 	}
 }
 
-void TexContextInterface::BuildUAVTexture(ID3D12Device* device, TextureOutDes desc, TextureOutResouce&resouce)
+void TexContextInterface::BuildUAVTexture(ID3D12Device* device, TextureOutDes desc, TextureOutResouce& resouce)
+{
+	BuildUAVTextureResouce(device, desc, resouce.Texture);
+	BuildUAVTextureResouceView(device, desc, resouce);
+}
+
+void TexContextInterface::BuildUAVTextureResouce(ID3D12Device* device, TextureOutDes desc, Microsoft::WRL::ComPtr<ID3D12Resource>&
+	resouce)
 {
 	D3D12_RESOURCE_DESC texDesc;
 	ZeroMemory(&texDesc, sizeof(D3D12_RESOURCE_DESC));
@@ -133,7 +140,7 @@ void TexContextInterface::BuildUAVTexture(ID3D12Device* device, TextureOutDes de
 	texDesc.Height = desc.Height;
 	texDesc.DepthOrArraySize = 1;
 	texDesc.MipLevels = 1;
-	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.Format = desc.Format;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -144,8 +151,11 @@ void TexContextInterface::BuildUAVTexture(ID3D12Device* device, TextureOutDes de
 		&texDesc,
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(&resouce.Texture)));
+		IID_PPV_ARGS(&resouce)));
+}
 
+void TexContextInterface::BuildUAVTextureResouceView(ID3D12Device* device, TextureOutDes desc, TextureOutResouce& resouce)
+{
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = desc.Format;
@@ -166,11 +176,11 @@ void TexContextInterface::BuildUAVTexture(ID3D12Device* device, TextureOutDes de
 	after, we want to texture geometry with it, so it will be bound to the vertex or pixel
 	shader as a SRV.
 	*/
-	/*device->CreateShaderResourceView(mBlurMap0.Get(),
-		&srvDesc, mBlur0CpuSrv);
+		device->CreateShaderResourceView(resouce.Texture.Get(),
+			&srvDesc, resouce.CPUSrvHndle);
 
-	device->CreateUnorderedAccessView(mBlurMap0.Get(),
-		nullptr, &uavDesc, mBlur0CpuUav);*/
+		device->CreateUnorderedAccessView(resouce.Texture.Get(),
+			nullptr, &uavDesc, resouce.CPUUavHndle);
 }
 
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> TexContextInterface::getStaticSamplerDescriptor()

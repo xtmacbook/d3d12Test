@@ -33,7 +33,7 @@ public:
 
 	virtual void initTextures(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList);
 
-	void BuildRootSignature();
+	virtual void BuildRootSignature();
 	virtual void BuildPSOs();
 	virtual void BuildMaterials();
 	virtual void BuildRenderItems();
@@ -45,13 +45,14 @@ public:
 
 	virtual void Draw(const GameTimer& gt);
 	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
-	
+	virtual bool DrawPostProcessFrameResource(ID3D12CommandAllocator*);
+
+
 	void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
 
 protected:
 	
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
-	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_Textures;
 
 	std::vector<std::unique_ptr<RenderItem>>										m_AllRitems;
 	std::vector<RenderItem*>														m_RitemLayer[(int)RenderLayer::Count];
