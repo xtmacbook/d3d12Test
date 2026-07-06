@@ -173,15 +173,17 @@ void ComContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const Render
 	cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_CONST_RootParameterIndex, startAddress + offset);
 
 	//set material
-	offset = static_cast<UINT64>(renderItem->m_Material->MatCBIndex) * matCBByteSize;
-	startAddress = m_currFrameResource->getMaterialGpuAddress();
-	cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_Material_RootParameterIndex, startAddress + offset);
+	if (renderItem->m_Material)
+	{
+		offset = static_cast<UINT64>(renderItem->m_Material->MatCBIndex) * matCBByteSize;
+		startAddress = m_currFrameResource->getMaterialGpuAddress();
+		cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_Material_RootParameterIndex, startAddress + offset);
 
-	//set texture buffer 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE tex(m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-	tex.Offset(renderItem->m_Material->DiffuseSrvHeapIndex, m_CbvSrvUavDescriptorSize);
-	cmdList->SetGraphicsRootDescriptorTable(3, tex);
-
+		//set texture buffer 
+		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		tex.Offset(renderItem->m_Material->DiffuseSrvHeapIndex, m_CbvSrvUavDescriptorSize);
+		cmdList->SetGraphicsRootDescriptorTable(3, tex);
+	}
 	//draw
 	cmdList->DrawIndexedInstanced(renderItem->m_IndexCount,
 		1, renderItem->m_StartIndexLocation,

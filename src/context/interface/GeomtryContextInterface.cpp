@@ -390,6 +390,45 @@ void GeometryContextInterface::BuildMirror(ID3D12Device*device, ID3D12GraphicsCo
 	m_Geometries[geo->Name] = std::move(geo);
 }
 
+void GeometryContextInterface::BuildQuad(ID3D12Device* md3dDevice, ID3D12GraphicsCommandList* mCommandList)
+{
+	std::array<XMFLOAT3, 4> vertices =
+	{
+		XMFLOAT3(-10.0f, 0.0f, +10.0f),
+		XMFLOAT3(+10.0f, 0.0f, +10.0f),
+		XMFLOAT3(-10.0f, 0.0f, -10.0f),
+		XMFLOAT3(+10.0f, 0.0f, -10.0f)
+	};
+	std::array<std::int16_t, 4> indices = { 0, 1, 2, 3 };
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(XMFLOAT3);
+	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = "quadpatchGeo";
+	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->m_VertexBufferCPU));
+	CopyMemory(geo->m_VertexBufferCPU->GetBufferPointer(), vertices.data(),
+		vbByteSize);
+	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->m_IndexBufferCPU));
+	CopyMemory(geo->m_IndexBufferCPU->GetBufferPointer(), indices.data(),
+		ibByteSize);
+	geo->m_VertexBufferGPU = D3DUtil::CreateDefaultBuffer(md3dDevice,
+		mCommandList, vertices.data(), vbByteSize,
+		geo->m_VertexBufferUploader);
+	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(md3dDevice,
+		mCommandList, indices.data(), ibByteSize,
+		geo->m_IndexBufferUploader);
+
+	geo->m_VertexByteStride = sizeof(XMFLOAT3);
+	geo->m_VertexBufferByteSize = vbByteSize;
+	geo->m_IndexFormat = DXGI_FORMAT_R16_UINT;
+	geo->m_IndexBufferByteSize = ibByteSize;
+	SubmeshGeometry quadSubmesh;
+	quadSubmesh.m_IndexCount = 4;
+	quadSubmesh.m_StartIndexLocation = 0;
+	quadSubmesh.m_BaseVertexLocation = 0;
+	geo->m_DrawArgs["quadpatch"] = quadSubmesh;
+	m_Geometries[geo->Name] = std::move(geo);
+}
+
 void GeometryContextInterface::BuildSprites(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 {
 	static const int treeCount = 16;

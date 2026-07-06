@@ -80,6 +80,7 @@ set (CONTEXT_SOURCE
     src/context/WavesContext.cpp
     src/context/GSContext.cpp
     src/context/ComputeShader.cpp
+    src/context/TessllationContext.cpp
 )
 set (CONTEXT_SOURCE_HEADS
     src/context/BlendContext.h
@@ -93,7 +94,7 @@ set (CONTEXT_SOURCE_HEADS
     src/context/WavesContext.h
     src/context/GSContext.h
     src/context/ComputeShader.h
-    
+    src/context/TessllationContext.h
 )
 
 

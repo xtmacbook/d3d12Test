@@ -11,7 +11,8 @@
 #include "context/BlendContext.h"
 #include "context//MirrorWithStencil.h"
 #include "context/GSContext.h"
-
+#include "context/ComputeShader.h"
+#include "context/TessllationContext.h"
 
 using namespace DirectX;
 
@@ -26,7 +27,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		GSContext d3dContext;
+		//BlendContext d3dContext;
+		TessllationContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 
