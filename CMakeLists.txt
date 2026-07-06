@@ -34,6 +34,7 @@ set (COMMON_SOURCE
     src/common/GeometryGenerator.cpp
     src/common/MathHelper.cpp
     src/common/Util.cpp
+    src/common/BlurFilter.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -48,6 +49,7 @@ set (COMMON_SOURCE_HEADS
     src/common/Geometry.h
     src/common/GeometryGenerator.h
     src/common/MathHelper.h
+    src/common/BlurFilter.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
