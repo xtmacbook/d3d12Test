@@ -4,7 +4,7 @@
 #include "interface/GeomtryContextInterface.h"
 #include "interface/BlendContextInterface.h"
 #include "interface/LayoutInterface.h"
-
+#include "common/BufferStruct.h"
 #include <array>
 
 class BlendContext :

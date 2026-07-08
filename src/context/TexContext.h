@@ -2,6 +2,7 @@
 #include "interface/FrameResourceContextInterface.h"
 #include "interface/TexContextInterface.h"
 #include "interface/GeomtryContextInterface.h"
+#include "common/BufferStruct.h"
 
 #include <array>
 

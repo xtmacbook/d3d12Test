@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "../common/D3DContext.h"
-#include "../common/FrameResource.h"
-#include "../common/Data.h"
+#include "common/D3DContext.h"
+#include "common/FrameResource.h"
+#include "common/BufferStruct.h"
 #include "interface/FrameResourceContextInterface.h"
 
 #include <vector>

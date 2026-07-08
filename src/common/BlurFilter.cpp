@@ -1,6 +1,6 @@
 #include "BlurFilter.h"
 
-#include "../context/interface/TexContextInterface.h"
+#include "context/interface/TexContextInterface.h"
 
 #include <assert.h>
 

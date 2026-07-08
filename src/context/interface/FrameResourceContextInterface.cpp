@@ -1,9 +1,9 @@
 ﻿#include "FrameResourceContextInterface.h"
 
-#include "../../common/FrameResource.h"
-#include "../../common/App.h"
-#include "../../common/GeometryGenerator.h"
-#include "../../common/Geometry.h"
+#include "common/FrameResource.h"
+#include "common/App.h"
+#include "common/GeometryGenerator.h"
+#include "common/Geometry.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

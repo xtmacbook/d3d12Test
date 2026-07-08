@@ -1,8 +1,8 @@
 ﻿#include "TessllationContext.h"
 
-#include "../common/App.h"
-#include "../common/Geometry.h"
-#include "../common/d3dx12.h"
+#include "common/App.h"
+#include "common/Geometry.h"
+#include "common/d3dx12.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

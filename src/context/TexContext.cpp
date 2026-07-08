@@ -1,7 +1,6 @@
 ﻿#include "TexContext.h"
-#include "../common/Geometry.h"
-#include "../common/Data.h"
-#include "../common/App.h"
+#include "common/Geometry.h"
+#include "common/App.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

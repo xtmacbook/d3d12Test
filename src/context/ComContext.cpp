@@ -1,7 +1,7 @@
 ﻿#include "ComContext.h"
-#include "../common/Geometry.h"
-#include "../common/Data.h"
-#include "../common/App.h"
+#include "common/Geometry.h"
+#include "common/BufferStruct.h"
+#include "common/App.h"
 #include "Waves.h"
 
 using namespace DirectX;

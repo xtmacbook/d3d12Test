@@ -1,6 +1,6 @@
 ﻿#include "GSContext.h"
-#include "../common/Geometry.h"
-#include "../common/d3dx12.h"
+#include "common/Geometry.h"
+#include "common/d3dx12.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

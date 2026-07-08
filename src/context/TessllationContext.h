@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "ComContext.h"
+#include "common/BufferStruct.h"
 
 #include <array>
 

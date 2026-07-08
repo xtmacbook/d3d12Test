@@ -1,5 +1,5 @@
 ﻿#include "ComputeShader.h"
-#include "../common/App.h"
+#include "common/App.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

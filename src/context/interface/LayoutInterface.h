@@ -1,7 +1,7 @@
 ﻿
 #pragma once
 
-#include "../../common/Util.h"
+#include "common/Util.h"
 
 #include <unordered_map>
 #include <map>

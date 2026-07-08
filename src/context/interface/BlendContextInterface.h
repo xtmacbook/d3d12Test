@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../../common/Util.h"
+#include "common/Util.h"
 
 class BlendContextInterface
 {

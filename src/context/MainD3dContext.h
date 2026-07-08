@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../common/D3DContext.h"
-#include "../common/UploadBuffer.h"
+#include "common/D3DContext.h"
+#include "common/UploadBuffer.h"
 
 #include <memory>
 #include <vector>

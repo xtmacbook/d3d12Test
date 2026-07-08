@@ -1,6 +1,6 @@
 ﻿#include "TexContextInterface.h"
-#include "../../common/DDSTextureLoader.h"
-#include "../../common/data.h"
+#include "common/DDSTextureLoader.h"
+#include "common/Struct.h"
 
 bool TexContextInterface::loadTextures(ID3D12Device* md3dDevice, 
 	ID3D12GraphicsCommandList* mCommandList, std::vector<TextureLoadDesc>&files)

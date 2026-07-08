@@ -1,7 +1,7 @@
 #include "MainD3dContext.h"
-#include "../common/Util.h"
-#include "../common/Data.h"
-#include "../common/Geometry.h"
+#include "common/Util.h"
+#include "common/BufferStruct.h"
+#include "common/Geometry.h"
 
 #include <array>
 

@@ -1,7 +1,8 @@
 ﻿
 #pragma once
 #include "interface/FrameResourceContextInterface.h"
-#include "../common/Util.h"
+#include "common/Util.h"
+#include "common/BufferStruct.h"
 #include "Waves.h"
 
 #include <unordered_map>

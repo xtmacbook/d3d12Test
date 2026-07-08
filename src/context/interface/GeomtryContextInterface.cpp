@@ -1,9 +1,9 @@
 ﻿#include "GeomtryContextInterface.h"
-#include "../../common/GeometryGenerator.h"
-#include "../../common/Geometry.h"
-#include "../../common/GameTimer.h"
-#include "../../common/data.h"
-#include "../Waves.h"
+#include "common/GeometryGenerator.h"
+#include "common/Geometry.h"
+#include "common/GameTimer.h"
+#include "common/Struct.h"
+#include "Context/Waves.h"
 
 #include <fstream>
 

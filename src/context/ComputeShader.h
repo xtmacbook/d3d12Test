@@ -2,7 +2,7 @@
 
 #include "BlendContext.h"
 #include "interface/ComputeShaderInterface.h"
-#include "../common/BlurFilter.h"
+#include "common/BlurFilter.h"
 #include <array>
 
 

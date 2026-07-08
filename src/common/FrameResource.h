@@ -2,7 +2,7 @@
 #pragma once
 #include "Util.h"
 #include "UploadBuffer.h"
-#include "Data.h"
+#include "Struct.h"
 #include <memory>
 
 class FrameResourceInterface
