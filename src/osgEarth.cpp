@@ -5,6 +5,7 @@
 #include "common/Geometry.h"
 #include "common/FrameResource.h"
 
+#include "context/MainD3dContext.h"
 #include "context/TestFrameResourceContext.h"
 #include "context/WavesContext.h"
 #include "context/TexContext.h"
@@ -13,6 +14,7 @@
 #include "context/GSContext.h"
 #include "context/ComputeShader.h"
 #include "context/TessllationContext.h"
+#include "context/DynamicIndexContext.h"
 
 using namespace DirectX;
 
@@ -28,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 	try
 	{
 		//BlendContext d3dContext;
-		TessllationContext d3dContext;
+		DynamicIndexContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 
@@ -45,6 +47,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 		MessageBox(nullptr, e.toString().c_str(), L"HR Failed", MB_OK);
 		return 0;
 	}
-		
+ 
 	return 0;
 }
+ 

@@ -20,6 +20,8 @@ public:
 
 	virtual void BuildLayout();
 
+	virtual void BuildDynamicShaders();
+
 protected:
 	std::vector<D3D12_INPUT_ELEMENT_DESC>											m_InputLayout;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>>				m_Shaders;

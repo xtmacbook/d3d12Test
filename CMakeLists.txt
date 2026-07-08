@@ -26,7 +26,7 @@ add_link_options(
 set (COMMON_SOURCE 
     src/common/App.cpp
     src/common/D3DContext.cpp
-    src/common/Data.cpp
+    src/common/Struct.cpp
     src/common/DDSTextureLoader.cpp
     src/common/FrameResource.cpp
     src/common/GameTimer.cpp
@@ -41,7 +41,8 @@ set (COMMON_SOURCE_HEADS
     src/common/App.h
     src/common/D3DContext.h
     src/common/Util.h
-    src/common/Data.h
+    src/common/Struct.h
+    src/common/BufferStruct.h
     src/common/GameTimer.h
     src/common/DDSTextureLoader.h
     src/common/FrameResource.h
@@ -81,6 +82,9 @@ set (CONTEXT_SOURCE
     src/context/GSContext.cpp
     src/context/ComputeShader.cpp
     src/context/TessllationContext.cpp
+    src/context/DynamicIndexContext.cpp
+    src/context/DynamicIndexComContex.cpp
+
 )
 set (CONTEXT_SOURCE_HEADS
     src/context/BlendContext.h
@@ -95,6 +99,8 @@ set (CONTEXT_SOURCE_HEADS
     src/context/GSContext.h
     src/context/ComputeShader.h
     src/context/TessllationContext.h
+    src/context/DynamicIndexContext.h
+    src/context/DynamicIndexComContex.h
 )
 
 
@@ -110,6 +116,9 @@ source_group ("Header Files/context" FILES ${CONTEXT_SOURCE_HEADS})
 INCLUDE_DIRECTORIES(include)
 
 set (RESOURCES
+)
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 add_executable(  
