@@ -300,7 +300,7 @@ void WavesContext::BuildMaterial()
 {
 	auto grass = std::make_unique<Material>();
 	grass->Name = "grass";
-	grass->MatCBIndex = 0;
+	grass->MaterialCBIndex = 0;
 	grass->DiffuseAlbedo = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
 	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
 	grass->Roughness = 0.125f;
@@ -309,7 +309,7 @@ void WavesContext::BuildMaterial()
 	// tools we need (transparency, environment reflection), so we fake it for now.
 	auto water = std::make_unique<Material>();
 	water->Name = "water";
-	water->MatCBIndex = 1;
+	water->MaterialCBIndex = 1;
 	water->DiffuseAlbedo = XMFLOAT4(0.0f, 0.2f, 0.6f, 1.0f);
 	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	water->Roughness = 0.0f;
@@ -472,7 +472,7 @@ void WavesContext::UpdateMaterialCBs(const GameTimer& gt)
 			matConstants.FresnelR0 = material->FresnelR0;
 			matConstants.Roughness = material->Roughness;
 
-			m_currFrameResource->CopyMaterialData(material->MatCBIndex, &matConstants);
+			m_currFrameResource->CopyMaterialData(material->MaterialCBIndex, &matConstants);
 
 			material->NumFramesDirty--;
 		}
@@ -495,7 +495,7 @@ void WavesContext::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std
 		cmdList->IASetPrimitiveTopology(ri->m_PrimitiveType);
 
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = m_currFrameResource->getConstGpuAddress() + ri->m_ObjCBIndex * objCBByteSize;
-		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = m_currFrameResource->getMaterialGpuAddress() + ri->m_Material->MatCBIndex * matCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = m_currFrameResource->getMaterialGpuAddress() + ri->m_Material->MaterialCBIndex * matCBByteSize;
 
 		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
 		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);

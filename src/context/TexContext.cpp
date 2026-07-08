@@ -187,7 +187,7 @@ void TexContext::BuildMaterials()
 {
 	auto woodCrate = std::make_unique<MaterialWithTexTran>();
 	woodCrate->Name = "woodCrate";
-	woodCrate->MatCBIndex = 0;
+	woodCrate->MaterialCBIndex = 0;
 	woodCrate->DiffuseSrvHeapIndex = 0;
 	woodCrate->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	woodCrate->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
@@ -260,7 +260,7 @@ void TexContext::UpdateMaterialCBs(const GameTimer& gt)
 			matConstants.Roughness = mat->Roughness;
 			XMStoreFloat4x4(&matConstants.MatTransform, XMMatrixTranspose(matTransform));
 
-			m_currFrameResource->CopyMaterialData(mat->MatCBIndex, &matConstants);
+			m_currFrameResource->CopyMaterialData(mat->MaterialCBIndex, &matConstants);
 
 			mat->NumFramesDirty--;
 		}
@@ -337,7 +337,7 @@ void TexContext::DrawRenderItems(ID3D12GraphicsCommandList* cmdList,
 
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress =
 			m_currFrameResource->getMaterialGpuAddress() +
-			ri->m_Material->MatCBIndex * matCBByteSize;
+			ri->m_Material->MaterialCBIndex * matCBByteSize;
 
 		cmdList->SetGraphicsRootDescriptorTable(3, tex);
 		cmdList->SetGraphicsRootDescriptorTable(4, sampler);

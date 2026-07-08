@@ -55,7 +55,7 @@ void MirrorWithStencil::BuildFrameResources()
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
 		m_frameResources.push_back(std::make_unique<FrameResourceWithMaterial<ObjectConstantsWithTexTran,
-			PassConstantsWithFrog, RenderItemWithTex>  >(m_d3dDevice.Get(),
+			PassConstantsWithFrog, MaterialConstantsWithTexTran>  >(m_d3dDevice.Get(),
 				2, (UINT)m_AllRitems.size(), (UINT)m_Materials.size()));
 	}
 }
@@ -154,7 +154,7 @@ void MirrorWithStencil::BuildMaterials()
 {
 	auto bricks = std::make_unique<MaterialWithTexTran>();
 	bricks->Name = "bricks";
-	bricks->MatCBIndex = 0;
+	bricks->MaterialCBIndex = 0;
 	bricks->DiffuseSrvHeapIndex = 0;
 	bricks->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	bricks->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
@@ -162,7 +162,7 @@ void MirrorWithStencil::BuildMaterials()
 
 	auto checkertile = std::make_unique<MaterialWithTexTran>();
 	checkertile->Name = "checkertile";
-	checkertile->MatCBIndex = 1;
+	checkertile->MaterialCBIndex = 1;
 	checkertile->DiffuseSrvHeapIndex = 1;
 	checkertile->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	checkertile->FresnelR0 = XMFLOAT3(0.07f, 0.07f, 0.07f);
@@ -170,7 +170,7 @@ void MirrorWithStencil::BuildMaterials()
 
 	auto icemirror = std::make_unique<MaterialWithTexTran>();
 	icemirror->Name = "icemirror";
-	icemirror->MatCBIndex = 2;
+	icemirror->MaterialCBIndex = 2;
 	icemirror->DiffuseSrvHeapIndex = 2;
 	icemirror->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.3f);
 	icemirror->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
@@ -178,7 +178,7 @@ void MirrorWithStencil::BuildMaterials()
 
 	auto skullMat = std::make_unique<MaterialWithTexTran>();
 	skullMat->Name = "skullMat";
-	skullMat->MatCBIndex = 3;
+	skullMat->MaterialCBIndex = 3;
 	skullMat->DiffuseSrvHeapIndex = 3;
 	skullMat->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	skullMat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
@@ -186,7 +186,7 @@ void MirrorWithStencil::BuildMaterials()
 
 	auto shadowMat = std::make_unique<MaterialWithTexTran>();
 	shadowMat->Name = "shadowMat";
-	shadowMat->MatCBIndex = 4;
+	shadowMat->MaterialCBIndex = 4;
 	shadowMat->DiffuseSrvHeapIndex = 3;
 	shadowMat->DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.5f);
 	shadowMat->FresnelR0 = XMFLOAT3(0.001f, 0.001f, 0.001f);

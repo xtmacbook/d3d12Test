@@ -104,7 +104,7 @@ void ComContext::BuildFrameResources()
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
 		m_frameResources.push_back(std::make_unique<FrameResourceWithMaterial<ObjectConstantsWithTexTran,
-			PassConstantsWithFrog, RenderItemWithTex>  >(m_d3dDevice.Get(),
+			PassConstantsWithFrog, MaterialConstantsWithTexTran>  >(m_d3dDevice.Get(),
 			1, (UINT)m_AllRitems.size(), (UINT)m_Materials.size()));
 	}
 }
@@ -148,7 +148,7 @@ void ComContext::UpdateMaterialCBs(const GameTimer& gt)
 			matConstants.Roughness = mat->Roughness;
 			XMStoreFloat4x4(&matConstants.MatTransform, XMMatrixTranspose(matTransform));
 
-			m_currFrameResource->CopyMaterialData(mat->MatCBIndex, &matConstants);
+			m_currFrameResource->CopyMaterialData(mat->MaterialCBIndex, &matConstants);
 
 			mat->NumFramesDirty--;
 		}
@@ -175,7 +175,7 @@ void ComContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const Render
 	//set material
 	if (renderItem->m_Material)
 	{
-		offset = static_cast<UINT64>(renderItem->m_Material->MatCBIndex) * matCBByteSize;
+		offset = static_cast<UINT64>(renderItem->m_Material->MaterialCBIndex) * matCBByteSize;
 		startAddress = m_currFrameResource->getMaterialGpuAddress();
 		cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_Material_RootParameterIndex, startAddress + offset);
 

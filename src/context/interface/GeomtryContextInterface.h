@@ -44,6 +44,8 @@ public:
 
 	void BuildSprites(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList);
 
+	void BuildLitShapesScene(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList);
+
 	Waves* GetWave();
 
 protected:

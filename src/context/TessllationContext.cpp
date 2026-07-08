@@ -54,7 +54,7 @@ void TessllationContext::BuildFrameResources()
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
 		m_frameResources.push_back(std::make_unique<FrameResourceWithMaterial<ObjectConstantsWithTexTran,
-			PassConstantsWithFrog, RenderItemWithTex>  >(m_d3dDevice.Get(),
+			PassConstantsWithFrog, MaterialConstantsWithTexTran>  >(m_d3dDevice.Get(),
 				1, (UINT)m_AllRitems.size(), (UINT)m_Materials.size()));
 	}
 }

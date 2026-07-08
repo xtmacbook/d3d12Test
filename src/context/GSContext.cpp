@@ -30,7 +30,7 @@ void GSContext::BuildMaterials()
 
 	auto treeSprites = std::make_unique<Material>();
 	treeSprites->Name = "treeSprites";
-	treeSprites->MatCBIndex = 3;
+	treeSprites->MaterialCBIndex = 3;
 	treeSprites->DiffuseSrvHeapIndex = 3;
 	treeSprites->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	treeSprites->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);

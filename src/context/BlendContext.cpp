@@ -290,7 +290,7 @@ void BlendContext::BuildMaterials()
 {
 	auto grass = std::make_unique<MaterialWithTexTran>();
 	grass->Name = "grass";
-	grass->MatCBIndex = 0;
+	grass->MaterialCBIndex = 0;
 	grass->DiffuseSrvHeapIndex = 0;
 	grass->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
@@ -299,7 +299,7 @@ void BlendContext::BuildMaterials()
 
 	auto water = std::make_unique<MaterialWithTexTran>();
 	water->Name = "water";
-	water->MatCBIndex = 1;
+	water->MaterialCBIndex = 1;
 	water->DiffuseSrvHeapIndex = 1;
 	water->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.5f);
 	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
@@ -309,7 +309,7 @@ void BlendContext::BuildMaterials()
 
 	auto wirefence = std::make_unique<MaterialWithTexTran>();
 	wirefence->Name = "wirefence";
-	wirefence->MatCBIndex = 2;
+	wirefence->MaterialCBIndex = 2;
 	wirefence->DiffuseSrvHeapIndex = 2;
 	wirefence->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	wirefence->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
@@ -433,7 +433,7 @@ void BlendContext::UpdateMaterialCBs(const GameTimer& gt)
 			matConstants.Roughness = mat->Roughness;
 			XMStoreFloat4x4(&matConstants.MatTransform, XMMatrixTranspose(matTransform));
 
-			m_currFrameResource->CopyMaterialData(mat->MatCBIndex, &matConstants);
+			m_currFrameResource->CopyMaterialData(mat->MaterialCBIndex, &matConstants);
 
 			mat->NumFramesDirty--;
 		}
@@ -527,7 +527,7 @@ void BlendContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const Rend
 	cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_CONST_RootParameterIndex, startAddress + offset);
 
 	//set material
-	offset = static_cast<UINT64>(renderItem->m_Material->MatCBIndex) * matCBByteSize;
+	offset = static_cast<UINT64>(renderItem->m_Material->MaterialCBIndex) * matCBByteSize;
 	startAddress = m_currFrameResource->getMaterialGpuAddress();
 	cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_Material_RootParameterIndex, startAddress + offset);
 

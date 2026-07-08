@@ -10,7 +10,7 @@ struct Material
 	std::string							Name;
 
 	// Index into constant buffer corresponding to this material.
-	int									MatCBIndex = -1;
+	int									MaterialCBIndex = -1;
 
 	// Index into SRV heap for diffuse texture.
 	int									DiffuseSrvHeapIndex = -1;

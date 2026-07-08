@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Util.h"
 #include "MathHelper.h"
 #include "Struct.h"
@@ -7,30 +7,66 @@
 /*
 	和每个object有关系,当object的world matrix变化才更新
 */
+
+/*
+
+https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
+
+HLSL packs data so that it does not cross a 16-byte boundary.
+Variables are packed into a given four-component vector until the variable will straddle
+a 4-vector boundary; the next variables will be bounced to the next four-component vector.
+
+
+*/
+
 struct ObjectConstants
 {
 	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
 };
 
-struct ObjectConstantsWithTexTran : public ObjectConstants
+struct ObjectConstantsWithTexTran
 {
+	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 };
 
 
-struct MaterialConstants
+struct ObjectConstantsWithTexTranAndMaterialIndex
 {
-	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-	float			  Roughness = 0.25f;
+	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+	UINT				MaterialIndex;
+	UINT				ObjPad0;
+	UINT				ObjPad1;
+	UINT				ObjPad2;
 };
 
-struct MaterialConstantsWithTexTran : public MaterialConstants
+struct MaterialConstants
 {
-	// Used in texture mapping.
+	DirectX::XMFLOAT4	DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT3	FresnelR0 = { 0.01f, 0.01f, 0.01f };
+	float				Roughness = 0.25f;
+};
+
+struct MaterialConstantsWithTexTran
+{
+	DirectX::XMFLOAT4	DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT3	FresnelR0 = { 0.01f, 0.01f, 0.01f };
+	float				Roughness = 0.25f;
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 
+struct MaterialConstantsWithTexIndex
+{
+	DirectX::XMFLOAT4	DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT3	FresnelR0 = { 0.01f, 0.01f, 0.01f };
+	float				Roughness = 0.25f;
+	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+	UINT				DiffuseTextureMapIndex = 0;
+	UINT				MaterialPad0;
+	UINT				MaterialPad1;
+	UINT				MaterialPad2;
+};
 
 /*
  只是每个pass进行更新
