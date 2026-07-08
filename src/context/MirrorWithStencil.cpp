@@ -54,7 +54,7 @@ void MirrorWithStencil::BuildFrameResources()
 {
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
-		m_frameResources.push_back(std::make_unique<FrameResourceWithMaterial<ObjectConstantsWithTexTran,
+		m_frameResources.push_back(std::make_unique<FrameResourceWithConstMaterial<ObjectConstantsWithTexTran,
 			PassConstantsWithFrog, MaterialConstantsWithTexTran>  >(m_d3dDevice.Get(),
 				2, (UINT)m_AllRitems.size(), (UINT)m_Materials.size()));
 	}

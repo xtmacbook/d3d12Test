@@ -102,16 +102,16 @@ inline D3D12_GPU_VIRTUAL_ADDRESS FrameResource<OBJECTCONST, PASSCONST>::getPassG
 }
 
 template <typename OBJECTCONST, typename PASSCONST,typename MATERIALCONST>
-class FrameResourceWithMaterial : public FrameResource<OBJECTCONST,PASSCONST>
+class FrameResourceWithConstMaterial : public FrameResource<OBJECTCONST,PASSCONST>
 {
 public:
 
-	FrameResourceWithMaterial(ID3D12Device* device, UINT passCount, UINT objectCount,
+	FrameResourceWithConstMaterial(ID3D12Device* device, UINT passCount, UINT objectCount,
 		UINT materialCount);
 
-	FrameResourceWithMaterial(const FrameResourceWithMaterial& rhs) = delete;
-	FrameResourceWithMaterial& operator=(const FrameResourceWithMaterial& rhs) = delete;
-	~FrameResourceWithMaterial() {};
+	FrameResourceWithConstMaterial(const FrameResourceWithConstMaterial& rhs) = delete;
+	FrameResourceWithConstMaterial& operator=(const FrameResourceWithConstMaterial& rhs) = delete;
+	~FrameResourceWithConstMaterial() {};
 
 	virtual void CopyMaterialData(int elementIndex, void* data)
 	{
@@ -129,9 +129,45 @@ public:
 };
 
 template<typename OBJECTCONST, typename PASSCONST, typename MATERIALCONST>
-inline FrameResourceWithMaterial<OBJECTCONST, PASSCONST, MATERIALCONST>::
-FrameResourceWithMaterial(ID3D12Device* device, UINT passCount, UINT objectCount, UINT materialCount):
+inline FrameResourceWithConstMaterial<OBJECTCONST, PASSCONST, MATERIALCONST>::
+FrameResourceWithConstMaterial(ID3D12Device* device, UINT passCount, UINT objectCount, UINT materialCount):
 	FrameResource< OBJECTCONST, PASSCONST>(device,passCount,objectCount)
 {
 	m_MaterialCB = std::make_unique<UploadBuffer<MATERIALCONST>>(device, materialCount, true);
+}
+
+//注意下面这个类和上面的不同是材质作为SRV buffer进行传递,这时候不需要进行CalcConstantBufferByteSize对其
+template <typename OBJECTCONST, typename PASSCONST,typename MATERIALCONST>
+class FrameResourceWithSRVMaterial : public FrameResource<OBJECTCONST,PASSCONST>
+{
+public:
+
+	FrameResourceWithSRVMaterial(ID3D12Device* device, UINT passCount, UINT objectCount,
+		UINT materialCount);
+
+	FrameResourceWithSRVMaterial(const FrameResourceWithSRVMaterial& rhs) = delete;
+	FrameResourceWithSRVMaterial& operator=(const FrameResourceWithSRVMaterial& rhs) = delete;
+	~FrameResourceWithSRVMaterial() {};
+
+	virtual void CopyMaterialData(int elementIndex, void* data)
+	{
+		MATERIALCONST* content = static_cast<MATERIALCONST*>(data);
+		m_MaterialCB->CopyData(elementIndex, *content);
+	}
+
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getMaterialGpuAddress() override
+	{
+		return m_MaterialCB->Resource()->GetGPUVirtualAddress();
+	}
+
+	std::unique_ptr<UploadBuffer<MATERIALCONST>>			m_MaterialCB = nullptr;
+
+};
+
+template<typename OBJECTCONST, typename PASSCONST, typename MATERIALCONST>
+inline FrameResourceWithSRVMaterial<OBJECTCONST, PASSCONST, MATERIALCONST>::
+FrameResourceWithSRVMaterial(ID3D12Device* device, UINT passCount, UINT objectCount, UINT materialCount):
+	FrameResource< OBJECTCONST, PASSCONST>(device,passCount,objectCount)
+{
+	m_MaterialCB = std::make_unique<UploadBuffer<MATERIALCONST>>(device, materialCount, false);
 }

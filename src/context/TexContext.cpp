@@ -53,7 +53,7 @@ void TexContext::BuildFrameResources()
 	//pass
 	//material
 	for (int i = 0; i < m_NumFrameResources; i++)
-		m_frameResources.emplace_back(std::make_unique<FrameResourceWithMaterial <ObjectConstantsWithTexTran, PassConstantsWithLight, MaterialConstantsWithTexTran> >(m_d3dDevice.Get(),
+		m_frameResources.emplace_back(std::make_unique<FrameResourceWithConstMaterial <ObjectConstantsWithTexTran, PassConstantsWithLight, MaterialConstantsWithTexTran> >(m_d3dDevice.Get(),
 			1, 
 			m_AllRitems.size(), 
 			(UINT)m_Materials.size()));

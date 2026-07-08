@@ -95,8 +95,8 @@ void DynamicIndexComContext::BuildFrameResources()
     for (int i = 0; i < m_NumFrameResources; ++i)
 	{
 		m_frameResources.push_back(
-            std::make_unique<FrameResourceWithMaterial<ObjectConstantsWithTexTranAndMaterialIndex,
-			PassConstantsWithFrog, MaterialConstantsWithTexIndex>  >(m_d3dDevice.Get(),
+            std::make_unique<FrameResourceWithSRVMaterial<ObjectConstantsWithTexTranAndMaterialIndex,
+			PassConstantsWithFrog, MaterialShadeRsourceWithTexIndex>  >(m_d3dDevice.Get(),
 				1, (UINT)m_AllRitems.size(), (UINT)m_Materials.size()));
 	}
 }
@@ -131,7 +131,7 @@ void DynamicIndexComContext::UpdateMaterialCBs(const GameTimer &gt)
 		{
 			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
 
-			MaterialConstantsWithTexIndex matConstants;
+			MaterialShadeRsourceWithTexIndex matConstants;
 			matConstants.DiffuseAlbedo = mat->DiffuseAlbedo;
 			matConstants.FresnelR0 = mat->FresnelR0;
 			matConstants.Roughness = mat->Roughness;
@@ -147,7 +147,7 @@ void DynamicIndexComContext::UpdateMaterialCBs(const GameTimer &gt)
 void DynamicIndexComContext::DrawRenderItem(ID3D12GraphicsCommandList *cmdList, const RenderItem *ritem)
 {
 	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstantsWithTexTranAndMaterialIndex));
-	UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialConstantsWithTexIndex));
+	UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialShadeRsourceWithTexIndex));
 
 	const RenderItemWithTex* renderItem = static_cast<const RenderItemWithTex*>(ritem);
 

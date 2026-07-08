@@ -56,7 +56,8 @@ struct MaterialConstantsWithTexTran
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 
-struct MaterialConstantsWithTexIndex
+//注意这里是shade source buffer 不向const buffer那样需要使用CalcConstantBufferByteSize来对其
+struct MaterialShadeRsourceWithTexIndex
 {
 	DirectX::XMFLOAT4	DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT3	FresnelR0 = { 0.01f, 0.01f, 0.01f };
