@@ -200,12 +200,6 @@ void TessllationContext::UpdateMainPassCB(const GameTimer& gt)
 	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
 }
 
-void TessllationContext::Draw(const GameTimer& gt)
-{
-	D3DContext::Draw(gt);
-	FrameResourceContextInterface::Draw(gt, m_CurrentFence, m_Fence.Get(), m_CommandQueue.Get());
-}
-
 void TessllationContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 {
 	ThrowIfFailed(m_CommandList->Reset(allocator, m_PSOs["opaque"].Get()));

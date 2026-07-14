@@ -110,6 +110,15 @@ void ComContext::BuildFrameResources()
 }
 
 
+void ComContext::Update(const GameTimer& gt)
+{
+	D3DContext::Update(gt);
+	FrameResourceContextInterface::Update(gt, m_Fence.Get());
+	UpdateObjectCBs(gt);
+	UpdateMaterialCBs(gt);
+	UpdateMainPassCB(gt);
+}
+
 void ComContext::UpdateObjectCBs(const GameTimer& gt)
 {
 	for (auto& e : m_AllRitems)
@@ -155,6 +164,67 @@ void ComContext::UpdateMaterialCBs(const GameTimer& gt)
 	}
 }
 
+void ComContext::UpdateMainPassCB(const GameTimer& gt)
+{
+	UPDATE_MAIN_PASS;
+
+	m_MainPassCB.m_AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+	m_MainPassCB.m_Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+	m_MainPassCB.m_Lights[0].Strength = { 0.9f, 0.9f, 0.8f };
+	m_MainPassCB.m_Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+	m_MainPassCB.m_Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+	m_MainPassCB.m_Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+	m_MainPassCB.m_Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+
+	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
+}
+
+void ComContext::UpdateInstance()
+{
+	XMMATRIX view = XMLoadFloat4x4(&m_View);
+	 
+	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+
+
+	for (auto& ritem : m_AllRitems)
+	{
+		int visibleInstanceCount = 0;
+
+		for (auto& instance : ritem->m_Instances)
+		{
+			XMMATRIX world = XMLoadFloat4x4(&instance->World);
+			XMMATRIX invWorld = XMMatrixInverse(&XMMatrixDeterminant(world), world);
+			XMMATRIX viewToLocal = XMMatrixMultiply(invView, invWorld);
+
+			XMMATRIX texTransform = XMLoadFloat4x4(& instance->TexTransform);
+
+			// Transform the camera frustum from view space to the object's local space.
+			BoundingFrustum localSpaceFrustum;
+			m_CamFrustum.Transform(localSpaceFrustum, viewToLocal);
+
+			if ((localSpaceFrustum.Contains(ritem->m_Bounds) != DirectX::DISJOINT) || (m_FrustumCullingEnabled == false))
+			{
+				InstanceData data;
+				XMStoreFloat4x4(&data.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&data.TexTransform, XMMatrixTranspose(texTransform));
+				data.MaterialIndex = instance->MaterialIndex;
+
+				m_currFrameResource->CopyInstanceData (visibleInstanceCount++, &data);
+			}
+
+		}
+		
+		ritem->m_InstanceCount = visibleInstanceCount;
+	}
+
+}
+
+void ComContext::Draw(const GameTimer& gt)
+{
+	D3DContext::Draw(gt);
+	FrameResourceContextInterface::Draw(gt, m_CurrentFence, m_Fence.Get(), m_CommandQueue.Get());
+}
+
 void ComContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritem)
 {
 	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstantsWithTexTran));
@@ -188,4 +258,34 @@ void ComContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const Render
 	cmdList->DrawIndexedInstanced(renderItem->m_IndexCount,
 		1, renderItem->m_StartIndexLocation,
 		renderItem->m_BaseVertexLocation, 0);
+}
+
+void ComContext::BuildPSOs()
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
+	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	opaquePsoDesc.InputLayout = { m_InputLayout.data(), (UINT)m_InputLayout.size() };
+	opaquePsoDesc.pRootSignature = m_RootSignature.Get();
+	opaquePsoDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(m_Shaders["standardVS"]->GetBufferPointer()),
+		m_Shaders["standardVS"]->GetBufferSize()
+	};
+	opaquePsoDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(m_Shaders["opaquePS"]->GetBufferPointer()),
+		m_Shaders["opaquePS"]->GetBufferSize()
+	};
+	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	opaquePsoDesc.SampleMask = UINT_MAX;
+	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	opaquePsoDesc.NumRenderTargets = 1;
+	opaquePsoDesc.RTVFormats[0] = m_BackBufferFormat;
+	opaquePsoDesc.SampleDesc.Count = m_4xMsaaState ? 4 : 1;
+	opaquePsoDesc.SampleDesc.Quality = m_4xMsaaState ? (m_4xMsaaQuality - 1) : 0;
+	opaquePsoDesc.DSVFormat = m_DepthStencilFormat;
+	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&m_PSOs["opaque"])));
+
 }

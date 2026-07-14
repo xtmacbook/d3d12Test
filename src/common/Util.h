@@ -26,6 +26,34 @@ inline std::wstring AnsiToWstring(const std::string& str)
     return std::wstring(buffer);
 }
 
+inline std::string WStringToString(const std::wstring& wstr)
+{
+    if (wstr.empty()) return "";
+    // 获取需要缓冲区大小
+    int bufSize = WideCharToMultiByte(
+        CP_UTF8,        // 输出编码：UTF-8，改用CP_ACP为系统ANSI
+        0,
+        wstr.c_str(),
+        static_cast<int>(wstr.size()),
+        nullptr,
+        0,
+        nullptr,
+        nullptr
+    );
+    std::string res(bufSize, 0);
+    WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        wstr.c_str(),
+        static_cast<int>(wstr.size()),
+        &res[0],
+        bufSize,
+        nullptr,
+        nullptr
+    );
+    return res;
+}
+
 std::wstring SourcePath();
 
 class D3DUtil

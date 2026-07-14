@@ -1,8 +1,12 @@
 ﻿#pragma once
 #include "Util.h"
 
+#include <vector>
+#include <memory>
+
 struct MeshGeometry;
 struct SubmeshGeometry;
+struct InstanceData;
 
 struct Material
 {
@@ -108,6 +112,12 @@ struct RenderItem
 	UINT							m_IndexCount = 0;
 	UINT							m_StartIndexLocation = 0;
 	int								m_BaseVertexLocation = 0;
+
+	std::vector<std::shared_ptr<InstanceData> >	m_Instances;
+	UINT										m_InstanceCount = 0;
+
+	DirectX::BoundingBox						m_Bounds;
+
 
 	void FillWithDrawArgs(const SubmeshGeometry*);
 

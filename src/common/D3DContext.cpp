@@ -5,6 +5,11 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
+D3DContext::D3DContext():
+	m_FrustumCullingEnabled(true)
+{
+}
+
 D3DContext::~D3DContext()
 {
 	if (m_d3dDevice)
@@ -192,6 +197,9 @@ void D3DContext::OnResize()
 	// The window resized, so update the aspect ratio and recompute the projection matrix.
 	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, m_win->AspectRatio(), 1.0f, 1000.0f);
 	DirectX::XMStoreFloat4x4(&m_Proj, P);
+
+	//从proj 获取视锥体的frustum
+	BoundingFrustum::CreateFromMatrix(m_CamFrustum, XMLoadFloat4x4(&m_Proj));
 }
 
 void D3DContext::setApp(App* app)

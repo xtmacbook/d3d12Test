@@ -15,15 +15,15 @@ add_compile_definitions(_UNICODE UNICODE)
 #add_compile_definitions(_TIDY_TIMEOUT)
 
 add_link_options(
-    /SUBSYSTEM:WINDOWS #÷∏∂®≥Ã–ÚŒ™ Windows ◊¿√Ê¥∞ø⁄≥Ã–Ú
-    /DYNAMICBASE 
+    /SUBSYSTEM:WINDOWS #ÊåáÂÆöÁ®ãÂ∫è‰∏∫ Windows Ê°åÈù¢Á™óÂè£Á®ãÂ∫è
+    /DYNAMICBASE
     Version.lib
     Comctl32.lib
     /MACHINE:X64
 )
 
 
-set (COMMON_SOURCE 
+set (COMMON_SOURCE
     src/common/App.cpp
     src/common/D3DContext.cpp
     src/common/Struct.cpp
@@ -35,6 +35,7 @@ set (COMMON_SOURCE
     src/common/MathHelper.cpp
     src/common/Util.cpp
     src/common/BlurFilter.cpp
+    src/common/ModelIO.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -51,6 +52,8 @@ set (COMMON_SOURCE_HEADS
     src/common/GeometryGenerator.h
     src/common/MathHelper.h
     src/common/BlurFilter.h
+    src/common/ModelIO.h
+    src/common/ObjLoader.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
@@ -84,7 +87,7 @@ set (CONTEXT_SOURCE
     src/context/TessllationContext.cpp
     src/context/DynamicIndexContext.cpp
     src/context/DynamicIndexComContex.cpp
-
+    src/context/InstanceContext.cpp
 )
 set (CONTEXT_SOURCE_HEADS
     src/context/BlendContext.h
@@ -101,11 +104,12 @@ set (CONTEXT_SOURCE_HEADS
     src/context/TessllationContext.h
     src/context/DynamicIndexContext.h
     src/context/DynamicIndexComContex.h
+    src/context/InstanceContext.h
 )
 
 
 source_group ("Source Files/common" FILES ${COMMON_SOURCE})
-source_group ("Header Files/common" FILES ${COMMON_SOURCE_HEADS})  
+source_group ("Header Files/common" FILES ${COMMON_SOURCE_HEADS})
 
 source_group ("Source Files/context/interface" FILES ${CONTEXT_INTERFACE_SOURCE})
 source_group ("Header Files/context/interface" FILES ${CONTEXT_INTERFACE_SOURCE_HEADS})
@@ -121,7 +125,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-add_executable(  
+add_executable(
         ${PROJECT_NAME}
         WIN32
         ${COMMON_SOURCE}
@@ -132,7 +136,7 @@ add_executable(
         ${CONTEXT_SOURCE_HEADS}
         src/osgEarth.cpp
         src/MainApp.cpp
-        
+
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -140,28 +144,24 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     user32.lib gdi32.lib kernel32.lib
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE) 
+set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
 
-# 1. …Ë÷√ƒø±ÍŒƒº˛√˚£®∂‘”¶”“±ﬂµƒ $(ProjectName)£©
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "${PROJECT_NAME}"
 )
 
-# 2. …Ë÷√ ‰≥ˆƒø¬º£®∂‘”¶”“±ﬂµƒ $(SolutionDir)$(Platform)\$(Configuration)\£©
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin/$<PLATFORM_ID>/$<CONFIG>"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib/$<PLATFORM_ID>/$<CONFIG>"
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib/$<PLATFORM_ID>/$<CONFIG>"
 )
 
-# 3. …Ë÷√÷–º‰ƒø¬º£®∂‘”¶”“±ﬂµƒ $(Platform)$(Configuration)\£©
 set_target_properties(${PROJECT_NAME} PROPERTIES
     INTERMEDIATE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/obj/$<PLATFORM_ID>/$<CONFIG>/${PROJECT_NAME}"
 )
 
-# 4. …Ë÷√ C++ ”Ô—‘±Í◊º£®±»»Á C++14/17£¨∂‘”¶”“±ﬂµƒƒ¨»œ ISO C++14£©
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    CXX_STANDARD 14          # ∏ƒ≥… 17 ∂‘”¶ C++17
+    CXX_STANDARD 14           
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )

@@ -1,8 +1,11 @@
 ﻿#include "GeomtryContextInterface.h"
+
 #include "common/GeometryGenerator.h"
 #include "common/Geometry.h"
 #include "common/GameTimer.h"
 #include "common/Struct.h"
+#include "common/ObjLoader.h"
+
 #include "Context/Waves.h"
 
 #include <fstream>
@@ -217,6 +220,12 @@ void GeometryContextInterface::BuildSkull(ID3D12Device*device, ID3D12GraphicsCom
 	fin >> ignore >> tcount;
 	fin >> ignore >> ignore >> ignore >> ignore;
 
+	XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+	XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
+
+	XMVECTOR vMin = XMLoadFloat3(&vMinf3);
+	XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
+
 	std::vector<VertexNT> vertices(vcount);
 	for (UINT i = 0; i < vcount; ++i)
 	{
@@ -225,7 +234,16 @@ void GeometryContextInterface::BuildSkull(ID3D12Device*device, ID3D12GraphicsCom
 
 		// Model does not have texture coordinates, so just zero them out.
 		vertices[i].TexC = { 0.0f, 0.0f };
+
+		XMVECTOR P = XMLoadFloat3(&vertices[i].Pos);
+
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
 	}
+
+	BoundingBox bounds;
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
 
 	fin >> ignore;
 	fin >> ignore;
@@ -238,10 +256,6 @@ void GeometryContextInterface::BuildSkull(ID3D12Device*device, ID3D12GraphicsCom
 	}
 
 	fin.close();
-
-	//
-	// Pack the indices of all the meshes into one index buffer.
-	//
 
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexNT);
 
@@ -271,8 +285,91 @@ void GeometryContextInterface::BuildSkull(ID3D12Device*device, ID3D12GraphicsCom
 	submesh.m_IndexCount = (UINT)indices.size();
 	submesh.m_StartIndexLocation = 0;
 	submesh.m_BaseVertexLocation = 0;
+	submesh.m_Bounds = bounds;
 
 	geo->m_DrawArgs["skull"] = submesh;
+
+	m_Geometries[geo->Name] = std::move(geo);
+}
+
+void GeometryContextInterface::BuildRock(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
+{
+	objl::Loader loader;
+
+	if (!loader.LoadFile(WStringToString(SourcePath() + L"/Models/rock.obj"))) return;
+
+	/*for (int i = 0; i < loader.LoadedMeshes.size(); i++)
+	{
+		const objl::Mesh& curMesh = loader.LoadedMeshes[i];
+
+	}*/
+
+	if (loader.LoadedMeshes.size() == 0) return;
+
+	XMFLOAT3 vMinf3(+MathHelper::Infinity, +MathHelper::Infinity, +MathHelper::Infinity);
+	XMFLOAT3 vMaxf3(-MathHelper::Infinity, -MathHelper::Infinity, -MathHelper::Infinity);
+
+	XMVECTOR vMin = XMLoadFloat3(&vMinf3);
+	XMVECTOR vMax = XMLoadFloat3(&vMaxf3);
+
+	const objl::Mesh& curMesh = loader.LoadedMeshes[0];
+
+	std::vector<VertexNT> vertices(curMesh.Vertices.size());
+	for (UINT i = 0; i < curMesh.Vertices.size(); ++i)
+	{
+		const auto& curVertice = curMesh.Vertices[i];
+
+		vertices[i].Pos.x = curVertice.Position.X;
+		vertices[i].Pos.y = curVertice.Position.Y;
+		vertices[i].Pos.z = curVertice.Position.Z;
+
+		vertices[i].Normal.x = curVertice.Normal.X;
+		vertices[i].Normal.y = curVertice.Normal.Y;
+		vertices[i].Normal.z = curVertice.Normal.Z;
+
+		vertices[i].TexC = { curVertice.TextureCoordinate.X, curVertice.TextureCoordinate.Y };
+
+		XMVECTOR P = XMLoadFloat3(&vertices[i].Pos);
+
+		vMin = XMVectorMin(vMin, P);
+		vMax = XMVectorMax(vMax, P);
+	}
+
+	BoundingBox bounds;
+	XMStoreFloat3(&bounds.Center, 0.5f * (vMin + vMax));
+	XMStoreFloat3(&bounds.Extents, 0.5f * (vMax - vMin));
+
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexNT);
+
+	const UINT ibByteSize = (UINT)curMesh.Indices.size() * sizeof(std::int32_t);
+
+	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = "rockGeo";
+
+	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->m_VertexBufferCPU));
+	CopyMemory(geo->m_VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->m_IndexBufferCPU));
+	CopyMemory(geo->m_IndexBufferCPU->GetBufferPointer(), curMesh.Indices.data(), ibByteSize);
+
+	geo->m_VertexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
+		mCommandList, vertices.data(), vbByteSize, geo->m_VertexBufferUploader);
+
+	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
+		mCommandList, curMesh.Indices.data(), ibByteSize, geo->m_IndexBufferUploader);
+
+	geo->m_VertexByteStride = sizeof(VertexNT);
+	geo->m_VertexBufferByteSize = vbByteSize;
+	geo->m_IndexFormat = DXGI_FORMAT_R32_UINT;
+	geo->m_IndexBufferByteSize = ibByteSize;
+
+	SubmeshGeometry submesh;
+	submesh.m_IndexCount = (UINT)curMesh.Indices.size();
+	submesh.m_StartIndexLocation = 0;
+	submesh.m_BaseVertexLocation = 0;
+	submesh.m_Bounds = bounds;
+
+	geo->m_DrawArgs["rock"] = submesh;
 
 	m_Geometries[geo->Name] = std::move(geo);
 }
@@ -627,3 +724,4 @@ void GeometryContextInterface::updateWave(const GameTimer& gt)
 	// Update the wave simulation.
 	m_Waves->Update(gt.DeltaTime());
 }
+ 

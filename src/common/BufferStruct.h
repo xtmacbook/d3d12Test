@@ -15,9 +15,8 @@ https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-pa
 HLSL packs data so that it does not cross a 16-byte boundary.
 Variables are packed into a given four-component vector until the variable will straddle
 a 4-vector boundary; the next variables will be bounced to the next four-component vector.
-
-
 */
+////////////////////////////////Const buffer //////////////////////////////////////////////////////////
 
 struct ObjectConstants
 {
@@ -29,7 +28,6 @@ struct ObjectConstantsWithTexTran
 	DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 };
-
 
 struct ObjectConstantsWithTexTranAndMaterialIndex
 {
@@ -56,6 +54,7 @@ struct MaterialConstantsWithTexTran
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 
+////////////////////////////////SRV buffer //////////////////////////////////////////////////////////
 //注意这里是shade source buffer 不向const buffer那样需要使用CalcConstantBufferByteSize来对其
 struct MaterialShadeRsourceWithTexIndex
 {
@@ -114,3 +113,16 @@ struct PassConstantsWithFrog : public PassConstants
 
 };
 
+/*
+	per instance data as part of render item struct
+*/
+
+struct InstanceData
+{
+	DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+	UINT MaterialIndex;
+	UINT InstancePad0;
+	UINT InstancePad1;
+	UINT InstancePad2;
+};

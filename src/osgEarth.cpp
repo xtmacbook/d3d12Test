@@ -15,6 +15,7 @@
 #include "context/ComputeShader.h"
 #include "context/TessllationContext.h"
 #include "context/DynamicIndexContext.h"
+#include "context/InstanceContext.h"
 
 using namespace DirectX;
 
@@ -29,8 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		//BlendContext d3dContext;
-		DynamicIndexContext d3dContext;
+		InstanceContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 

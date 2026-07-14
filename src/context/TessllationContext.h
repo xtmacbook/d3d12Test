@@ -16,7 +16,7 @@ public:
 	void BuildRootSignature()override;
 	void BuildShadersAndInputLayout()override;
 
-	virtual void BuildPSOs();
+	virtual void BuildPSOs()override;
 	virtual void BuildMaterials();
 	virtual void BuildRenderItems();
 
@@ -25,10 +25,8 @@ public:
 	virtual void Update(const GameTimer& gt) override;
 	void UpdateMainPassCB(const GameTimer& gt);
 
-	virtual void Draw(const GameTimer& gt);
 	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
 protected:
-	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>>	m_PSOs;
 	PassConstantsWithLight															m_MainPassCB;
 
 private:

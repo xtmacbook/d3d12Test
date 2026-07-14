@@ -542,3 +542,6 @@ void BlendContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const Rend
 		renderItem->m_BaseVertexLocation, 0);
 
 }
+
+
+ 

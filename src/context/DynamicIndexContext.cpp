@@ -47,35 +47,6 @@ void DynamicIndexContext::BuildShapeGeometry(ID3D12Device* device, ID3D12Graphic
 	BuildLitShapesScene(device, mCommandList);
 }
 
-void DynamicIndexContext::BuildPSOs()
-{
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
-	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	opaquePsoDesc.InputLayout = { m_InputLayout.data(), (UINT)m_InputLayout.size() };
-	opaquePsoDesc.pRootSignature = m_RootSignature.Get();
-	opaquePsoDesc.VS =
-	{
-		reinterpret_cast<BYTE*>(m_Shaders["standardVS"]->GetBufferPointer()),
-		m_Shaders["standardVS"]->GetBufferSize()
-	};
-	opaquePsoDesc.PS =
-	{
-		reinterpret_cast<BYTE*>(m_Shaders["opaquePS"]->GetBufferPointer()),
-		m_Shaders["opaquePS"]->GetBufferSize()
-	};
-	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	opaquePsoDesc.SampleMask = UINT_MAX;
-	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	opaquePsoDesc.NumRenderTargets = 1;
-	opaquePsoDesc.RTVFormats[0] = m_BackBufferFormat;
-	opaquePsoDesc.SampleDesc.Count = m_4xMsaaState ? 4 : 1;
-	opaquePsoDesc.SampleDesc.Quality = m_4xMsaaState ? (m_4xMsaaQuality - 1) : 0;
-	opaquePsoDesc.DSVFormat = m_DepthStencilFormat;
-	ThrowIfFailed(m_d3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&m_PSOs["opaque"])));
-}
-
 void DynamicIndexContext::BuildMaterials()
 {
 	auto bricks0 = std::make_unique<MaterialWithTexTran>();
@@ -217,36 +188,6 @@ void DynamicIndexContext::initTextures(ID3D12Device* device, ID3D12GraphicsComma
 	textureFiles.emplace_back("tileTex", SourcePath() + L"/Textures/tile.dds");
 	textureFiles.emplace_back("crateTex", SourcePath() + L"/Textures/WoodCrate01.dds");
 	loadTextures(device, mCommandList, textureFiles);
-}
-
-void DynamicIndexContext::Update(const GameTimer& gt)
-{
-	D3DContext::Update(gt);
-	FrameResourceContextInterface::Update(gt, m_Fence.Get());
-	UpdateObjectCBs(gt);
-	UpdateMaterialCBs(gt);
-	UpdateMainPassCB(gt);
-}
-
-void DynamicIndexContext::UpdateMainPassCB(const GameTimer& gt)
-{
-	UPDATE_MAIN_PASS;
-
-	m_MainPassCB.m_AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	m_MainPassCB.m_Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[0].Strength = { 0.9f, 0.9f, 0.8f };
-	m_MainPassCB.m_Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-	m_MainPassCB.m_Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	m_MainPassCB.m_Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-
-	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
-}
-
-void DynamicIndexContext::Draw(const GameTimer& gt)
-{
-	D3DContext::Draw(gt);
-	FrameResourceContextInterface::Draw(gt, m_CurrentFence, m_Fence.Get(), m_CommandQueue.Get());
 }
 
 void DynamicIndexContext::DrawFrameResource(ID3D12CommandAllocator* allocator)

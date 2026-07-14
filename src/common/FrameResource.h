@@ -18,8 +18,10 @@ public:
 	virtual void CopyPassData(int elementIndex, void* data) = 0;
 	virtual void CopyMaterialData(int elementIndex, void* data) {};
 	virtual void CopyWaveData(int elementIndex, void* data) {};
- 
+	virtual void CopyInstanceData(int elementIndex, void* data) {};
+
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getConstGpuAddress() = 0;
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getInstanceGpuAddress();
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getPassGpuAddress() = 0;
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getMaterialGpuAddress();
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getWaveGpuAddress();
@@ -53,6 +55,7 @@ public:
 
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getConstGpuAddress() override;
 	virtual D3D12_GPU_VIRTUAL_ADDRESS getPassGpuAddress() override;
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getInstanceGpuAddress()override;
 
 	std::unique_ptr<UploadBuffer<PASSCONST>>           m_PassCB = nullptr;
 	std::unique_ptr<UploadBuffer<OBJECTCONST>>         m_ObjectCB = nullptr;
@@ -67,7 +70,7 @@ inline FrameResource<OBJECTCONST, PASSCONST>::FrameResource(ID3D12Device* device
 
 
 	m_ObjectCB = std::make_unique<UploadBuffer<OBJECTCONST>>(device, objectCount, true);
-	m_PassCB = std::make_unique<UploadBuffer<PASSCONST>>(device, objectCount, true);
+	m_PassCB = std::make_unique<UploadBuffer<PASSCONST>>(device, passCount, true);
 }
 
 template<typename OBJECTCONST, typename PASSCONST>
@@ -99,6 +102,12 @@ template<typename OBJECTCONST, typename PASSCONST>
 inline D3D12_GPU_VIRTUAL_ADDRESS FrameResource<OBJECTCONST, PASSCONST>::getPassGpuAddress()
 {
 	return m_PassCB->Resource()->GetGPUVirtualAddress();
+}
+
+template<typename OBJECTCONST, typename PASSCONST>
+inline D3D12_GPU_VIRTUAL_ADDRESS FrameResource<OBJECTCONST, PASSCONST>::getInstanceGpuAddress()
+{
+	return D3D12_GPU_VIRTUAL_ADDRESS();
 }
 
 template <typename OBJECTCONST, typename PASSCONST,typename MATERIALCONST>
@@ -136,7 +145,7 @@ FrameResourceWithConstMaterial(ID3D12Device* device, UINT passCount, UINT object
 	m_MaterialCB = std::make_unique<UploadBuffer<MATERIALCONST>>(device, materialCount, true);
 }
 
-//注意下面这个类和上面的不同是材质作为SRV buffer进行传递,这时候不需要进行CalcConstantBufferByteSize对其
+//注意下面这个类和上面的不同是材质作为SRV buffer进行传递,这时候不需要进行CalcConstantBufferByteSize对齐
 template <typename OBJECTCONST, typename PASSCONST,typename MATERIALCONST>
 class FrameResourceWithSRVMaterial : public FrameResource<OBJECTCONST,PASSCONST>
 {
@@ -171,3 +180,58 @@ FrameResourceWithSRVMaterial(ID3D12Device* device, UINT passCount, UINT objectCo
 {
 	m_MaterialCB = std::make_unique<UploadBuffer<MATERIALCONST>>(device, materialCount, false);
 }
+
+
+template <typename INSTANCECBUFF, typename PASSCONST,typename MATERIALBUFF>
+class FrameInstanceResource : public FrameResourceInterface
+{
+public:
+
+	FrameInstanceResource(ID3D12Device* device, UINT passCount, UINT instanceCount,UINT materialCount)
+	{
+		ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(m_CmdListAlloc.GetAddressOf())));
+
+		m_PassCB = std::make_unique<UploadBuffer<PASSCONST>>(device, passCount, true);
+		m_InstanceBuffer = std::make_unique<UploadBuffer<INSTANCECBUFF>>(device, instanceCount, false);
+		m_MaterialBuffer = std::make_unique<UploadBuffer<MATERIALBUFF>>(device, materialCount, false);
+	}
+
+	FrameInstanceResource(const FrameInstanceResource& rhs) = delete;
+	FrameInstanceResource& operator=(const FrameInstanceResource& rhs) = delete;
+	~FrameInstanceResource() {};
+
+	virtual void CopyConstData(int elementIndex, void* data) {}
+
+	virtual void CopyPassData(int elementIndex, void* data)override {
+		PASSCONST* content = static_cast<PASSCONST*>(data);
+		m_PassCB->CopyData(elementIndex, *content);
+	};
+	virtual void CopyMaterialData(int elementIndex, void* data)override {
+		MATERIALBUFF* content = static_cast<MATERIALBUFF*>(data);
+		m_MaterialBuffer->CopyData(elementIndex, *content);
+	};
+	virtual void CopyInstanceData(int elementIndex, void* data)override {
+		INSTANCECBUFF* content = static_cast<INSTANCECBUFF*>(data);
+		m_InstanceBuffer->CopyData(elementIndex, *content);
+	};
+
+
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getConstGpuAddress() { return D3D12_GPU_VIRTUAL_ADDRESS(); }
+
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getPassGpuAddress() override {
+		return m_PassCB->Resource()->GetGPUVirtualAddress();
+	};
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getInstanceGpuAddress()override {
+		return m_InstanceBuffer->Resource()->GetGPUVirtualAddress();
+	};
+	virtual D3D12_GPU_VIRTUAL_ADDRESS getMaterialGpuAddress()override {
+		return m_MaterialBuffer->Resource()->GetGPUVirtualAddress();
+	};
+
+	std::unique_ptr<UploadBuffer<PASSCONST>>             m_PassCB = nullptr;
+	std::unique_ptr<UploadBuffer<INSTANCECBUFF>>         m_InstanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<MATERIALBUFF>>          m_MaterialBuffer = nullptr;
+
+};
+

@@ -8,6 +8,11 @@ FrameResourceInterface::~FrameResourceInterface()
 {
 }
 
+D3D12_GPU_VIRTUAL_ADDRESS FrameResourceInterface::getInstanceGpuAddress()
+{
+	return D3D12_GPU_VIRTUAL_ADDRESS();
+}
+
 D3D12_GPU_VIRTUAL_ADDRESS FrameResourceInterface::getMaterialGpuAddress()
 {
 	return D3D12_GPU_VIRTUAL_ADDRESS();

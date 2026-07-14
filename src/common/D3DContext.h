@@ -14,7 +14,7 @@ class D3DContext
 {
 public:
 
-	D3DContext() =default;
+	D3DContext();
 
 	virtual ~D3DContext();
 
@@ -52,6 +52,8 @@ protected:
 	DirectX::XMFLOAT4X4 m_View								= MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 m_Proj								= MathHelper::Identity4x4();
 	DirectX::XMFLOAT3	m_EyePos							= { .0,.0,.0 };
+	DirectX::BoundingFrustum								m_CamFrustum;
+	bool													m_FrustumCullingEnabled;
 protected:
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4>					m_dxgiFactory;
@@ -91,5 +93,6 @@ protected:
 	App*													m_win = nullptr;
 
 	bool													m_IsWireframe = false;
+
 
 };

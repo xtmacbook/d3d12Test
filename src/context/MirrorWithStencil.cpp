@@ -270,36 +270,7 @@ void MirrorWithStencil::initTextures(ID3D12Device*device, ID3D12GraphicsCommandL
 	textureFiles.emplace_back("white1x1Tex", SourcePath() + L"/Textures/white1x1.dds");
 	loadTextures(device, mCommandList, textureFiles);
 }
-
-void MirrorWithStencil::Update(const GameTimer& gt)
-{
-	D3DContext::Update(gt);
-	FrameResourceContextInterface::Update(gt, m_Fence.Get());
-	UpdateObjectCBs(gt);
-	UpdateMaterialCBs(gt);
-	UpdateMainPassCB(gt);
-}
-
-void MirrorWithStencil::UpdateMainPassCB(const GameTimer& gt)
-{
-	UPDATE_MAIN_PASS;
-
-	m_MainPassCB.m_AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	m_MainPassCB.m_Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[0].Strength = { 0.9f, 0.9f, 0.8f };
-	m_MainPassCB.m_Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-	m_MainPassCB.m_Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	m_MainPassCB.m_Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
-
-	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
-}
-
-void MirrorWithStencil::Draw(const GameTimer& gt)
-{
-	D3DContext::Draw(gt);
-	FrameResourceContextInterface::Draw(gt, m_CurrentFence, m_Fence.Get(), m_CommandQueue.Get());
-}
+ 
 
 void MirrorWithStencil::DrawFrameResource(ID3D12CommandAllocator* allocator)
 {

@@ -38,6 +38,8 @@ public:
 
 	void BuildSkull(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
+	void BuildRock(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+
 	void BuildMirror(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
 	void BuildQuad(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
