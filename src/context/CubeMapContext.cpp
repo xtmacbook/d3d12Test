@@ -1,15 +1,18 @@
-#include "InstanceContext.h"
+#include "CubeMapContext.h"
 
 #include "common/BufferStruct.h"
 #include "common/Geometry.h"
 #include "common/BufferStruct.h"
+#include "common/Sky.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
-bool InstanceContext::InitDirect3D()
+bool CubeMapContext::InitDirect3D()
 {
+	m_sky = std::make_shared<Sky>(this);
+
 	if (!D3DContext::InitDirect3D()) return false;
 
 	// Reset the command list to prep for initialization commands.
@@ -25,21 +28,38 @@ bool InstanceContext::InitDirect3D()
 	textureFiles.emplace_back("WoodTex", SourcePath() + L"/Textures/WoodCrate01.dds");
 	loadTextures(m_d3dDevice.Get(), m_CommandList.Get(), textureFiles);
 
-	BuildSRVDescriptorHeap(m_d3dDevice.Get());
+	int numberDescriptor =  m_Textures.size() + m_TextureArrs.size() + 1;
+	BuildSRVDescriptorHeap(m_d3dDevice.Get(), numberDescriptor);
 	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
 	BuildSampleDescriptorHeap(m_d3dDevice.Get());
 	BuildSampleDescriptor(m_d3dDevice.Get(), m_CommandList.Get());
 
+	int offsetInDescriptors = m_Textures.size() + m_TextureArrs.size();
+	m_sky->BuildResource();
+	m_sky->BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE(
+		m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		offsetInDescriptors, m_CbvSrvUavDescriptorSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(
+			m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart(),
+			offsetInDescriptors, m_CbvSrvUavDescriptorSize),
+		m_CbvSrvUavDescriptorSize);
+
 	BuildShapeGeometry(m_d3dDevice.Get(), m_CommandList.Get());
+
+	m_sky->BuildSkyGeometry();
 
 	BuildMaterials();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 
+	m_sky->BuildRootSignature();
+	m_sky->BuildLayout();
+
 	BuildRenderItems();
 	BuildFrameResources();
 
 	BuildPSOs();
+	m_sky->BuildPSO();
 
 	// Execute the initialization commands.
 	ThrowIfFailed(m_CommandList->Close());
@@ -52,9 +72,9 @@ bool InstanceContext::InitDirect3D()
 	return true;
 }
 
-void InstanceContext::BuildRootSignature()
+void CubeMapContext::BuildRootSignature()
 {
-    D3D12_ROOT_PARAMETER rootParameters[5];
+	D3D12_ROOT_PARAMETER rootParameters[5];
 
 	//instanceData
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
@@ -129,40 +149,40 @@ void InstanceContext::BuildRootSignature()
 		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
 }
 
-void InstanceContext::BuildShadersAndInputLayout()
+void CubeMapContext::BuildShadersAndInputLayout()
 {
 	BuildInstanceShaders();
 	BuildLayout();
 }
 
-void InstanceContext::BuildFrameResources()
+void CubeMapContext::BuildFrameResources()
 {
 	UINT instanctCount = 0;
 
 	for (auto& ritem : m_AllRitems)
 		instanctCount += ritem->m_Instances.size();
 
-    for (int i = 0; i < m_NumFrameResources; ++i)
+	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
 		m_frameResources.push_back(
-            std::make_unique<FrameInstanceResource<InstanceData,
+			std::make_unique<FrameInstanceResource<InstanceData,
 			PassConstantsWithFrog, MaterialShadeRsourceWithTexIndex>  >(m_d3dDevice.Get(),
 				1, instanctCount, (UINT)m_Materials.size()));
 	}
 }
 
-void InstanceContext::Update(const GameTimer& gt)
+void CubeMapContext::Update(const GameTimer& gt)
 {
 	D3DContext::Update(gt);
 	FrameResourceContextInterface::Update(gt, m_Fence.Get());
-	UpdateInstance ();
+	UpdateInstance();
 	UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
 }
 
-void InstanceContext::UpdateMaterialCBs(const GameTimer &gt)
+void CubeMapContext::UpdateMaterialCBs(const GameTimer& gt)
 {
-    for (auto& e : m_Materials)
+	for (auto& e : m_Materials)
 	{
 		MaterialWithTexTran* mat = static_cast<MaterialWithTexTran*>(e.second.get());
 		if (mat->NumFramesDirty > 0)
@@ -174,7 +194,7 @@ void InstanceContext::UpdateMaterialCBs(const GameTimer &gt)
 			matConstants.FresnelR0 = mat->FresnelR0;
 			matConstants.Roughness = mat->Roughness;
 			XMStoreFloat4x4(&matConstants.MatTransform, XMMatrixTranspose(matTransform));
-            matConstants.DiffuseTextureMapIndex = mat->DiffuseSrvHeapIndex;
+			matConstants.DiffuseTextureMapIndex = mat->DiffuseSrvHeapIndex;
 			m_currFrameResource->CopyMaterialData(mat->MaterialCBIndex, &matConstants);
 
 			mat->NumFramesDirty--;
@@ -182,7 +202,7 @@ void InstanceContext::UpdateMaterialCBs(const GameTimer &gt)
 	}
 }
 
-void InstanceContext::DrawRenderItem(ID3D12GraphicsCommandList *cmdList, const RenderItem *ritem)
+void CubeMapContext::DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritem)
 {
 	const RenderItemWithTex* renderItem = static_cast<const RenderItemWithTex*>(ritem);
 
@@ -197,7 +217,7 @@ void InstanceContext::DrawRenderItem(ID3D12GraphicsCommandList *cmdList, const R
 		renderItem->m_BaseVertexLocation, 0);
 }
 
-void InstanceContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
+void CubeMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 {
 	ThrowIfFailed(m_CommandList->Reset(allocator, m_PSOs["opaque"].Get()));
 	BEFORE_DRAW_SET;
@@ -219,6 +239,9 @@ void InstanceContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	//pass1
 	DrawRenderItem(m_CommandList.Get(), m_AllRitems[0].get());
 
+	//sky
+	m_sky->DrawSky(m_CommandList.Get(), allocator, sampler,m_currFrameResource->getPassGpuAddress(), descriptorHeaps);
+
 	// Indicate a state transition on the resource usage.
 	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -233,12 +256,12 @@ void InstanceContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
 }
 
-void InstanceContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
+void CubeMapContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 {
 	BuildRock(device, mCommandList);
 }
 
-void InstanceContext::BuildRenderItems()
+void CubeMapContext::BuildRenderItems()
 {
 	auto rocketRitem = std::make_unique<RenderItemWithTex>();
 	rocketRitem->m_Geo = m_Geometries["rockGeo"].get();
@@ -281,12 +304,12 @@ void InstanceContext::BuildRenderItems()
 			}
 		}
 	}
-	
+
 	m_AllRitems.push_back(std::move(rocketRitem));
 
 }
 
-void InstanceContext::BuildMaterials()
+void CubeMapContext::BuildMaterials()
 {
 	auto bricks0 = std::make_unique<MaterialWithTexTran>();
 	bricks0->Name = "bricksTex";
@@ -353,5 +376,11 @@ void InstanceContext::BuildMaterials()
 	m_Materials["WoodTex"] = std::move(skullMat);
 }
 
+void CubeMapContext::BuildTexture()
+{
 
+	//environment map is projected onto the spherre's surface
  
+ 
+}
+

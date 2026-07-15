@@ -36,6 +36,7 @@ set (COMMON_SOURCE
     src/common/Util.cpp
     src/common/BlurFilter.cpp
     src/common/ModelIO.cpp
+    src/common/Sky.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -54,6 +55,7 @@ set (COMMON_SOURCE_HEADS
     src/common/BlurFilter.h
     src/common/ModelIO.h
     src/common/ObjLoader.h
+    src/common/Sky.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
@@ -88,6 +90,7 @@ set (CONTEXT_SOURCE
     src/context/DynamicIndexContext.cpp
     src/context/DynamicIndexComContex.cpp
     src/context/InstanceContext.cpp
+    src/context/CubeMapContext.cpp
 )
 set (CONTEXT_SOURCE_HEADS
     src/context/BlendContext.h
@@ -105,6 +108,7 @@ set (CONTEXT_SOURCE_HEADS
     src/context/DynamicIndexContext.h
     src/context/DynamicIndexComContex.h
     src/context/InstanceContext.h
+    src/context/CubeMapContext.h
 )
 
 

@@ -16,7 +16,7 @@
 #include "context/TessllationContext.h"
 #include "context/DynamicIndexContext.h"
 #include "context/InstanceContext.h"
-
+#include "context/CubeMapContext.h"
 using namespace DirectX;
 
 
@@ -30,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		InstanceContext d3dContext;
+		CubeMapContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 

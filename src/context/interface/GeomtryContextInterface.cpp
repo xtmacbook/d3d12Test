@@ -1,4 +1,4 @@
-﻿#include "GeomtryContextInterface.h"
+#include "GeomtryContextInterface.h"
 
 #include "common/GeometryGenerator.h"
 #include "common/Geometry.h"
@@ -698,6 +698,57 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 
 	m_Geometries[geo->Name] = std::move(geo);
 }
+
+std::shared_ptr<MeshGeometry> GeometryContextInterface::BuildSphere(ID3D12Device* device, 
+	ID3D12GraphicsCommandList* mCommandList, SphereProfile profile)
+{
+	GeometryGenerator geoGen;
+	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(profile.radius, profile.sliceCount, profile.stackCount);
+
+	SubmeshGeometry boxSubmesh;
+	boxSubmesh.m_IndexCount = (UINT)sphere.Indices32.size();
+	boxSubmesh.m_StartIndexLocation = 0;
+	boxSubmesh.m_BaseVertexLocation = 0;
+
+
+	std::vector<VertexNT> vertices(sphere.Vertices.size());
+
+	for (size_t i = 0; i < sphere.Vertices.size(); ++i)
+	{
+		vertices[i].Pos = sphere.Vertices[i].Position;
+		vertices[i].Normal = sphere.Vertices[i].Normal;
+		vertices[i].TexC = sphere.Vertices[i].TexC;
+	}
+
+	std::vector<std::uint16_t> indices = sphere.GetIndices16();
+
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexNT);
+	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = "sphereGeo";
+
+	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->m_VertexBufferCPU));
+	CopyMemory(geo->m_VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->m_IndexBufferCPU));
+	CopyMemory(geo->m_IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+	geo->m_VertexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
+		mCommandList, vertices.data(), vbByteSize, geo->m_VertexBufferUploader);
+
+	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
+		mCommandList, indices.data(), ibByteSize, geo->m_IndexBufferUploader);
+
+	geo->m_VertexByteStride = sizeof(VertexNT);
+	geo->m_VertexBufferByteSize = vbByteSize;
+	geo->m_IndexFormat = DXGI_FORMAT_R16_UINT;
+	geo->m_IndexBufferByteSize = ibByteSize;
+
+	geo->m_DrawArgs["sphere"] = boxSubmesh;
+	return geo;
+}
+
 
 Waves* GeometryContextInterface::GetWave()
 {

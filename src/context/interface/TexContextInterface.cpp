@@ -16,9 +16,12 @@ bool TexContextInterface::loadTextures(ID3D12Device* md3dDevice,
 			mCommandList, woodCrateTex->m_Filename.c_str(),
 			woodCrateTex->m_Resource, woodCrateTex->m_UploadHeap));
 		
-		(item.TextureArray)?
-			m_TextureArrs[woodCrateTex->m_Name] = std::move(woodCrateTex):
-		m_Textures[woodCrateTex->m_Name] = std::move(woodCrateTex);
+		if (item.TextureArray)
+			m_TextureArrs[woodCrateTex->m_Name] = std::move(woodCrateTex);
+		else if(item.TextureCube)
+			m_TextureCubes[woodCrateTex->m_Name] = std::move(woodCrateTex);
+		else
+			m_Textures[woodCrateTex->m_Name] = std::move(woodCrateTex);
 	}
 
 	return true;
@@ -51,11 +54,11 @@ void TexContextInterface::BuildSampleDescriptor(ID3D12Device* md3dDevice, ID3D12
 		m_SamplerDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
-void TexContextInterface::BuildSRVDescriptorHeap(ID3D12Device* md3dDevice)
+void TexContextInterface::BuildSRVDescriptorHeap(ID3D12Device* md3dDevice,  int numberDescriptor)
 {
 	//create srv descriptor headp
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = m_Textures.size() + m_TextureArrs.size();
+	srvHeapDesc.NumDescriptors = (numberDescriptor == -1) ? (m_Textures.size() + m_TextureArrs.size()) : numberDescriptor;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
@@ -111,12 +114,29 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 		srvDesc.Format = iter->second->m_Resource->GetDesc().Format;
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-		srvDesc.Texture2D.MostDetailedMip = 0;
-		srvDesc.Texture2D.MipLevels = -1;
 		srvDesc.Texture2DArray.MostDetailedMip = 0;
 		srvDesc.Texture2DArray.MipLevels = -1;
 		srvDesc.Texture2DArray.FirstArraySlice = 0;
 		srvDesc.Texture2DArray.ArraySize = iter->second->m_Resource->GetDesc().DepthOrArraySize;
+		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
+		idx++;
+
+	}
+
+	for (auto iter = m_TextureCubes.begin(); iter != m_TextureCubes.end(); iter++)
+	{
+		CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(
+			m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+		hDescriptor.Offset(idx, CbvSrvUavDescriptorSize);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		srvDesc.Format = iter->second->m_Resource->GetDesc().Format;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		srvDesc.TextureCube.MostDetailedMip = 0;
+		srvDesc.TextureCube.MipLevels = iter->second->m_Resource->GetDesc().MipLevels;
+		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
 		idx++;
 
@@ -147,16 +167,6 @@ void TexContextInterface::BuildUAVTextureResouce(ID3D12Device* device, TextureOu
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
 		IID_PPV_ARGS(&resouce)));
-
-	ThrowIfFailed(device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&texDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		nullptr,
-		IID_PPV_ARGS(&resouce)));
-	 
-	
 }
 
 void TexContextInterface::BuildUAVTextureResouceView(ID3D12Device* device, TextureOutDes desc, 

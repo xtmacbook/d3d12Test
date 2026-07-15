@@ -20,6 +20,7 @@ struct TextureLoadDesc
 	std::string Name;
 	std::wstring FileName;
 	bool TextureArray = false;
+	bool TextureCube = false;
 };
 
 struct TextureOutDes
@@ -48,7 +49,7 @@ public:
 
 	virtual void BuildSampleDescriptor(ID3D12Device* md3dDevice, ID3D12GraphicsCommandList* mCommandList);
 	
-	virtual void BuildSRVDescriptorHeap(ID3D12Device* md3dDevice);
+	virtual void BuildSRVDescriptorHeap(ID3D12Device* md3dDevice,int numberDescriptor = -1);
 
 	virtual void BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvUavDescriptorSize);
 
@@ -63,6 +64,7 @@ protected:
 
 	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_Textures;
 	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_TextureArrs;
+	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_TextureCubes;
 
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source

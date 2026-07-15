@@ -14,7 +14,6 @@ public:
 
 	void OnResize() override;
 
-	void BuildSRVDescriptorHeap(ID3D12Device* md3dDevice) override;
 
 	void BuildShadersAndInputLayout() override;
 

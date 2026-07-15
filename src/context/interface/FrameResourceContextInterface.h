@@ -9,6 +9,7 @@
 
 struct RenderItem;
 
+
 class FrameResourceContextInterface 
 {
 public:

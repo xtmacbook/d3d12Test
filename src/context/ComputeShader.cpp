@@ -19,7 +19,9 @@ bool ComputeShaderContext::InitDirect3D()
 	//load textures
 	initTextures(m_d3dDevice.Get(), m_CommandList.Get());
 
-	BuildSRVDescriptorHeap(m_d3dDevice.Get());
+	int NumDescriptors = m_Textures.size() + m_TextureArrs.size() + 4;
+
+	BuildSRVDescriptorHeap(m_d3dDevice.Get(), NumDescriptors);
 	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
 	BuildSampleDescriptorHeap(m_d3dDevice.Get());
 	BuildSampleDescriptor(m_d3dDevice.Get(), m_CommandList.Get());
@@ -62,17 +64,6 @@ void ComputeShaderContext::OnResize()
 	m_BlurFilter->OnResize(m_win->Width(), m_win->Height());
 }
 
-void ComputeShaderContext::BuildSRVDescriptorHeap(ID3D12Device* md3dDevice)
-{
-	const int blurDescriptorCount = 4;
-
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = m_Textures.size() + m_TextureArrs.size() + blurDescriptorCount;
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(
-		&srvHeapDesc, IID_PPV_ARGS(&m_SrvDescriptorHeap)));
-}
 
 void ComputeShaderContext::BuildShadersAndInputLayout()
 {

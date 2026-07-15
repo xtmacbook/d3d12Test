@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "common/Util.h"
 
@@ -17,6 +17,13 @@ struct BoxProfile
 	float width = 1.0;
 	float height = 1.0;
 	float depth = 1.0;
+};
+
+struct SphereProfile
+{
+	float radius;
+	unsigned int sliceCount;
+	unsigned int stackCount;
 };
 
 class GeometryContextInterface 
@@ -47,6 +54,10 @@ public:
 	void BuildSprites(ID3D12Device*device, ID3D12GraphicsCommandList* mCommandList);
 
 	void BuildLitShapesScene(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList);
+
+	static std::shared_ptr< MeshGeometry> BuildSphere(ID3D12Device*, 
+		ID3D12GraphicsCommandList* mCommandList, SphereProfile);
+
 
 	Waves* GetWave();
 

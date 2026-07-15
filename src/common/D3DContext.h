@@ -94,5 +94,5 @@ protected:
 
 	bool													m_IsWireframe = false;
 
-
+	friend class Sky;
 };
