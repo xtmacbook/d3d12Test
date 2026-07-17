@@ -21,12 +21,12 @@ struct MaterialData
     float       Roughness;
     float4x4    MatTransform;
     uint        DiffuseTextureMapIndex;
-    uint        MatPad0;
+    uint        NormalMapIndex;
     uint        MatPad1;
     uint        MatPad2;
 };
 
-Texture2D gDiffuseMap[4] : register(t0);
+Texture2D gTextureMaps[7] : register(t0);
 
 SamplerState gsamAnisotropicWrap  : register(s0);
 
@@ -84,6 +84,7 @@ struct VertexIn
     float3 PosL    : POSITION;
     float3 NormalL : NORMAL;
     float2 TexC    : TEXCOORD;
+    float3 TangentU : TANGENT;
 };
 
 struct VertexOut
@@ -91,8 +92,33 @@ struct VertexOut
     float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
+    float3 TangentW : TANGENT;
     float2 TexC    : TEXCOORD;
 };
+
+//Transforms a normal map sample to world space.
+
+float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
+{
+// Uncompress each component from [0,1] to [-1,1].
+    float3 normalT = 2.0f * normalMapSample - 1.0f;
+// Build orthonormal basis.
+    float3 N = unitNormalW;
+    
+    /*
+        Note that there is the assumption that unitNormalW is normalized.
+    在进行interpolation后,tangent vector和normal vector可能已经不是orthonormal,
+    下面一句代码的作用就是保证T对于N来说是northonormal
+    */
+    
+    float3 T = normalize(tangentW - dot(tangentW, N) * N);
+    float3 B = cross(N, T);
+    float3x3 TBN = float3x3(T, B, N);
+// Transform from tangent space to world space.
+    float3 bumpedNormalW = mul(normalT, TBN);
+    return bumpedNormalW;
+}
+
 
 VertexOut VS(VertexIn vin)
 {
@@ -104,7 +130,8 @@ VertexOut VS(VertexIn vin)
 
     // Assumes nonuniform scaling; otherwise, need to use inverse-transpose of world matrix.
     vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);
-
+    vout.TangentW = mul(vin.TangentU, (float3x3) gWorld); //转到世界坐标的矩阵
+    
     // Transform to homogeneous clip space.
     vout.PosH = mul(posW, gViewProj);
 
@@ -121,8 +148,13 @@ VertexOut VS(VertexIn vin)
 float4 PS(VertexOut pin) : SV_Target
 {
 	MaterialData matData = gMaterialData[gMaterialIndex];
+    
     //texture and material need index
-    float4 diffuseAlbedo = gDiffuseMap[matData.DiffuseTextureMapIndex].Sample(gsamAnisotropicWrap, pin.TexC) * matData.DiffuseAlbedo;
+    
+    float4 normalMapSample = gTextureMaps[matData.NormalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+    float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
+    
+    float4 diffuseAlbedo = gTextureMaps[matData.DiffuseTextureMapIndex].Sample(gsamAnisotropicWrap, pin.TexC) * matData.DiffuseAlbedo;
 
 #ifdef ALPHA_TEST
     // Discard pixel if texture alpha < 0.1.  We do this test as soon 
@@ -142,14 +174,22 @@ float4 PS(VertexOut pin) : SV_Target
     // Light terms.
     float4 ambient = gAmbientLight * diffuseAlbedo;
 
-    const float shininess = 1.0f - matData.Roughness;
+    const float shininess = (1.0f - matData.Roughness) * normalMapSample.a;
+    
     Material mat = { diffuseAlbedo, matData.FresnelR0, shininess };
+    
     float3 shadowFactor = 1.0f;
-    float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
-        pin.NormalW, toEyeW, shadowFactor);
+    
+    float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
 
     float4 litColor = ambient + directLight;
 
+    // Add in specular reflections.
+    //float3 r = reflect(-toEyeW, bumpedNormalW);
+    //float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
+    //float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
+    //litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
+    
 #ifdef FOG
     float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
     litColor = lerp(litColor, gFogColor, fogAmount);

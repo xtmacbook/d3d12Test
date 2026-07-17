@@ -12,4 +12,7 @@ public:
 	virtual void UpdateObjectCBs(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt)override;
 	virtual void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems)override;
+
+	virtual void BuildLayout()override;
+
 };

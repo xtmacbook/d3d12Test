@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <array>
+#include <vector>
 
 struct Texture;
 
@@ -38,6 +39,12 @@ struct TextureOutResouce
 	CD3DX12_CPU_DESCRIPTOR_HANDLE		  CPUUavHndle;
 };
 
+struct TextureResource
+{
+	std::string name;
+	std::unique_ptr<Texture> resouce;
+};
+
 class TexContextInterface 
 {
 
@@ -62,9 +69,15 @@ public:
 
 protected:
 
-	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_Textures;
+	/*std::unordered_map<std::string, std::unique_ptr<Texture>>						m_Textures;
 	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_TextureArrs;
-	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_TextureCubes;
+	std::unordered_map<std::string, std::unique_ptr<Texture>>						m_TextureCubes;*/
+
+	std::vector< TextureResource>						m_Textures;
+	std::vector< TextureResource>						m_TextureArrs;
+	std::vector< TextureResource>						m_TextureCubes;
+
+														
 
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source

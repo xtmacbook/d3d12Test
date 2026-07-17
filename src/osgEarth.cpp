@@ -30,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		CubeMapContext d3dContext;
+		DynamicIndexContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 

@@ -56,7 +56,7 @@ struct MaterialConstantsWithTexTran
 
 ////////////////////////////////SRV buffer //////////////////////////////////////////////////////////
 //注意这里是shade source buffer 不向const buffer那样需要使用CalcConstantBufferByteSize来对其
-struct MaterialShadeRsourceWithTexIndex
+struct MaterialShadeRsourceWithDiffuseTextIndex
 {
 	DirectX::XMFLOAT4	DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT3	FresnelR0 = { 0.01f, 0.01f, 0.01f };
@@ -64,6 +64,18 @@ struct MaterialShadeRsourceWithTexIndex
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 	UINT				DiffuseTextureMapIndex = 0;
 	UINT				MaterialPad0;
+	UINT				MaterialPad1;
+	UINT				MaterialPad2;
+};
+
+struct MaterialShadeRsourceWithDiffuseAndNormalTextIndex
+{
+	DirectX::XMFLOAT4	DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT3	FresnelR0 = { 0.01f, 0.01f, 0.01f };
+	float				Roughness = 64.0f;
+	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+	UINT				DiffuseTextureMapIndex = 0;
+	UINT				NormalTextureMapIndex;
 	UINT				MaterialPad1;
 	UINT				MaterialPad2;
 };

@@ -166,7 +166,7 @@ void CubeMapContext::BuildFrameResources()
 	{
 		m_frameResources.push_back(
 			std::make_unique<FrameInstanceResource<InstanceData,
-			PassConstantsWithFrog, MaterialShadeRsourceWithTexIndex>  >(m_d3dDevice.Get(),
+			PassConstantsWithFrog, MaterialShadeRsourceWithDiffuseTextIndex>  >(m_d3dDevice.Get(),
 				1, instanctCount, (UINT)m_Materials.size()));
 	}
 }
@@ -189,7 +189,7 @@ void CubeMapContext::UpdateMaterialCBs(const GameTimer& gt)
 		{
 			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
 
-			MaterialShadeRsourceWithTexIndex matConstants;
+			MaterialShadeRsourceWithDiffuseTextIndex matConstants;
 			matConstants.DiffuseAlbedo = mat->DiffuseAlbedo;
 			matConstants.FresnelR0 = mat->FresnelR0;
 			matConstants.Roughness = mat->Roughness;
@@ -376,11 +376,5 @@ void CubeMapContext::BuildMaterials()
 	m_Materials["WoodTex"] = std::move(skullMat);
 }
 
-void CubeMapContext::BuildTexture()
-{
 
-	//environment map is projected onto the spherre's surface
- 
- 
-}
 

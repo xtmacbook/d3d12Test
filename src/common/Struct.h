@@ -80,6 +80,14 @@ struct VertexNT
 	DirectX::XMFLOAT2 TexC;
 };
 
+struct VertexNTU
+{
+	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 TexC;
+	DirectX::XMFLOAT3 TangentU;
+};
+
 struct Texture
 {
 	std::string m_Name;

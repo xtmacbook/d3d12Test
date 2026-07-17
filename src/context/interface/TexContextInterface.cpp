@@ -8,20 +8,21 @@ bool TexContextInterface::loadTextures(ID3D12Device* md3dDevice,
 
 	for (auto item : files)
 	{
-		auto woodCrateTex = std::make_unique<Texture>();
-		woodCrateTex->m_Name = item.Name;;
-		woodCrateTex->m_Filename = item.FileName;
+		auto texture = std::make_unique<Texture>();
+		texture->m_Name = item.Name;;
+		texture->m_Filename = item.FileName;
 
 		ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice,
-			mCommandList, woodCrateTex->m_Filename.c_str(),
-			woodCrateTex->m_Resource, woodCrateTex->m_UploadHeap));
-		
+			mCommandList, texture->m_Filename.c_str(),
+			texture->m_Resource, texture->m_UploadHeap));
 		if (item.TextureArray)
-			m_TextureArrs[woodCrateTex->m_Name] = std::move(woodCrateTex);
+			m_TextureArrs.push_back({ texture->m_Name, std::move(texture) });
+
 		else if(item.TextureCube)
-			m_TextureCubes[woodCrateTex->m_Name] = std::move(woodCrateTex);
+			m_TextureCubes.push_back({ texture->m_Name, std::move(texture) });
 		else
-			m_Textures[woodCrateTex->m_Name] = std::move(woodCrateTex);
+			m_Textures.push_back({ texture->m_Name, std::move(texture) });
+
 	}
 
 	return true;
@@ -94,11 +95,11 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = iter->second->m_Resource->GetDesc().Format;
+		srvDesc.Format = iter->resouce->m_Resource->GetDesc().Format;
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		srvDesc.Texture2D.MostDetailedMip = 0;
 		srvDesc.Texture2D.MipLevels = -1;
-		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
+		md3dDevice->CreateShaderResourceView(iter->resouce->m_Resource.Get(), &srvDesc, hDescriptor);
 
 		idx++;
 	}
@@ -112,13 +113,13 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = iter->second->m_Resource->GetDesc().Format;
+		srvDesc.Format = iter->resouce->m_Resource->GetDesc().Format;
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
 		srvDesc.Texture2DArray.MostDetailedMip = 0;
 		srvDesc.Texture2DArray.MipLevels = -1;
 		srvDesc.Texture2DArray.FirstArraySlice = 0;
-		srvDesc.Texture2DArray.ArraySize = iter->second->m_Resource->GetDesc().DepthOrArraySize;
-		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
+		srvDesc.Texture2DArray.ArraySize = iter->resouce->m_Resource->GetDesc().DepthOrArraySize;
+		md3dDevice->CreateShaderResourceView(iter->resouce->m_Resource.Get(), &srvDesc, hDescriptor);
 		idx++;
 
 	}
@@ -132,12 +133,12 @@ void TexContextInterface::BuildSRCDescript(ID3D12Device* md3dDevice, int CbvSrvU
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.Format = iter->second->m_Resource->GetDesc().Format;
+		srvDesc.Format = iter->resouce->m_Resource->GetDesc().Format;
 		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 		srvDesc.TextureCube.MostDetailedMip = 0;
-		srvDesc.TextureCube.MipLevels = iter->second->m_Resource->GetDesc().MipLevels;
+		srvDesc.TextureCube.MipLevels = iter->resouce->m_Resource->GetDesc().MipLevels;
 		srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-		md3dDevice->CreateShaderResourceView(iter->second->m_Resource.Get(), &srvDesc, hDescriptor);
+		md3dDevice->CreateShaderResourceView(iter->resouce->m_Resource.Get(), &srvDesc, hDescriptor);
 		idx++;
 
 	}

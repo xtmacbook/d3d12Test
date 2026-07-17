@@ -96,7 +96,7 @@ void DynamicIndexComContext::BuildFrameResources()
 	{
 		m_frameResources.push_back(
             std::make_unique<FrameResourceWithSRVMaterial<ObjectConstantsWithTexTranAndMaterialIndex,
-			PassConstantsWithFrog, MaterialShadeRsourceWithTexIndex>  >(m_d3dDevice.Get(),
+			PassConstantsWithFrog, MaterialShadeRsourceWithDiffuseAndNormalTextIndex>  >(m_d3dDevice.Get(),
 				1, (UINT)m_AllRitems.size(), (UINT)m_Materials.size()));
 	}
 }
@@ -131,12 +131,13 @@ void DynamicIndexComContext::UpdateMaterialCBs(const GameTimer &gt)
 		{
 			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
 
-			MaterialShadeRsourceWithTexIndex matConstants;
+			MaterialShadeRsourceWithDiffuseAndNormalTextIndex matConstants;
 			matConstants.DiffuseAlbedo = mat->DiffuseAlbedo;
 			matConstants.FresnelR0 = mat->FresnelR0;
 			matConstants.Roughness = mat->Roughness;
 			XMStoreFloat4x4(&matConstants.MatTransform, XMMatrixTranspose(matTransform));
-            matConstants.DiffuseTextureMapIndex = mat->DiffuseSrvHeapIndex;
+			matConstants.DiffuseTextureMapIndex = mat->DiffuseSrvHeapIndex;
+			matConstants.NormalTextureMapIndex = mat->NormalSrvHeapIndex;
 			m_currFrameResource->CopyMaterialData(mat->MaterialCBIndex, &matConstants);
 
 			mat->NumFramesDirty--;
@@ -147,7 +148,7 @@ void DynamicIndexComContext::UpdateMaterialCBs(const GameTimer &gt)
 void DynamicIndexComContext::DrawRenderItem(ID3D12GraphicsCommandList *cmdList, const RenderItem *ritem)
 {
 	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstantsWithTexTranAndMaterialIndex));
-	UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialShadeRsourceWithTexIndex));
+	UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialShadeRsourceWithDiffuseAndNormalTextIndex));
 
 	const RenderItemWithTex* renderItem = static_cast<const RenderItemWithTex*>(ritem);
 
@@ -165,4 +166,15 @@ void DynamicIndexComContext::DrawRenderItem(ID3D12GraphicsCommandList *cmdList, 
 	cmdList->DrawIndexedInstanced(renderItem->m_IndexCount,
 		1, renderItem->m_StartIndexLocation,
 		renderItem->m_BaseVertexLocation, 0);
+}
+
+void DynamicIndexComContext::BuildLayout()
+{
+	m_InputLayout =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
 }

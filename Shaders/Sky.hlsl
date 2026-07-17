@@ -61,9 +61,9 @@ struct VertexOut
 VertexOut VS(VertexIn vin)
 {
     float4x4 scaleMat = {
-    1,0,0,0,
-    0,1,0,0,
-    0,0,1,0,
+    5000,0,0,0,
+    0,5000,0,0,
+    0,0,5000,0,
     0,0,0,1
     };
 

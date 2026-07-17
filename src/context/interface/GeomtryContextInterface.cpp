@@ -631,7 +631,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		sphere.Vertices.size() +
 		cylinder.Vertices.size();
 
-	std::vector<VertexNT> vertices(totalVertexCount);
+	std::vector<VertexNTU> vertices(totalVertexCount);
 
 	UINT k = 0;
 	for (size_t i = 0; i < box.Vertices.size(); ++i, ++k)
@@ -639,6 +639,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		vertices[k].Pos = box.Vertices[i].Position;
 		vertices[k].Normal = box.Vertices[i].Normal;
 		vertices[k].TexC = box.Vertices[i].TexC;
+		vertices[k].TangentU = box.Vertices[i].TangentU;
 	}
 
 	for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
@@ -646,6 +647,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		vertices[k].Pos = grid.Vertices[i].Position;
 		vertices[k].Normal = grid.Vertices[i].Normal;
 		vertices[k].TexC = grid.Vertices[i].TexC;
+		vertices[k].TangentU = grid.Vertices[i].TangentU;
 	}
 
 	for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
@@ -653,6 +655,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		vertices[k].Pos = sphere.Vertices[i].Position;
 		vertices[k].Normal = sphere.Vertices[i].Normal;
 		vertices[k].TexC = sphere.Vertices[i].TexC;
+		vertices[k].TangentU = sphere.Vertices[i].TangentU;
 	}
 
 	for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
@@ -660,6 +663,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		vertices[k].Pos = cylinder.Vertices[i].Position;
 		vertices[k].Normal = cylinder.Vertices[i].Normal;
 		vertices[k].TexC = cylinder.Vertices[i].TexC;
+		vertices[k].TangentU = cylinder.Vertices[i].TangentU;
 	}
 
 	std::vector<std::uint16_t> indices;
@@ -668,7 +672,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 	indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
 	indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
 
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexNT);
+	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexNTU);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	auto geo = std::make_unique<MeshGeometry>();
@@ -686,7 +690,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 	geo->m_IndexBufferGPU = D3DUtil::CreateDefaultBuffer(device,
 		mCommandList, indices.data(), ibByteSize, geo->m_IndexBufferUploader);
 
-	geo->m_VertexByteStride = sizeof(VertexNT);
+	geo->m_VertexByteStride = sizeof(VertexNTU);
 	geo->m_VertexBufferByteSize = vbByteSize;
 	geo->m_IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo->m_IndexBufferByteSize = ibByteSize;

@@ -18,8 +18,6 @@ public:
 	virtual void BuildRenderItems();
 	virtual void BuildMaterials();
 
-	void BuildTexture();
-
 	void Update(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt)override;
 

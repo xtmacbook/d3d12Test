@@ -53,38 +53,42 @@ void DynamicIndexContext::BuildMaterials()
 	bricks0->Name = "bricks0";
 	bricks0->MaterialCBIndex = 0;
 	bricks0->DiffuseSrvHeapIndex = 0;
+	bricks0->NormalSrvHeapIndex = 1;
 	bricks0->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	bricks0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	bricks0->Roughness = 0.1f;
-
-	auto stone0 = std::make_unique<MaterialWithTexTran>();
-	stone0->Name = "stone0";
-	stone0->MaterialCBIndex = 1;
-	stone0->DiffuseSrvHeapIndex = 1;
-	stone0->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	stone0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-	stone0->Roughness = 0.3f;
+	bricks0->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	bricks0->Roughness = 0.3f;
 
 	auto tile0 = std::make_unique<MaterialWithTexTran>();
 	tile0->Name = "tile0";
 	tile0->MaterialCBIndex = 2;
 	tile0->DiffuseSrvHeapIndex = 2;
-	tile0->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	tile0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	tile0->Roughness = 0.3f;
+	tile0->NormalSrvHeapIndex = 3;
+	tile0->DiffuseAlbedo = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
+	tile0->FresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
+	tile0->Roughness = 0.1f;
 
-	auto crate0 = std::make_unique<MaterialWithTexTran>();
-	crate0->Name = "crate0";
-	crate0->MaterialCBIndex = 3;
-	crate0->DiffuseSrvHeapIndex = 3;
-	crate0->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	crate0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-	crate0->Roughness = 0.2f;
+	auto mirror0 = std::make_unique<MaterialWithTexTran>();
+	mirror0->Name = "mirror0";
+	mirror0->MaterialCBIndex = 3;
+	mirror0->DiffuseSrvHeapIndex = 4;
+	mirror0->NormalSrvHeapIndex = 5;
+	mirror0->DiffuseAlbedo = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	mirror0->FresnelR0 = XMFLOAT3(0.98f, 0.97f, 0.95f);
+	mirror0->Roughness = 0.1f;
+
+	/*auto sky = std::make_unique<Material>();
+	sky->Name = "sky";
+	sky->MaterialCBIndex = 4;
+	sky->DiffuseSrvHeapIndex = 6;
+	sky->NormalSrvHeapIndex = 7;
+	sky->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	sky->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	sky->Roughness = 1.0f;*/
 
 	m_Materials["bricks0"] = std::move(bricks0);
-	m_Materials["stone0"] = std::move(stone0);
 	m_Materials["tile0"] = std::move(tile0);
-	m_Materials["crate0"] = std::move(crate0);
+	m_Materials["mirror0"] = std::move(mirror0);
+	//m_Materials["sky"] = std::move(sky);
 }
 
 void DynamicIndexContext::BuildRenderItems()
@@ -93,7 +97,7 @@ void DynamicIndexContext::BuildRenderItems()
 	XMStoreFloat4x4(&boxRitem->m_World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
 	XMStoreFloat4x4(&boxRitem->m_TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
 	boxRitem->m_ObjCBIndex = 0;
-	boxRitem->m_Material = m_Materials["crate0"].get();
+	boxRitem->m_Material = m_Materials["bricks0"].get();
 	boxRitem->m_Geo = m_Geometries["shapeGeo"].get();
 	boxRitem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	boxRitem->m_IndexCount = boxRitem->m_Geo->m_DrawArgs["box"].m_IndexCount;
@@ -101,10 +105,23 @@ void DynamicIndexContext::BuildRenderItems()
 	boxRitem->m_BaseVertexLocation = boxRitem->m_Geo->m_DrawArgs["box"].m_BaseVertexLocation;
 	m_AllRitems.push_back(std::move(boxRitem));
 
+	auto globeRitem = std::make_unique<RenderItemWithTex>();
+	XMStoreFloat4x4(&globeRitem->m_World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 2.0f, 0.0f));
+	XMStoreFloat4x4(&globeRitem->m_TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	globeRitem->m_ObjCBIndex = 1;
+	globeRitem->m_Material = m_Materials["mirror0"].get();
+	globeRitem->m_Geo = m_Geometries["shapeGeo"].get();
+	globeRitem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	globeRitem->m_IndexCount = globeRitem->m_Geo->m_DrawArgs["sphere"].m_IndexCount;
+	globeRitem->m_StartIndexLocation = globeRitem->m_Geo->m_DrawArgs["sphere"].m_StartIndexLocation;
+	globeRitem->m_BaseVertexLocation = globeRitem->m_Geo->m_DrawArgs["sphere"].m_BaseVertexLocation;
+	m_AllRitems.push_back(std::move(globeRitem));
+
+
 	auto gridRitem = std::make_unique<RenderItemWithTex>();
 	gridRitem->m_World = MathHelper::Identity4x4();
 	XMStoreFloat4x4(&gridRitem->m_TexTransform, XMMatrixScaling(8.0f, 8.0f, 1.0f));
-	gridRitem->m_ObjCBIndex = 1;
+	gridRitem->m_ObjCBIndex = 2;
 	gridRitem->m_Material = m_Materials["tile0"].get();
 	gridRitem->m_Geo = m_Geometries["shapeGeo"].get();
 	gridRitem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -114,7 +131,7 @@ void DynamicIndexContext::BuildRenderItems()
 	m_AllRitems.push_back(std::move(gridRitem));
 
 	XMMATRIX brickTexTransform = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	UINT objCBIndex = 2;
+	UINT objCBIndex = 3;
 	for (int i = 0; i < 5; ++i)
 	{
 		auto leftCylRitem = std::make_unique<RenderItemWithTex>();
@@ -151,7 +168,7 @@ void DynamicIndexContext::BuildRenderItems()
 		XMStoreFloat4x4(&leftSphereRitem->m_World, leftSphereWorld);
 		leftSphereRitem->m_TexTransform = MathHelper::Identity4x4();
 		leftSphereRitem->m_ObjCBIndex = objCBIndex++;
-		leftSphereRitem->m_Material = m_Materials["stone0"].get();
+		leftSphereRitem->m_Material = m_Materials["mirror0"].get();
 		leftSphereRitem->m_Geo = m_Geometries["shapeGeo"].get();
 		leftSphereRitem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		leftSphereRitem->m_IndexCount = leftSphereRitem->m_Geo->m_DrawArgs["sphere"].m_IndexCount;
@@ -161,7 +178,7 @@ void DynamicIndexContext::BuildRenderItems()
 		XMStoreFloat4x4(&rightSphereRitem->m_World, rightSphereWorld);
 		rightSphereRitem->m_TexTransform = MathHelper::Identity4x4();
 		rightSphereRitem->m_ObjCBIndex = objCBIndex++;
-		rightSphereRitem->m_Material = m_Materials["stone0"].get();
+		rightSphereRitem->m_Material = m_Materials["mirror0"].get();
 		rightSphereRitem->m_Geo = m_Geometries["shapeGeo"].get();
 		rightSphereRitem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		rightSphereRitem->m_IndexCount = rightSphereRitem->m_Geo->m_DrawArgs["sphere"].m_IndexCount;
@@ -183,10 +200,18 @@ void DynamicIndexContext::initTextures(ID3D12Device* device, ID3D12GraphicsComma
 {
 	//load textures
 	std::vector<TextureLoadDesc> textureFiles;
-	textureFiles.emplace_back("bricksTex", SourcePath() + L"/Textures/bricks.dds");
-	textureFiles.emplace_back("stoneTex", SourcePath() + L"/Textures/stone.dds");
-	textureFiles.emplace_back("tileTex", SourcePath() + L"/Textures/tile.dds");
+
+	textureFiles.emplace_back("bricksDiffuseMap", SourcePath() + L"/Textures/bricks2.dds");
+	textureFiles.emplace_back("bricksNormalMap", SourcePath() + L"/Textures/bricks2_nmap.dds");
+
+	textureFiles.emplace_back("tileDiffuseMap", SourcePath() + L"/Textures/tile.dds");
+	textureFiles.emplace_back("tileNormalMap", SourcePath() + L"/Textures/tile_nmap.dds");
+	
+	textureFiles.emplace_back("defaultDiffuseMap", SourcePath() + L"/Textures/white1x1.dds");
+	textureFiles.emplace_back("defaultNormalMap", SourcePath() + L"/Textures/default_nmap.dds");
+	
 	textureFiles.emplace_back("crateTex", SourcePath() + L"/Textures/WoodCrate01.dds");
+	
 	loadTextures(device, mCommandList, textureFiles);
 }
 
@@ -209,9 +234,12 @@ void DynamicIndexContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 
 	m_CommandList->SetGraphicsRootDescriptorTable(3, m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-	for(auto& item : m_AllRitems)
+	int testIdex = 0;
+	for (auto& item : m_AllRitems)
+	{
 		DrawRenderItem(m_CommandList.Get(), item.get());
-	
+		testIdex++;
+	}
 	// Indicate a state transition on the resource usage.
 	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
