@@ -10,7 +10,6 @@
 #define NUM_SPOT_LIGHTS 0
 #endif
 
-// Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
 
 
@@ -26,7 +25,8 @@ struct MaterialData
     uint        MatPad2;
 };
 
-Texture2D gTextureMaps[7] : register(t0);
+Texture2D gTextureMaps[6] : register(t0);
+TextureCube gCubeMap : register(t6);
 
 SamplerState gsamAnisotropicWrap  : register(s0);
 
@@ -97,7 +97,6 @@ struct VertexOut
 };
 
 //Transforms a normal map sample to world space.
-
 float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
 {
 // Uncompress each component from [0,1] to [-1,1].
@@ -149,8 +148,10 @@ float4 PS(VertexOut pin) : SV_Target
 {
 	MaterialData matData = gMaterialData[gMaterialIndex];
     
+    pin.NormalW = normalize(pin.NormalW);
+    pin.TangentW = normalize(pin.TangentW);
+
     //texture and material need index
-    
     float4 normalMapSample = gTextureMaps[matData.NormalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
     float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
     
@@ -185,15 +186,15 @@ float4 PS(VertexOut pin) : SV_Target
     float4 litColor = ambient + directLight;
 
     // Add in specular reflections.
-    //float3 r = reflect(-toEyeW, bumpedNormalW);
-    //float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
-    //float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
-    //litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
+    float3 r = reflect(-toEyeW, bumpedNormalW);
+    float4 reflectionColor = gCubeMap.Sample(gsamAnisotropicWrap, r);
+    float3 fresnelFactor = SchlickFresnel(matData.FresnelR0, bumpedNormalW, r);
+    litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
     
 #ifdef FOG
     float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
     litColor = lerp(litColor, gFogColor, fogAmount);
-#endif
+#endif 
 
     // Common convention to take alpha from diffuse albedo.
     litColor.a = diffuseAlbedo.a;

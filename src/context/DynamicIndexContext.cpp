@@ -1,6 +1,7 @@
 ﻿#include "DynamicIndexContext.h"
 #include "common/Geometry.h"
 #include "common/App.h"
+#include "common/Sky.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -8,6 +9,8 @@ using Microsoft::WRL::ComPtr;
 
 bool DynamicIndexContext::InitDirect3D()
 {
+	m_sky = std::make_shared<Sky>(this);
+
 	if (!D3DContext::InitDirect3D()) return false;
 
 	// Reset the command list to prep for initialization commands.
@@ -15,21 +18,40 @@ bool DynamicIndexContext::InitDirect3D()
 
 	initTextures(m_d3dDevice.Get(), m_CommandList.Get());
 
-	BuildSRVDescriptorHeap(m_d3dDevice.Get());
+	int numberDescriptor = m_Textures.size() + m_TextureArrs.size() + 1;
+
+	BuildSRVDescriptorHeap(m_d3dDevice.Get(), numberDescriptor);
 	BuildSRCDescript(m_d3dDevice.Get(), m_CbvSrvUavDescriptorSize);
 	BuildSampleDescriptorHeap(m_d3dDevice.Get());
 	BuildSampleDescriptor(m_d3dDevice.Get(), m_CommandList.Get());
 
+	int offsetInDescriptors = m_Textures.size() + m_TextureArrs.size();
+	m_sky->BuildResource();
+	m_sky->BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE(
+		m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+		offsetInDescriptors, m_CbvSrvUavDescriptorSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(
+			m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart(),
+			offsetInDescriptors, m_CbvSrvUavDescriptorSize),
+		m_CbvSrvUavDescriptorSize);
+
 	BuildShapeGeometry(m_d3dDevice.Get(), m_CommandList.Get());
+	m_sky->BuildSkyGeometry();
+
 
 	BuildMaterials();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 
+	m_sky->BuildRootSignature();
+	m_sky->BuildLayout();
+
 	BuildRenderItems();
 	BuildFrameResources();
 
 	BuildPSOs();
+
+	m_sky->BuildPSO();
 
 	// Execute the initialization commands.
 	ThrowIfFailed(m_CommandList->Close());
@@ -210,8 +232,6 @@ void DynamicIndexContext::initTextures(ID3D12Device* device, ID3D12GraphicsComma
 	textureFiles.emplace_back("defaultDiffuseMap", SourcePath() + L"/Textures/white1x1.dds");
 	textureFiles.emplace_back("defaultNormalMap", SourcePath() + L"/Textures/default_nmap.dds");
 	
-	textureFiles.emplace_back("crateTex", SourcePath() + L"/Textures/WoodCrate01.dds");
-	
 	loadTextures(device, mCommandList, textureFiles);
 }
 
@@ -240,6 +260,10 @@ void DynamicIndexContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 		DrawRenderItem(m_CommandList.Get(), item.get());
 		testIdex++;
 	}
+
+	m_sky->DrawSky(m_CommandList.Get(), allocator, sampler, m_currFrameResource->getPassGpuAddress(),
+		descriptorHeaps);
+
 	// Indicate a state transition on the resource usage.
 	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));

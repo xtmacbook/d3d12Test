@@ -35,6 +35,8 @@ gDiffuseTexIndex是在const buffer中的.为了减少每个render-item的descrip
 #include "common/BufferStruct.h"
 #include "DynamicIndexComContex.h"
 
+class Sky;
+
 class DynamicIndexContext : public DynamicIndexComContext
 {
 public:
@@ -54,6 +56,8 @@ protected:
 
 	std::vector<RenderItem*>	m_OpaqueRitems;
 	PassConstantsWithFrog															m_MainPassCB;
+
+	std::shared_ptr< Sky>  m_sky;
 
 };
 

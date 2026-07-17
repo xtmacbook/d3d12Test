@@ -35,7 +35,7 @@ void DynamicIndexComContext::BuildRootSignature()
 	//texture despector  
 	D3D12_DESCRIPTOR_RANGE texTable[1];
 	texTable[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	texTable[0].NumDescriptors = m_Textures.size();
+	texTable[0].NumDescriptors = m_Textures.size() + m_TextureArrs.size() + 1;//这个1是cubemap
 	texTable[0].BaseShaderRegister = 0;
 	texTable[0].RegisterSpace = 0;
 	texTable[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;

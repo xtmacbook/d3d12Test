@@ -118,7 +118,7 @@ void Sky::BuildResource()
 	auto cubeMapTexture = std::make_unique<Texture>();
 
 	cubeMapTexture->m_Name = "cubeMap";
-	cubeMapTexture->m_Filename = SourcePath() + L"/Textures/grasscube1024.dds";
+	cubeMapTexture->m_Filename = SourcePath() + L"/Textures/snowcube1024.dds";
 
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_context->m_d3dDevice.Get(),
 		m_context->m_CommandList.Get(), cubeMapTexture->m_Filename.c_str(),
