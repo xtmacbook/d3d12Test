@@ -110,21 +110,21 @@ float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, floa
     return bumpedNormalW;
 }
  
-/*
-void pfcFilter()
+
+float pfcFilter(float4 projTexC,float depth)
 {
 
     static const float SMAP_SIZE = 2048.0f;
     static const float SMAP_DX = 1.0f / SMAP_SIZE;
 
     // Sample shadow map to get nearest depth to light.
-    float s0 = gShadowMap.Sample(gShadowSam, projTexC.xy).r;
+    float s0 = gShadowMap.Sample(gsamAnisotropicClamp, projTexC.xy).r;
+                                 
+    float s1 = gShadowMap.Sample(gsamAnisotropicClamp, projTexC.xy + float2(SMAP_DX, 0)).r;
+                                 
+    float s2 = gShadowMap.Sample(gsamAnisotropicClamp, projTexC.xy + float2(0, SMAP_DX)).r;
 
-    float s1 = gShadowMap.Sample(gShadowSam, projTexC.xy + float2(SMAP_DX, 0)).r;
-
-    float s2 = gShadowMap.Sample(gShadowSam, projTexC.xy + float2(0, SMAP_DX)).r;
-
-    float s3 = gShadowMap.Sample(gShadowSam, projTexC.xy + float2(SMAP_DX, SMAP_DX)).r;
+    float s3 = gShadowMap.Sample(gsamAnisotropicClamp, projTexC.xy + float2(SMAP_DX, SMAP_DX)).r;
 
     // Is the pixel depth <= shadow map value?
     float result0 = depth <= s0;
@@ -143,7 +143,6 @@ void pfcFilter()
     return lerp(lerp(result0, result1, t.x), lerp(result2, result3, t.x), t.y);
 }
 
-*/
 
 // shoadowPosH in clip space
 float CalcShadowFactor(float4 shadowPosH)
