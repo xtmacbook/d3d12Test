@@ -38,6 +38,9 @@ set (COMMON_SOURCE
     src/common/ModelIO.cpp
     src/common/Sky.cpp
     src/common/ShadowMap.cpp
+    src/common/ModelLoadSDKMESH.cpp
+    src/common/Model.cpp
+    src/common/BinaryReader.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -58,6 +61,9 @@ set (COMMON_SOURCE_HEADS
     src/common/ObjLoader.h
     src/common/Sky.h
     src/common/ShadowMap.h
+    src/common/Model.h
+    src/common/SDKMesh.h
+    src/common/BinaryReader.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
@@ -91,8 +97,6 @@ set (CONTEXT_SOURCE
     src/context/GSContext.cpp
     src/context/ComputeShader.cpp
     src/context/TessllationContext.cpp
-    src/context/DynamicIndexContext.cpp
-    src/context/DynamicIndexComContex.cpp
     src/context/InstanceContext.cpp
     src/context/CubeMapContext.cpp
 )
@@ -109,10 +113,21 @@ set (CONTEXT_SOURCE_HEADS
     src/context/GSContext.h
     src/context/ComputeShader.h
     src/context/TessllationContext.h
-    src/context/DynamicIndexContext.h
-    src/context/DynamicIndexComContex.h
     src/context/InstanceContext.h
     src/context/CubeMapContext.h
+)
+
+set (CONTEXT_SHADOW_SOURCE
+    src/context/shadow/DynamicIndexComContex.cpp
+    src/context/shadow/ShadowMap.cpp
+    src/context/shadow/CascadedShadowMaps.cpp
+)
+
+
+set (CONTEXT_SHADOW_HEADS
+    src/context/shadow/CascadedShadowMaps.h
+    src/context/shadow/ShadowMap.h
+    src/context/shadow/DynamicIndexComContex.h
 )
 
 set(SHADER_FILES
@@ -145,6 +160,9 @@ source_group ("Header Files/context/interface" FILES ${CONTEXT_INTERFACE_SOURCE_
 source_group ("Source Files/context" FILES ${CONTEXT_SOURCE})
 source_group ("Header Files/context" FILES ${CONTEXT_SOURCE_HEADS})
 
+source_group ("Source Files/context/shadow" FILES ${CONTEXT_SHADOW_SOURCE})
+source_group ("Header Files/context/shadow" FILES ${CONTEXT_SHADOW_HEADS})
+
 source_group ("Source Files/shaders" FILES ${SHADER_FILES})
 
 INCLUDE_DIRECTORIES(include)
@@ -152,6 +170,7 @@ INCLUDE_DIRECTORIES(include)
  
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/context
 )
 
 add_executable(
@@ -163,6 +182,8 @@ add_executable(
         ${CONTEXT_INTERFACE_SOURCE_HEADS}
         ${CONTEXT_SOURCE}
         ${CONTEXT_SOURCE_HEADS}
+        ${CONTEXT_SHADOW_SOURCE}
+        ${CONTEXT_SHADOW_HEADS}
         src/osgEarth.cpp
         src/MainApp.cpp
 

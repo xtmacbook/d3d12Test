@@ -38,7 +38,7 @@ gDiffuseTexIndex是在const buffer中的.为了减少每个render-item的descrip
 
 class ShadowInterface;
 
-class DynamicIndexContext : public DynamicIndexComContext
+class ShadowMapContext : public DynamicIndexComContext
 {
 public:
 
