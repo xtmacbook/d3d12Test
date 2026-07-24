@@ -10,6 +10,7 @@
 
 class App;
 
+
 class D3DContext
 {
 public:
@@ -23,6 +24,7 @@ public:
 	virtual void OnResize();
 
 	void setApp(App*);
+	inline App* getApp() { return m_win; }
 
 	inline ID3D12Device* device() { return m_d3dDevice.Get(); }
 
@@ -60,7 +62,7 @@ protected:
 	Microsoft::WRL::ComPtr<IDXGISwapChain>					m_SwapChain;
 	Microsoft::WRL::ComPtr<ID3D12Device>					m_d3dDevice;
 
-
+	DirectX::BoundingSphere									m_sceneBounds;
 	Microsoft::WRL::ComPtr<ID3D12Fence>						m_Fence;
 	UINT64													m_CurrentFence = 0;
 
@@ -95,4 +97,5 @@ protected:
 	bool													m_IsWireframe = false;
 
 	friend class Sky;
+	friend class ShadowInterface;
 };

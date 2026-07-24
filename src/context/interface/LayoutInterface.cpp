@@ -46,8 +46,7 @@ void LayoutInterface::BuildDynamicShaders()
 	};
 
 	m_Shaders["standardVS"] = D3DUtil::CompileShader(SourcePath() +  L"Shaders/DynamicIndex.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"Shaders/DynamicIndex.hlsl", defines, "PS", "ps_5_1");
-	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(SourcePath() + L"Shaders/DynamicIndex.hlsl", alphaTestDefines, "PS", "ps_5_1");
+	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"Shaders/DynamicIndex.hlsl", nullptr, "PS", "ps_5_1");
 }
 
 void LayoutInterface::BuildInstanceShaders()

@@ -589,16 +589,19 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
+	GeometryGenerator::MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
 	UINT boxVertexOffset = 0;
 	UINT gridVertexOffset = (UINT)box.Vertices.size();
 	UINT sphereVertexOffset = gridVertexOffset + (UINT)grid.Vertices.size();
 	UINT cylinderVertexOffset = sphereVertexOffset + (UINT)sphere.Vertices.size();
+	UINT quadVertexOffset = cylinderVertexOffset + (UINT)cylinder.Vertices.size();
 
 	UINT boxIndexOffset = 0;
 	UINT gridIndexOffset = (UINT)box.Indices32.size();
 	UINT sphereIndexOffset = gridIndexOffset + (UINT)grid.Indices32.size();
 	UINT cylinderIndexOffset = sphereIndexOffset + (UINT)sphere.Indices32.size();
+	UINT quadIndexOffset = cylinderIndexOffset + (UINT)cylinder.Indices32.size();
 
 	SubmeshGeometry boxSubmesh;
 	boxSubmesh.m_IndexCount = (UINT)box.Indices32.size();
@@ -620,6 +623,10 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 	cylinderSubmesh.m_StartIndexLocation = cylinderIndexOffset;
 	cylinderSubmesh.m_BaseVertexLocation = cylinderVertexOffset;
 
+	SubmeshGeometry quadSubmesh;
+	quadSubmesh.m_IndexCount = (UINT)quad.Indices32.size();
+	quadSubmesh.m_StartIndexLocation = quadIndexOffset;
+	quadSubmesh.m_BaseVertexLocation = quadVertexOffset;
 	//
 	// Extract the vertex elements we are interested in and pack the
 	// vertices of all the meshes into one vertex buffer.
@@ -629,7 +636,8 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		box.Vertices.size() +
 		grid.Vertices.size() +
 		sphere.Vertices.size() +
-		cylinder.Vertices.size();
+		cylinder.Vertices.size() +
+		quad.Vertices.size();
 
 	std::vector<VertexNTU> vertices(totalVertexCount);
 
@@ -666,11 +674,20 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 		vertices[k].TangentU = cylinder.Vertices[i].TangentU;
 	}
 
+	for (int i = 0; i < quad.Vertices.size(); ++i, ++k)
+	{
+		vertices[k].Pos = quad.Vertices[i].Position;
+		vertices[k].Normal = quad.Vertices[i].Normal;
+		vertices[k].TexC = quad.Vertices[i].TexC;
+		vertices[k].TangentU = quad.Vertices[i].TangentU;
+	}
+
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
 	indices.insert(indices.end(), std::begin(grid.GetIndices16()), std::end(grid.GetIndices16()));
 	indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
 	indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
+	indices.insert(indices.end(), std::begin(quad.GetIndices16()), std::end(quad.GetIndices16()));
 
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(VertexNTU);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
@@ -699,6 +716,7 @@ void GeometryContextInterface::BuildLitShapesScene(ID3D12Device* device, ID3D12G
 	geo->m_DrawArgs["grid"] = gridSubmesh;
 	geo->m_DrawArgs["sphere"] = sphereSubmesh;
 	geo->m_DrawArgs["cylinder"] = cylinderSubmesh;
+	geo->m_DrawArgs["quad"] = quadSubmesh;
 
 	m_Geometries[geo->Name] = std::move(geo);
 }

@@ -37,6 +37,7 @@ set (COMMON_SOURCE
     src/common/BlurFilter.cpp
     src/common/ModelIO.cpp
     src/common/Sky.cpp
+    src/common/ShadowMap.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -56,6 +57,7 @@ set (COMMON_SOURCE_HEADS
     src/common/ModelIO.h
     src/common/ObjLoader.h
     src/common/Sky.h
+    src/common/ShadowMap.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
@@ -65,6 +67,7 @@ set (CONTEXT_INTERFACE_SOURCE
     src/context/interface/LayoutInterface.cpp
     src/context/interface/TexContextInterface.cpp
     src/context/interface/ComputeShaderInterface.cpp
+    src/context/interface/ShadowInterface.cpp
 )
 set (CONTEXT_INTERFACE_SOURCE_HEADS
     src/context/interface/BlendContextInterface.h
@@ -72,6 +75,7 @@ set (CONTEXT_INTERFACE_SOURCE_HEADS
     src/context/interface/GeomtryContextInterface.h
     src/context/interface/LayoutInterface.h
     src/context/interface/ComputeShaderInterface.h
+    src/context/interface/ShadowInterface.h
 )
 
 set (CONTEXT_SOURCE
@@ -111,6 +115,26 @@ set (CONTEXT_SOURCE_HEADS
     src/context/CubeMapContext.h
 )
 
+set(SHADER_FILES
+    Shaders/Blur.hlsl
+    Shaders/color.hlsl
+    Shaders/Common.hlsl
+    Shaders/Default.hlsl
+    Shaders/DrawShadowMap.hlsl
+    Shaders/DynamicIndex.hlsl
+    Shaders/ICommon.hlsl
+    Shaders/Instance.hlsl
+    Shaders/LightingUtil.hlsl
+    Shaders/ShadowDebug.hlsl
+    Shaders/shape.hlsl
+    Shaders/Sky.hlsl
+    Shaders/Sky2.hlsl
+    Shaders/Tessellation.hlsl
+    Shaders/Tex.hlsl
+    Shaders/TreeSprite.hlsl
+    Shaders/Waves.hlsl
+)
+
 
 source_group ("Source Files/common" FILES ${COMMON_SOURCE})
 source_group ("Header Files/common" FILES ${COMMON_SOURCE_HEADS})
@@ -121,10 +145,11 @@ source_group ("Header Files/context/interface" FILES ${CONTEXT_INTERFACE_SOURCE_
 source_group ("Source Files/context" FILES ${CONTEXT_SOURCE})
 source_group ("Header Files/context" FILES ${CONTEXT_SOURCE_HEADS})
 
+source_group ("Source Files/shaders" FILES ${SHADER_FILES})
+
 INCLUDE_DIRECTORIES(include)
 
-set (RESOURCES
-)
+ 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )

@@ -34,30 +34,66 @@ gDiffuseTexIndex是在const buffer中的.为了减少每个render-item的descrip
  
 #include "common/BufferStruct.h"
 #include "DynamicIndexComContex.h"
+#include "interface/ShadowInterface.h"
 
-class Sky;
+class ShadowInterface;
 
 class DynamicIndexContext : public DynamicIndexComContext
 {
 public:
+
+	enum class RenderLayer : int
+	{
+		Opaque = 0,
+		Debug,
+		Sky,
+		Count
+	};
 
 	virtual bool InitDirect3D()override;
 	virtual void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList)override;
 	virtual void BuildMaterials();
 	virtual void BuildRenderItems();
 
+	void BuildDescriptorHeaps();
+
 	virtual void initTextures(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 
 	virtual void DrawFrameResource(ID3D12CommandAllocator*) override;
 
+	virtual void Update(const GameTimer& gt) override;
+
+	virtual void BuildFrameResources()override;
+
+	virtual void UpdateMainPassCB(const GameTimer& gt);
+
+	virtual void BuildPSOs()override;
+
+	//此时需要创建的dsvHeapDesc 需要2个Descriptors,因为有一个深度
+	virtual void CreateRtvAndDsvDescriptorHeaps();
+
 	//void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
 
 protected:
+	float m_LightRotationAngle = 0.0f;
 
-	std::vector<RenderItem*>	m_OpaqueRitems;
-	PassConstantsWithFrog															m_MainPassCB;
+	DirectX::XMFLOAT3 m_BaseLightDirections[3] = {
+		DirectX::XMFLOAT3(0.57735f, -0.57735f, 0.57735f),
+		DirectX::XMFLOAT3(-0.57735f, -0.57735f, 0.57735f),
+		DirectX::XMFLOAT3(0.0f, -0.707f, -0.707f)
+	};
+	DirectX::XMFLOAT3 m_RotatedLightDirections[3];
 
-	std::shared_ptr< Sky>  m_sky;
+private:
+
+	std::vector<RenderItem*>														m_OpaqueRitems;
+	PassConstantsWithLightAndShadow													m_MainPassCB;
+
+	std::shared_ptr< ShadowInterface>												m_shadow;
+
+	CD3DX12_GPU_DESCRIPTOR_HANDLE													m_NullSrv;
+
+	std::vector<RenderItem*>														m_RitemLayer[(int)RenderLayer::Count];
 
 };
 

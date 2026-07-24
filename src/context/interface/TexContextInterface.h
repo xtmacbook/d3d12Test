@@ -65,7 +65,7 @@ public:
 	static void BuildUAVTextureResouceView(ID3D12Device*, TextureOutDes,
 		Microsoft::WRL::ComPtr<ID3D12Resource> Texture, CD3DX12_CPU_DESCRIPTOR_HANDLE srcHndle, CD3DX12_CPU_DESCRIPTOR_HANDLE uavHndle);
 
-	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> getStaticSamplerDescriptor();
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> getStaticSamplerDescriptor();
 
 protected:
 

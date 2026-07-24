@@ -11,6 +11,9 @@ public:
 	virtual void BuildFrameResources()override;
 	virtual void UpdateObjectCBs(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt)override;
+
+	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList,std::vector< RenderItem*>& );
+
 	virtual void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems)override;
 
 	virtual void BuildLayout()override;

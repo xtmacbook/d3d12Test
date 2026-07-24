@@ -9,7 +9,7 @@ using Microsoft::WRL::ComPtr;
 
 void DynamicIndexComContext::BuildRootSignature()
 {
-    D3D12_ROOT_PARAMETER rootParameters[5];
+    D3D12_ROOT_PARAMETER rootParameters[6];
 
 	//cbobject
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
@@ -32,36 +32,51 @@ void DynamicIndexComContext::BuildRootSignature()
 	rootParameters[2].Descriptor.ShaderRegister = 0;
 	m_rpi.m_Material_RootParameterIndex = 2;
 
-	//texture despector  
-	D3D12_DESCRIPTOR_RANGE texTable[1];
-	texTable[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	texTable[0].NumDescriptors = m_Textures.size() + m_TextureArrs.size() + 1;//这个1是cubemap
-	texTable[0].BaseShaderRegister = 0;
-	texTable[0].RegisterSpace = 0;
-	texTable[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	//shadow texture despector 
+	D3D12_DESCRIPTOR_RANGE texTable0;
+	texTable0.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	texTable0.NumDescriptors = 1;
+	texTable0.BaseShaderRegister = 0;
+	texTable0.RegisterSpace = 0;
+	texTable0.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//change
 	rootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[3].DescriptorTable.pDescriptorRanges = texTable;
+	rootParameters[3].DescriptorTable.pDescriptorRanges = &texTable0;
 
-	//sampler
-	D3D12_DESCRIPTOR_RANGE samplerTable[1];
-	samplerTable[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-	samplerTable[0].NumDescriptors = 1;
-	samplerTable[0].BaseShaderRegister = 0;
-	samplerTable[0].RegisterSpace = 0;
-	samplerTable[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+	//cube texture
+
+	D3D12_DESCRIPTOR_RANGE texTable1;
+	texTable1.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	texTable1.NumDescriptors = 1;
+	texTable1.BaseShaderRegister = 1;
+	texTable1.RegisterSpace = 0;
+	texTable1.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//change
 	rootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
-	rootParameters[4].DescriptorTable.pDescriptorRanges = samplerTable;
+	rootParameters[4].DescriptorTable.pDescriptorRanges = &texTable1;
 
+	//base texture
+	D3D12_DESCRIPTOR_RANGE texTable2;
+	texTable2.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	texTable2.NumDescriptors = m_Textures.size() + m_TextureArrs.size();
+	texTable2.BaseShaderRegister = 2;
+	texTable2.RegisterSpace = 0;
+	texTable2.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//change
+	rootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
+	rootParameters[5].DescriptorTable.pDescriptorRanges = &texTable2;
+
+	auto staticSamplers = getStaticSamplerDescriptor();
 
 	D3D12_ROOT_SIGNATURE_DESC descRootSignature;
-	descRootSignature.NumStaticSamplers = 0;
-	descRootSignature.pStaticSamplers = nullptr;
+	descRootSignature.NumStaticSamplers = (UINT)staticSamplers.size();
+	descRootSignature.pStaticSamplers = staticSamplers.data();
 	descRootSignature.pParameters = rootParameters;
 	descRootSignature.NumParameters = _countof(rootParameters);
 	descRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
@@ -87,6 +102,8 @@ void DynamicIndexComContext::BuildRootSignature()
 void DynamicIndexComContext::BuildShadersAndInputLayout()
 {
 	BuildDynamicShaders();
+	m_Shaders["skyVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Sky2.hlsl", nullptr, "VS", "vs_5_1");
+	m_Shaders["skyPS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Sky2.hlsl", nullptr, "PS", "ps_5_1");
 	BuildLayout();
 }
 
@@ -143,6 +160,33 @@ void DynamicIndexComContext::UpdateMaterialCBs(const GameTimer &gt)
 			mat->NumFramesDirty--;
 		}
 	}
+}
+
+void DynamicIndexComContext::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector< RenderItem*>& ritems)
+{
+	UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(ObjectConstantsWithTexTranAndMaterialIndex));
+	UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(MaterialShadeRsourceWithDiffuseAndNormalTextIndex));
+
+	for (auto item : ritems)
+	{
+		const RenderItemWithTex* renderItem = static_cast<const RenderItemWithTex*>(item);
+
+		//set vertex buffer
+		cmdList->IASetVertexBuffers(0, 1, &renderItem->m_Geo->VertexBufferView());
+		cmdList->IASetIndexBuffer(&renderItem->m_Geo->IndexBufferView());
+		cmdList->IASetPrimitiveTopology(renderItem->m_PrimitiveType);
+
+		//set object const buffer 
+		UINT64 offset = static_cast<UINT64>(renderItem->m_ObjCBIndex) * objCBByteSize;
+		D3D12_GPU_VIRTUAL_ADDRESS startAddress = m_currFrameResource->getConstGpuAddress();
+		cmdList->SetGraphicsRootConstantBufferView(m_rpi.m_CONST_RootParameterIndex, startAddress + offset);
+
+		//draw
+		cmdList->DrawIndexedInstanced(renderItem->m_IndexCount,
+			1, renderItem->m_StartIndexLocation,
+			renderItem->m_BaseVertexLocation, 0);
+	}
+	
 }
 
 void DynamicIndexComContext::DrawRenderItem(ID3D12GraphicsCommandList *cmdList, const RenderItem *ritem)

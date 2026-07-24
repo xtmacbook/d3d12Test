@@ -8,6 +8,7 @@
 
 #include <array>
 
+
 class ComContext :
     public FrameResourceContextInterface,
 	public TexContextInterface,
@@ -43,5 +44,6 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>										m_RootSignature = nullptr;
 	std::vector<std::unique_ptr<RenderItem>>										m_AllRitems;
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
+
 
 };
