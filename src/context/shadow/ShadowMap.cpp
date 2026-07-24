@@ -1,4 +1,4 @@
-﻿#include "DynamicIndexContext.h"
+﻿#include "ShadowMap.h"
 #include "common/Geometry.h"
 #include "common/App.h"
 #include "common/Sky.h"
@@ -8,7 +8,7 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
-bool DynamicIndexContext::InitDirect3D()
+bool ShadowMapContext::InitDirect3D()
 {
 	if (!D3DContext::InitDirect3D()) return false;
 	
@@ -48,14 +48,12 @@ bool DynamicIndexContext::InitDirect3D()
 	return true;
 }
 
-void DynamicIndexContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
+void ShadowMapContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 {
 	BuildLitShapesScene(device, mCommandList);
-	//SphereProfile profile{ 0.5f, 20, 20 };
-	//BuildSphere(device, mCommandList, profile);
 }
 
-void DynamicIndexContext::BuildMaterials()
+void ShadowMapContext::BuildMaterials()
 {
 	auto bricks0 = std::make_unique<MaterialWithTexTran>();
 	bricks0->Name = "bricks0";
@@ -98,7 +96,7 @@ void DynamicIndexContext::BuildMaterials()
 	m_Materials["sky"] = std::move(sky);
 }
 
-void DynamicIndexContext::BuildRenderItems()
+void ShadowMapContext::BuildRenderItems()
 {
 	auto skyRitem = std::make_unique<RenderItemWithTex>();
 	XMStoreFloat4x4(&skyRitem->m_World, XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
@@ -238,7 +236,7 @@ void DynamicIndexContext::BuildRenderItems()
 		m_OpaqueRitems.push_back(e.get());
 }
 
-void DynamicIndexContext::BuildDescriptorHeaps()
+void ShadowMapContext::BuildDescriptorHeaps()
 {
 	int baseTextureNum = m_Textures.size() + m_TextureArrs.size() + m_TextureCubes.size();
 
@@ -273,7 +271,7 @@ void DynamicIndexContext::BuildDescriptorHeaps()
 	m_d3dDevice->CreateShaderResourceView(nullptr, &srvDesc, nullSrv);
 }
 
-void DynamicIndexContext::initTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
+void ShadowMapContext::initTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 {
 	//load textures
 	std::vector<TextureLoadDesc> textureFiles;
@@ -297,7 +295,7 @@ void DynamicIndexContext::initTextures(ID3D12Device* device, ID3D12GraphicsComma
 	loadTextures(device, mCommandList, textureFiles);
 }
 
-void DynamicIndexContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
+void ShadowMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 {
 	ThrowIfFailed(m_CommandList->Reset(allocator, m_PSOs["opaque"].Get()));
 	
@@ -381,7 +379,7 @@ void DynamicIndexContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
 }
 
-void DynamicIndexContext::Update(const GameTimer& gt)
+void ShadowMapContext::Update(const GameTimer& gt)
 {
 	D3DContext::Update(gt);
 	FrameResourceContextInterface::Update(gt, m_Fence.Get());
@@ -410,7 +408,7 @@ void DynamicIndexContext::Update(const GameTimer& gt)
 
 }
 
-void DynamicIndexContext::BuildFrameResources()
+void ShadowMapContext::BuildFrameResources()
 {
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
@@ -421,7 +419,7 @@ void DynamicIndexContext::BuildFrameResources()
 	}
 }
 
-void DynamicIndexContext::UpdateMainPassCB(const GameTimer& gt)
+void ShadowMapContext::UpdateMainPassCB(const GameTimer& gt)
 {
 	
 	UPDATE_MAIN_PASS;
@@ -438,7 +436,7 @@ void DynamicIndexContext::UpdateMainPassCB(const GameTimer& gt)
 	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
 }
 
-void DynamicIndexContext::BuildPSOs()
+void ShadowMapContext::BuildPSOs()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
 	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -485,7 +483,7 @@ void DynamicIndexContext::BuildPSOs()
 	m_shadow->BuildPSO(m_RootSignature.Get());
 }
 
-void DynamicIndexContext::CreateRtvAndDsvDescriptorHeaps()
+void ShadowMapContext::CreateRtvAndDsvDescriptorHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	rtvHeapDesc.NumDescriptors = SwapChainBufferCount;
