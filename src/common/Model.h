@@ -34,6 +34,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <map>
 
 #include <malloc.h>
 
@@ -48,6 +49,41 @@ namespace DirectX
 {
     inline namespace DX12
     {
+        class  SharedGraphicsResource
+        {
+        public:
+
+            SharedGraphicsResource() noexcept;
+            SharedGraphicsResource(ID3D12Device* device,const VOID* Source, size_t size);
+
+            SharedGraphicsResource(SharedGraphicsResource&&) noexcept;
+            SharedGraphicsResource&& operator= (SharedGraphicsResource&&) noexcept;
+
+            SharedGraphicsResource(const SharedGraphicsResource&) noexcept;
+            SharedGraphicsResource& operator= (const SharedGraphicsResource&) noexcept;
+
+            explicit operator bool() const noexcept { return bufferCPU != nullptr; }
+
+			size_t  Size() const noexcept { return mSize; }//byte size
+
+            bool operator == (const SharedGraphicsResource& other) const noexcept { return bufferCPU.Get() == other.bufferCPU.Get(); }
+            bool operator != (const SharedGraphicsResource& other) const noexcept { return bufferCPU.Get() != other.bufferCPU.Get(); }
+
+            Microsoft::WRL::ComPtr<ID3D12Resource> UpLoad(ID3D12Device* device, ID3D12GraphicsCommandList*cmdList);
+
+			void Reset() noexcept
+			{
+				bufferCPU.Reset();
+				mSize = 0;
+			}
+
+            ~SharedGraphicsResource();
+
+            Microsoft::WRL::ComPtr<ID3DBlob>        bufferCPU = nullptr;
+			Microsoft::WRL::ComPtr<ID3D12Resource>  uploadBuffer = nullptr;
+            size_t                                  mSize;
+        };
+
         class ModelMesh;
 
         //------------------------------------------------------------------------------
@@ -126,11 +162,11 @@ namespace DirectX
             uint32_t                                                vertexStride;
             uint32_t                                                vertexCount;
             uint32_t                                                indexBufferSize;
-            uint32_t                                                vertexBufferSize;
+            uint32_t                                                vertexBufferSize; //size in byte
             D3D_PRIMITIVE_TOPOLOGY                                  primitiveType;
             DXGI_FORMAT                                             indexFormat;
-           // SharedGraphicsResource                                  indexBuffer;
-           // SharedGraphicsResource                                  vertexBuffer;
+            SharedGraphicsResource                                  indexBuffer;
+            SharedGraphicsResource                                  vertexBuffer;
             Microsoft::WRL::ComPtr<ID3D12Resource>                  staticIndexBuffer;
             Microsoft::WRL::ComPtr<ID3D12Resource>                  staticVertexBuffer;
             std::shared_ptr<InputLayoutCollection>                  vbDecl;
@@ -242,6 +278,17 @@ namespace DirectX
                 _In_reads_bytes_(dataSize) const uint8_t* meshData, _In_ size_t dataSize,
                 ModelLoaderFlags flags = ModelLoader_Default);
 
+
+            void __cdecl LoadStaticBuffers(
+                _In_ ID3D12Device* device,
+                _In_ ID3D12GraphicsCommandList* cmdList,
+                bool keepMemory = false);
+
+             void  __cdecl LoadTextures(
+                _In_ ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList,
+                _In_opt_z_ const wchar_t* texturesPath = nullptr, int destinationDescriptorOffset = 0,
+                D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE) ;
+
             ModelMesh::Collection           meshes;
             ModelMaterialInfoCollection     materials;
             TextureCollection               textureNames;
@@ -249,6 +296,22 @@ namespace DirectX
             ModelBone::TransformArray       boneMatrices;
             ModelBone::TransformArray       invBindPoseMatrices;
             std::wstring                    name;
+
+            struct TextureCacheEntry
+            {
+                Microsoft::WRL::ComPtr<ID3D12Resource> mResource;
+                Microsoft::WRL::ComPtr<ID3D12Resource> mUploadHeap = nullptr;
+
+                bool mIsCubeMap;
+                size_t slot;
+
+                TextureCacheEntry() noexcept : mIsCubeMap(false), slot(0) {}
+            };
+
+            using TextureCache = std::map< std::wstring, TextureCacheEntry >;
+            TextureCache                   mTextureCache;
+
+            std::vector<TextureCacheEntry> mResources; // flat list of unique resources so we can index into it
 
         };
 

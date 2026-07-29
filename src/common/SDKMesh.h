@@ -17,6 +17,8 @@
 
 #include <cstdint>
 
+//详细可以参考: http://www.richardssoftware.net/Images/sdkmesh/sdkmesh.pdf
+
 namespace DXUT
 {
     // .SDKMESH files
@@ -190,7 +192,7 @@ namespace DXUT
         uint64_t BufferDataSize;
 
         //Stats
-        uint32_t NumVertexBuffers;
+        uint32_t NumVertexBuffers;//就有NumVertexBuffers个SDKMESH_VERTEX_BUFFER_HEADER结构体
         uint32_t NumIndexBuffers;
         uint32_t NumMeshes;
         uint32_t NumTotalSubsets;
@@ -228,7 +230,7 @@ namespace DXUT
         char Name[MAX_MESH_NAME];
         uint8_t NumVertexBuffers;
         uint32_t VertexBuffers[MAX_VERTEX_STREAMS];
-        uint32_t IndexBuffer;
+		uint32_t IndexBuffer; //这个是SDKMESH_INDEX_BUFFER_HEADER结构体的索引
         uint32_t NumSubsets;
         uint32_t NumFrameInfluences; //aka bones
 
@@ -237,7 +239,11 @@ namespace DXUT
 
         union
         {
-            uint64_t SubsetOffset;
+            /*
+				距离整体subset数据的偏移量,使用下面就可以得到这个mesh的所有subset的索引,注意返回值uint32_t,而不是SDKMESH_SUBSET
+                uint32_t * subsetsIndexs = (SDKMESH_SUBSET*)(meshData + oneMeshData.SubsetOffset);
+            */
+			uint64_t SubsetOffset; 
             INT* pSubsets;
         };
         union

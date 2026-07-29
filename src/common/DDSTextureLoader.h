@@ -46,6 +46,19 @@
 
 namespace DirectX
 {
+    inline namespace DX12
+    {
+        enum DDS_LOADER_FLAGS : uint32_t
+        {
+            DDS_LOADER_DEFAULT = 0,
+            DDS_LOADER_FORCE_SRGB = 0x1,
+            DDS_LOADER_IGNORE_SRGB = 0x2,
+            DDS_LOADER_MIP_AUTOGEN = 0x8,
+            DDS_LOADER_MIP_RESERVE = 0x10,
+            DDS_LOADER_IGNORE_MIPS = 0x20,
+        };
+    }
+
     enum DDS_ALPHA_MODE
     {
         DDS_ALPHA_MODE_UNKNOWN       = 0,
@@ -72,7 +85,8 @@ namespace DirectX
 		                                 _Out_ Microsoft::WRL::ComPtr<ID3D12Resource>& texture,
 		                                 _Out_ Microsoft::WRL::ComPtr<ID3D12Resource>& textureUploadHeap,
 		                                 _In_ size_t maxsize = 0,
-		                                 _Out_opt_ DDS_ALPHA_MODE* alphaMode = nullptr
+		                                 _Out_opt_ DDS_ALPHA_MODE* alphaMode = nullptr,
+                                        _Out_opt_ bool* isCubeMap = nullptr
 		                                 );
 
     HRESULT CreateDDSTextureFromFile( _In_ ID3D11Device* d3dDevice,
@@ -89,7 +103,8 @@ namespace DirectX
 		                               _Out_ Microsoft::WRL::ComPtr<ID3D12Resource>& texture,
 		                               _Out_ Microsoft::WRL::ComPtr<ID3D12Resource>& textureUploadHeap,
 		                               _In_ size_t maxsize = 0,
-		                               _Out_opt_ DDS_ALPHA_MODE* alphaMode = nullptr
+		                               _Out_opt_ DDS_ALPHA_MODE* alphaMode = nullptr,
+                                        _Out_opt_ bool* isCubeMap = nullptr
 		                               );
 
     // Standard version with optional auto-gen mipmap support

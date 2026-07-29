@@ -5,6 +5,7 @@
 #include "Util.h"
 #include "BinaryReader.h"
 
+#include <set>
 #include <map>
 
 using namespace DirectX;
@@ -574,62 +575,62 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
     for (size_t meshIndex = 0; meshIndex < header->NumMeshes; ++meshIndex)
     {
-        auto& mh = meshArray[meshIndex];
+        auto& oneMeshData = meshArray[meshIndex];
 
-        if (!mh.NumSubsets
-            || !mh.NumVertexBuffers
-            || mh.IndexBuffer >= header->NumIndexBuffers
-            || mh.VertexBuffers[0] >= header->NumVertexBuffers)
+        if (!oneMeshData.NumSubsets
+            || !oneMeshData.NumVertexBuffers
+            || oneMeshData.IndexBuffer >= header->NumIndexBuffers
+            || oneMeshData.VertexBuffers[0] >= header->NumVertexBuffers)
             throw std::out_of_range("Invalid mesh found");
 
         // mh.NumVertexBuffers is sometimes not what you'd expect, so we skip validating it
 
-        sizeBytes = uint64_t(mh.NumSubsets) * sizeof(uint32_t);
+        sizeBytes = uint64_t(oneMeshData.NumSubsets) * sizeof(uint32_t);
         if (sizeBytes >= UINT32_MAX)
             throw std::runtime_error("Too many subsets");
 
-        if (dataSize < mh.SubsetOffset
-            || (dataSize < mh.SubsetOffset + sizeBytes))
+        if (dataSize < oneMeshData.SubsetOffset
+            || (dataSize < oneMeshData.SubsetOffset + sizeBytes))
             throw std::runtime_error("End of file");
 
-        auto subsets = reinterpret_cast<const uint32_t*>(meshData + mh.SubsetOffset);
+        auto subsets = reinterpret_cast<const uint32_t*>(meshData + oneMeshData.SubsetOffset);
 
         const uint32_t* influences = nullptr;
-        if (mh.NumFrameInfluences > 0)
+        if (oneMeshData.NumFrameInfluences > 0)
         {
-            sizeBytes = uint64_t(mh.NumFrameInfluences) * sizeof(uint32_t);
+            sizeBytes = uint64_t(oneMeshData.NumFrameInfluences) * sizeof(uint32_t);
             if (sizeBytes >= UINT32_MAX)
                 throw std::runtime_error("Too many frame influences");
 
-            if (dataSize < mh.FrameInfluenceOffset
-                || (dataSize < mh.FrameInfluenceOffset + sizeBytes))
+            if (dataSize < oneMeshData.FrameInfluenceOffset
+                || (dataSize < oneMeshData.FrameInfluenceOffset + sizeBytes))
                 throw std::runtime_error("End of file");
 
             if (flags & ModelLoader_IncludeBones)
             {
-                influences = reinterpret_cast<const uint32_t*>(meshData + mh.FrameInfluenceOffset);
+                influences = reinterpret_cast<const uint32_t*>(meshData + oneMeshData.FrameInfluenceOffset);
             }
         }
 
         auto mesh = std::make_shared<ModelMesh>();
         wchar_t meshName[DXUT::MAX_MESH_NAME] = {};
-        ASCIIToWChar(meshName, mh.Name);
+        ASCIIToWChar(meshName, oneMeshData.Name);
 
         mesh->name = meshName;
 
         // Extents
-        mesh->boundingBox.Center = mh.BoundingBoxCenter;
-        mesh->boundingBox.Extents = mh.BoundingBoxExtents;
+        mesh->boundingBox.Center = oneMeshData.BoundingBoxCenter;
+        mesh->boundingBox.Extents = oneMeshData.BoundingBoxExtents;
         BoundingSphere::CreateFromBoundingBox(mesh->boundingSphere, mesh->boundingBox);
 
         if (influences)
         {
-            mesh->boneInfluences.resize(mh.NumFrameInfluences);
-            memcpy(mesh->boneInfluences.data(), influences, sizeof(uint32_t) * mh.NumFrameInfluences);
+            mesh->boneInfluences.resize(oneMeshData.NumFrameInfluences);
+            memcpy(mesh->boneInfluences.data(), influences, sizeof(uint32_t) * oneMeshData.NumFrameInfluences);
         }
 
         // Create subsets
-        for (size_t j = 0; j < mh.NumSubsets; ++j)
+        for (size_t j = 0; j < oneMeshData.NumSubsets; ++j)
         {
             const auto sIndex = subsets[j];
             if (sIndex >= header->NumTotalSubsets)
@@ -663,7 +664,7 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
             auto& mat = materials[subset.MaterialID];
 
-            const size_t vi = mh.VertexBuffers[0];
+            const size_t vi = oneMeshData.VertexBuffers[0];
             if (materialArray_v2)
             {
                 InitMaterial(
@@ -684,8 +685,8 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
             auto part = std::make_unique<ModelMeshPart>(partCount++);
 
-            const auto& vh = vbArray[mh.VertexBuffers[0]];
-            const auto& ih = ibArray[mh.IndexBuffer];
+            const auto& vh = vbArray[oneMeshData.VertexBuffers[0]];//这个还是SDKMESH_VERTEX_BUFFER_HEADER结构体
+            const auto& ih = ibArray[oneMeshData.IndexBuffer];
 
             part->indexCount = static_cast<uint32_t>(subset.IndexCount);
             part->startIndex = static_cast<uint32_t>(subset.IndexStart);
@@ -693,24 +694,24 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
             part->vertexStride = static_cast<uint32_t>(vh.StrideBytes);
             part->vertexCount = static_cast<uint32_t>(subset.VertexCount);
             part->primitiveType = primType;
-            part->indexFormat = (ibArray[mh.IndexBuffer].IndexType == DXUT::IT_32BIT) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+            part->indexFormat = (ibArray[oneMeshData.IndexBuffer].IndexType == DXUT::IT_32BIT) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
             // Vertex data
             auto verts = bufferData + (vh.DataOffset - bufferDataOffset);
             const auto vbytes = static_cast<size_t>(vh.SizeBytes);
             part->vertexBufferSize = static_cast<uint32_t>(vh.SizeBytes);
-            //part->vertexBuffer = GraphicsMemory::Get(device).Allocate(vbytes, 16, GraphicsMemory::TAG_VERTEX);
-          //  memcpy(part->vertexBuffer.Memory(), verts, vbytes);
+            part->vertexBuffer = SharedGraphicsResource(device, verts, vbytes);//  GraphicsMemory::Get(device).Allocate(vbytes, 16, GraphicsMemory::TAG_VERTEX);
+            //memcpy(part->vertexBuffer.Memory(), verts, vbytes);
 
             // Index data
             auto indices = bufferData + (ih.DataOffset - bufferDataOffset);
             const auto ibytes = static_cast<size_t>(ih.SizeBytes);
             part->indexBufferSize = static_cast<uint32_t>(ih.SizeBytes);
-            //part->indexBuffer = GraphicsMemory::Get(device).Allocate(ibytes, 16, GraphicsMemory::TAG_INDEX);
+            part->indexBuffer = SharedGraphicsResource(device, indices, ibytes);//  GraphicsMemory::Get(device).Allocate(ibytes, 16, GraphicsMemory::TAG_INDEX);
            // memcpy(part->indexBuffer.Memory(), indices, ibytes);
 
             part->materialIndex = subset.MaterialID;
-            part->vbDecl = vbDecls[mh.VertexBuffers[0]];
+            part->vbDecl = vbDecls[oneMeshData.VertexBuffers[0]];
 
             if (mat.alphaValue < 1.0f)
                 mesh->alphaMeshParts.emplace_back(std::move(part));
@@ -786,7 +787,6 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
     return model;
 }
-
 
 //--------------------------------------------------------------------------------------
 _Use_decl_annotations_

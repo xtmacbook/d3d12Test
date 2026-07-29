@@ -1678,7 +1678,7 @@ static HRESULT CreateTextureFromDDS12(
 	_In_ size_t maxsize,
 	_In_ bool forceSRGB,
 	ComPtr<ID3D12Resource>& texture,
-	ComPtr<ID3D12Resource>& textureUploadHeap)
+	ComPtr<ID3D12Resource>& textureUploadHeap, bool* iisCubeMap)
 {
 	HRESULT hr = S_OK;
 
@@ -1868,6 +1868,7 @@ static HRESULT CreateTextureFromDDS12(
 			initData.get(),
 			texture, 
 			textureUploadHeap);
+        if (iisCubeMap) *iisCubeMap = isCubeMap;
 	}
 
 	return hr;
@@ -1926,7 +1927,8 @@ HRESULT DirectX::CreateDDSTextureFromMemory12(
 	ComPtr<ID3D12Resource>& texture,
 	ComPtr<ID3D12Resource>& textureUploadHeap,
 	_In_ size_t maxsize,
-	_Out_opt_ DDS_ALPHA_MODE* alphaMode
+	_Out_opt_ DDS_ALPHA_MODE* alphaMode,
+    _Out_opt_ bool* isCubeMap
 	)
 {
 	if (alphaMode)
@@ -1979,7 +1981,7 @@ HRESULT DirectX::CreateDDSTextureFromMemory12(
 		maxsize,
 		false,
 		texture,
-		textureUploadHeap
+		textureUploadHeap, isCubeMap
 		);
 
 	if (SUCCEEDED(hr))
@@ -2140,7 +2142,8 @@ HRESULT DirectX::CreateDDSTextureFromFile12(_In_ ID3D12Device* device,
 	_Out_ ComPtr<ID3D12Resource>& texture,
 	_Out_ ComPtr<ID3D12Resource>& textureUploadHeap,
 	_In_ size_t maxsize,
-	_Out_opt_ DDS_ALPHA_MODE* alphaMode)
+	_Out_opt_ DDS_ALPHA_MODE* alphaMode,
+    _Out_opt_ bool* isCubeMap)
 {
 	if (texture)
 	{
@@ -2172,7 +2175,7 @@ HRESULT DirectX::CreateDDSTextureFromFile12(_In_ ID3D12Device* device,
 	}
 
 	hr = CreateTextureFromDDS12(device, cmdList, header,
-		bitData, bitSize, maxsize, false, texture, textureUploadHeap);
+		bitData, bitSize, maxsize, false, texture, textureUploadHeap, isCubeMap);
 
 	if (SUCCEEDED(hr))
 	{
