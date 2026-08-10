@@ -42,13 +42,63 @@
 
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
-
+#include "d3dx12.h"
 
 
 namespace DirectX
 {
     inline namespace DX12
     {
+        struct  EffectInfo
+        {
+            std::wstring        name;
+            bool                perVertexColor;
+
+            bool                enableSkinning;
+            bool                enableDualTexture;
+            bool                enableNormalMaps;
+
+            bool                biasedVertexNormals;
+
+            float               specularPower;
+            float               alphaValue;
+
+            XMFLOAT3            ambientColor;
+            XMFLOAT3            diffuseColor;
+            XMFLOAT3            specularColor;
+            XMFLOAT3            emissiveColor;
+
+            int                 diffuseTextureIndex;
+            int                 specularTextureIndex;
+            int                 normalTextureIndex;
+            int                 emissiveTextureIndex;
+
+            int                 samplerIndex;
+            int                 samplerIndex2;
+
+            EffectInfo() noexcept
+                : perVertexColor(false)
+                , enableSkinning(false)
+                , enableDualTexture(false)
+                , enableNormalMaps(false)
+                , biasedVertexNormals(false)
+                , specularPower(0)
+                , alphaValue(0)
+                , ambientColor(0, 0, 0)
+                , diffuseColor(0, 0, 0)
+                , specularColor(0, 0, 0)
+                , emissiveColor(0, 0, 0)
+                , diffuseTextureIndex(-1)
+                , specularTextureIndex(-1)
+                , normalTextureIndex(-1)
+                , emissiveTextureIndex(-1)
+                , samplerIndex(-1)
+                , samplerIndex2(-1)
+            {
+            }
+        };
+
+
         class  SharedGraphicsResource
         {
         public:
@@ -154,21 +204,32 @@ namespace DirectX
             using DrawCallback = std::function<void(_In_ ID3D12GraphicsCommandList* commandList, const ModelMeshPart& part)>;
             using InputLayoutCollection = std::vector<D3D12_INPUT_ELEMENT_DESC>;
 
+            void __cdecl Draw(_In_ ID3D12GraphicsCommandList* commandList) const;
+            static void __cdecl DrawMeshParts(_In_ ID3D12GraphicsCommandList* commandList, const Collection& meshParts);
+
             uint32_t                                                partIndex;      // Unique index assigned per-part in a model.
+            
             uint32_t                                                materialIndex;  // Index of the material spec to use
+            
             uint32_t                                                indexCount;
             uint32_t                                                startIndex;
+            
             int32_t                                                 vertexOffset;
             uint32_t                                                vertexStride;
             uint32_t                                                vertexCount;
+            
             uint32_t                                                indexBufferSize;
             uint32_t                                                vertexBufferSize; //size in byte
+
             D3D_PRIMITIVE_TOPOLOGY                                  primitiveType;
             DXGI_FORMAT                                             indexFormat;
+            
             SharedGraphicsResource                                  indexBuffer;
             SharedGraphicsResource                                  vertexBuffer;
+            
             Microsoft::WRL::ComPtr<ID3D12Resource>                  staticIndexBuffer;
             Microsoft::WRL::ComPtr<ID3D12Resource>                  staticVertexBuffer;
+            
             std::shared_ptr<InputLayoutCollection>                  vbDecl;
         };
 
@@ -188,6 +249,10 @@ namespace DirectX
 
             virtual ~ModelMesh();
 
+
+            void __cdecl DrawOpaque(_In_ ID3D12GraphicsCommandList* commandList) const;
+            void __cdecl DrawAlpha(_In_ ID3D12GraphicsCommandList* commandList) const;
+
             BoundingSphere              boundingSphere;
             BoundingBox                 boundingBox;
             ModelMeshPart::Collection   opaqueMeshParts;
@@ -198,50 +263,6 @@ namespace DirectX
 
             using Collection = std::vector<std::shared_ptr<ModelMesh>>;
           
-        };
-
-
-        struct  EffectInfo
-        {
-            std::wstring        name;
-            bool                perVertexColor;
-            bool                enableSkinning;
-            bool                enableDualTexture;
-            bool                enableNormalMaps;
-            bool                biasedVertexNormals;
-            float               specularPower;
-            float               alphaValue;
-            XMFLOAT3            ambientColor;
-            XMFLOAT3            diffuseColor;
-            XMFLOAT3            specularColor;
-            XMFLOAT3            emissiveColor;
-            int                 diffuseTextureIndex;
-            int                 specularTextureIndex;
-            int                 normalTextureIndex;
-            int                 emissiveTextureIndex;
-            int                 samplerIndex;
-            int                 samplerIndex2;
-
-            EffectInfo() noexcept
-                : perVertexColor(false)
-                , enableSkinning(false)
-                , enableDualTexture(false)
-                , enableNormalMaps(false)
-                , biasedVertexNormals(false)
-                , specularPower(0)
-                , alphaValue(0)
-                , ambientColor(0, 0, 0)
-                , diffuseColor(0, 0, 0)
-                , specularColor(0, 0, 0)
-                , emissiveColor(0, 0, 0)
-                , diffuseTextureIndex(-1)
-                , specularTextureIndex(-1)
-                , normalTextureIndex(-1)
-                , emissiveTextureIndex(-1)
-                , samplerIndex(-1)
-                , samplerIndex2(-1)
-            {
-            }
         };
 
         //------------------------------------------------------------------------------
@@ -262,6 +283,10 @@ namespace DirectX
             using ModelMaterialInfo = EffectInfo;
             using ModelMaterialInfoCollection = std::vector<ModelMaterialInfo>;
             using TextureCollection = std::vector<std::wstring>;
+
+            const EffectInfo* getMaterialInfo(const ModelMeshPart& part) const;
+
+            std::size_t getTextureResouceSlotByNameIndex(int idx);
 
             // The Model::Draw* functions use variadic templates and perfect-forwarding in order to support future
             // overloads to the ModelMesh::Draw* family of functions. This means that a new ModelMesh overload can be
@@ -288,6 +313,10 @@ namespace DirectX
                 _In_ ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList,
                 _In_opt_z_ const wchar_t* texturesPath = nullptr, int destinationDescriptorOffset = 0,
                 D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE) ;
+
+
+            //test 测试这个model里的所有mesh是否material相同
+             bool testEqualMaterial()const;
 
             ModelMesh::Collection           meshes;
             ModelMaterialInfoCollection     materials;

@@ -1,7 +1,7 @@
 #include "DynamicIndexComContex.h"
 #include "common/BufferStruct.h"
 #include "common/Geometry.h"
-#include "common/BufferStruct.h"
+#include "common/DirectXHelpers.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -72,7 +72,7 @@ void DynamicIndexComContext::BuildRootSignature()
 	rootParameters[5].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[5].DescriptorTable.pDescriptorRanges = &texTable2;
 
-	auto staticSamplers = getStaticSamplerDescriptor();
+	auto staticSamplers = DirectX::getStaticSamplerDescriptor();
 
 	D3D12_ROOT_SIGNATURE_DESC descRootSignature;
 	descRootSignature.NumStaticSamplers = (UINT)staticSamplers.size();

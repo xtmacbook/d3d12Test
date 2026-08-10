@@ -58,7 +58,6 @@ public:
 	static std::shared_ptr< MeshGeometry> BuildSphere(ID3D12Device*, 
 		ID3D12GraphicsCommandList* mCommandList, SphereProfile);
 
-
 	Waves* GetWave();
 
 protected:

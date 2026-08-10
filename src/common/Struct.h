@@ -39,6 +39,7 @@ struct MaterialWithTexTran : public Material
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 
+
 struct Light
 {
 	DirectX::XMFLOAT3		Strength = { 0.5f, 0.5f, 0.5f };

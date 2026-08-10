@@ -5,6 +5,8 @@
 #include "common/GameTimer.h"
 #include "common/Struct.h"
 #include "common/ObjLoader.h"
+#include  "common/model.h"
+
 
 #include "Context/Waves.h"
 
