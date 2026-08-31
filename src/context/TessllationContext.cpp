@@ -1,6 +1,5 @@
 ﻿#include "TessllationContext.h"
 
-#include "common/App.h"
 #include "common/Geometry.h"
 #include "common/d3dx12.h"
 

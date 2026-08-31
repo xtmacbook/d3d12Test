@@ -12,7 +12,7 @@ public:
 	
 	bool InitDirect3D() override;
 
-	void OnResize() override;
+	void OnResize(int width,int heigh) override;
 
 
 	void BuildShadersAndInputLayout() override;

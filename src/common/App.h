@@ -69,13 +69,11 @@ protected:
 
 	GameTimer					m_Timer;
 
-	float						m_Theta = 1.5f * DirectX::XM_PI;
-	float						m_Phi = DirectX::XM_PIDIV4;
-
 	float						m_Radius = 5.0f;
 
 	float						m_xpus = 0.005f;
 	float						m_ypus = 0.005f;
+	
 	float						m_sceneMin = 3.0;
 	float						m_sceneMax = 15.0;
 

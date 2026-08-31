@@ -1,6 +1,5 @@
 ﻿#include "BlendContext.h"
 #include "common/Geometry.h"
-#include "common/App.h"
 #include "common/BufferStruct.h"
 #include "Waves.h"
 

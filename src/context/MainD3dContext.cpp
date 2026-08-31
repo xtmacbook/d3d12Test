@@ -39,8 +39,8 @@ void MainD3DContext::Update(const GameTimer& gt)
 	D3DContext::Update(gt);
 
 	XMMATRIX world = XMLoadFloat4x4(&m_World);
-	XMMATRIX proj = XMLoadFloat4x4(&m_Proj);
-	XMMATRIX view = XMLoadFloat4x4(&m_View);
+	XMMATRIX proj = mCamera.GetProj();
+	XMMATRIX view = mCamera.GetView();
 	XMMATRIX worldViewProj = world * view * proj;
 
 	ObjectConstants objConstants;

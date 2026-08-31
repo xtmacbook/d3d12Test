@@ -1,6 +1,5 @@
 ﻿#include "ShadowMap.h"
 #include "common/Geometry.h"
-#include "common/App.h"
 #include "common/Sky.h"
 #include "common/ShadowMap.h"
 

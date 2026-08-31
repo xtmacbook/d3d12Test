@@ -1,5 +1,4 @@
 ﻿#include "ComputeShader.h"
-#include "common/App.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -10,7 +9,7 @@ bool ComputeShaderContext::InitDirect3D()
 	if (!D3DContext::InitDirect3D()) return false;
 
 	m_BlurFilter = 
-		std::make_unique<BlurFilter>(m_d3dDevice.Get(), m_win->Width(), m_win->Height(),
+		std::make_unique<BlurFilter>(m_d3dDevice.Get(), mSwapChainDesc.width, mSwapChainDesc.heigh,
 			DXGI_FORMAT_R8G8B8A8_UNORM);
 
 	// Reset the command list to prep for initialization commands.
@@ -58,10 +57,10 @@ bool ComputeShaderContext::InitDirect3D()
 	return true;
 }
 
-void ComputeShaderContext::OnResize()
+void ComputeShaderContext::OnResize(int width, int heigh)
 {
-	BlendContext::OnResize();
-	m_BlurFilter->OnResize(m_win->Width(), m_win->Height());
+	BlendContext::OnResize(width,heigh);
+	m_BlurFilter->OnResize(width, heigh);
 }
 
 

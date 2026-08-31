@@ -1,6 +1,5 @@
 ﻿#include "MirrorWithStencil.h"
 #include "common/Geometry.h"
-#include "common/App.h"
 #include "Waves.h"
 
 using namespace DirectX;

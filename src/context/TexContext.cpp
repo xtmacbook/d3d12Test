@@ -1,6 +1,5 @@
 ﻿#include "TexContext.h"
 #include "common/Geometry.h"
-#include "common/App.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -238,7 +237,7 @@ void TexContext::UpdateObjectCBs(const GameTimer& gt)
 			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
 
 			m_currFrameResource->CopyConstData(itemWithM->m_ObjCBIndex, &objConstants);
-			e->m_NumFramesDirty--;
+			itemWithM->m_NumFramesDirty--;
 		}
 	}
 }

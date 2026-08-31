@@ -3,13 +3,19 @@
 #include "Util.h"
 #include "GameTimer.h"
 #include "MathHelper.h"
+#include "Camera.h"
 
 #pragma comment(lib,"d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-class App;
 
+struct SWAPCHAINDESC
+{
+	int width;
+	int heigh;
+	HWND window;
+};
 
 class D3DContext
 {
@@ -19,12 +25,11 @@ public:
 
 	virtual ~D3DContext();
 
+	void preInitDirect3D(SWAPCHAINDESC desc);
+
 	virtual bool InitDirect3D();
 	virtual void CreateRtvAndDsvDescriptorHeaps();
-	virtual void OnResize();
-
-	void setApp(App*);
-	inline App* getApp() { return m_win; }
+	virtual void OnResize(int width,int heigh);
 
 	inline ID3D12Device* device() { return m_d3dDevice.Get(); }
 
@@ -38,6 +43,8 @@ public:
 	void setWireFrame(bool);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC GetDefaultPSODesc();
+
+	Camera& GetCamera();
 
 protected:
 	void CreateCommandObjects();
@@ -53,10 +60,12 @@ protected:
 protected:
 
 	DirectX::XMFLOAT4X4 m_World								= MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 m_View								= MathHelper::Identity4x4();
-	DirectX::XMFLOAT4X4 m_Proj								= MathHelper::Identity4x4();
-	DirectX::XMFLOAT3	m_EyePos							= { .0,.0,.0 };
 	DirectX::BoundingFrustum								m_CamFrustum;
+	
+	SWAPCHAINDESC											mSwapChainDesc;
+
+	Camera													mCamera;
+
 	bool													m_FrustumCullingEnabled;
 protected:
 
@@ -94,10 +103,8 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D12Resource>					m_SwapChainBuffer[SwapChainBufferCount];
 	Microsoft::WRL::ComPtr<ID3D12Resource>					m_DepthStencilBuffer;
 	int														m_CurrBackBuffer = 0;
-	App*													m_win = nullptr;
 
 	bool													m_IsWireframe = false;
-
 	friend class Sky;
 	friend class ShadowInterface;
 };

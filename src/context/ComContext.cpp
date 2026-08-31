@@ -1,7 +1,6 @@
 ﻿#include "ComContext.h"
 #include "common/Geometry.h"
 #include "common/BufferStruct.h"
-#include "common/App.h"
 #include "Waves.h"
 
 using namespace DirectX;
@@ -181,7 +180,7 @@ void ComContext::UpdateMainPassCB(const GameTimer& gt)
 
 void ComContext::UpdateInstance()
 {
-	XMMATRIX view = XMLoadFloat4x4(&m_View);
+	XMMATRIX view = mCamera.GetView();
 	 
 	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
 

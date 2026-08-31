@@ -15,10 +15,6 @@ struct SubmeshGeometry
 	UINT m_IndexCount = 0;
 	UINT m_StartIndexLocation = 0;
 	INT  m_BaseVertexLocation = 0;
-	
-	uint32_t    m_materialIndex;  // Index of the material spec to use
-	std::shared_ptr<std::vector<D3D12_INPUT_ELEMENT_DESC> >   m_vbDecl = nullptr; //可选的，后面因为加载sdkmesh模型才添加的
-
 	// Bounding box of the geometry defined by this submesh. 
 	DirectX::BoundingBox m_Bounds;
 };

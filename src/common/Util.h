@@ -148,8 +148,8 @@ inline void DebugTrace(_In_z_ _Printf_format_string_ const char* format, ...) no
 
 void errorExit();
 
-#define UPDATE_MAIN_PASS  XMMATRIX view = XMLoadFloat4x4(&m_View);\
-XMMATRIX proj = XMLoadFloat4x4(&m_Proj);\
+#define UPDATE_MAIN_PASS  XMMATRIX view = mCamera.GetView();\
+XMMATRIX proj = mCamera.GetProj();\
 XMMATRIX viewProj = XMMatrixMultiply(view, proj);\
 XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);\
 XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);\
@@ -160,9 +160,9 @@ XMStoreFloat4x4(&m_MainPassCB.m_Proj, XMMatrixTranspose(proj));\
 XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));\
 XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));\
 XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));\
-m_MainPassCB.m_EyePosW = m_EyePos;\
-m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)m_win->Width(), (float)m_win->Height());\
-m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_win->Width(), 1.0f / m_win->Height());\
+m_MainPassCB.m_EyePosW = mCamera.GetPosition3f();\
+m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)mSwapChainDesc.width, (float)mSwapChainDesc.heigh);\
+m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / mSwapChainDesc.width, 1.0f /mSwapChainDesc.heigh);\
 m_MainPassCB.m_NearZ = 1.0f;\
 m_MainPassCB.m_FarZ = 1000.0f;\
 m_MainPassCB.m_TotalTime = gt.TotalTime();\

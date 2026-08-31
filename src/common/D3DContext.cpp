@@ -1,5 +1,4 @@
 ﻿#include "D3DContext.h"
-#include "App.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -8,6 +7,7 @@ using namespace DirectX::PackedVector;
 D3DContext::D3DContext():
 	m_FrustumCullingEnabled(true)
 {
+	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
 }
 
 D3DContext::~D3DContext()
@@ -16,6 +16,11 @@ D3DContext::~D3DContext()
 	{
 		FlushCommandQueue();
 	}
+}
+
+void D3DContext::preInitDirect3D(SWAPCHAINDESC desc)
+{
+	mSwapChainDesc = desc;
 }
 
 bool D3DContext::InitDirect3D()
@@ -101,8 +106,11 @@ void D3DContext::CreateRtvAndDsvDescriptorHeaps()
 		&dsvHeapDesc, IID_PPV_ARGS(m_DsvHeap.GetAddressOf())));
 }
 
-void D3DContext::OnResize()
+void D3DContext::OnResize(int width, int heigh)
 {
+	mSwapChainDesc.width = width;
+	mSwapChainDesc.heigh = heigh;
+
 	FlushCommandQueue();
 
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
@@ -115,7 +123,7 @@ void D3DContext::OnResize()
 	// Resize the swap chain.
 	ThrowIfFailed(m_SwapChain->ResizeBuffers(
 		SwapChainBufferCount,
-		m_win->Width(), m_win->Height(),
+		width, heigh,
 		m_BackBufferFormat,
 		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
@@ -136,8 +144,8 @@ void D3DContext::OnResize()
 	depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	depthStencilDesc.Alignment = 0;
 
-	depthStencilDesc.Width = m_win->Width();
-	depthStencilDesc.Height = m_win->Height();
+	depthStencilDesc.Width = width;
+	depthStencilDesc.Height = heigh;
 
 	depthStencilDesc.DepthOrArraySize = 1;
 	depthStencilDesc.MipLevels = 1;
@@ -187,25 +195,18 @@ void D3DContext::OnResize()
 	// Update the viewport transform to cover the client area.
 	m_ScreenViewport.TopLeftX = 0;
 	m_ScreenViewport.TopLeftY = 0;
-	m_ScreenViewport.Width = static_cast<float>(m_win->Width());
-	m_ScreenViewport.Height = static_cast<float>(m_win->Height());
+	m_ScreenViewport.Width = static_cast<float>(width);
+	m_ScreenViewport.Height = static_cast<float>(heigh);
 	m_ScreenViewport.MinDepth = 0.0f;
 	m_ScreenViewport.MaxDepth = 1.0f;
 
-	m_ScissorRect = { 0, 0, m_win->Width(), m_win->Height() };
+	m_ScissorRect = { 0, 0, width,heigh };
 
-	// The window resized, so update the aspect ratio and recompute the projection matrix.
-	XMMATRIX P = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, m_win->AspectRatio(), 1.0f, 1000.0f);
-	DirectX::XMStoreFloat4x4(&m_Proj, P);
 
 	//从proj 获取视锥体的frustum
-	BoundingFrustum::CreateFromMatrix(m_CamFrustum, XMLoadFloat4x4(&m_Proj));
+	BoundingFrustum::CreateFromMatrix(m_CamFrustum, mCamera.GetProj());
 }
 
-void D3DContext::setApp(App* app)
-{
-	m_win = app;
-}
 
 void D3DContext::setWireFrame(bool frame)
 {
@@ -229,6 +230,11 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC D3DContext::GetDefaultPSODesc()
 	opaquePsoDesc.DSVFormat = m_DepthStencilFormat;
 
 	return opaquePsoDesc;
+}
+
+Camera& D3DContext::GetCamera()
+{
+	return mCamera;
 }
 
 void D3DContext::CreateCommandObjects()
@@ -260,8 +266,8 @@ void D3DContext::CreateSwapChain()
 	m_SwapChain.Reset();
 
 	DXGI_SWAP_CHAIN_DESC sd;
-	sd.BufferDesc.Width = m_win->Width();
-	sd.BufferDesc.Height = m_win->Height();
+	sd.BufferDesc.Width = mSwapChainDesc.width;
+	sd.BufferDesc.Height = mSwapChainDesc.heigh;
 
 	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -277,7 +283,7 @@ void D3DContext::CreateSwapChain()
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	sd.BufferCount = SwapChainBufferCount;
 
-	sd.OutputWindow = m_win->MainWnd();
+	sd.OutputWindow = mSwapChainDesc.window;
 	sd.Windowed = true;
 
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -340,21 +346,7 @@ ID3D12Resource* D3DContext::CurrentBackBuffer() const
 
 void D3DContext::UpdateCamera(const GameTimer& gt)
 {
-	float radius, phi, theta;
-	m_win->GetViewState(theta, phi, radius);
-
-	// Convert Spherical to Cartesian coordinates.
-	m_EyePos.x = radius * sinf(phi) * cosf(theta);
-	m_EyePos.z = radius * sinf(phi) * sinf(theta);
-	m_EyePos.y = radius * cosf(phi);
-
-	// Build the view matrix.
-	XMVECTOR pos = XMVectorSet(m_EyePos.x, m_EyePos.y, m_EyePos.z, 1.0f);
-	XMVECTOR target = XMVectorZero();
-	XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-	XMStoreFloat4x4(&m_View, view);
+	mCamera.UpdateViewMatrix();
 }
 
 

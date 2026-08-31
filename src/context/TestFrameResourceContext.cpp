@@ -1,6 +1,5 @@
 ﻿#include "TestFrameResourceContext.h"
 
-#include "common/App.h"
 #include "common/GeometryGenerator.h"
 #include "common/Geometry.h"
 
@@ -71,8 +70,8 @@ void DefaultFrameResourceContext::UpdateObjectCBs(const GameTimer& gt)
 
 void DefaultFrameResourceContext::UpdateMainPassCB(const GameTimer& gt)
 {
-	XMMATRIX view = XMLoadFloat4x4(&m_View);
-	XMMATRIX proj = XMLoadFloat4x4(&m_Proj);
+	XMMATRIX view = mCamera.GetView();
+	XMMATRIX proj = mCamera.GetProj();
 
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
@@ -85,9 +84,9 @@ void DefaultFrameResourceContext::UpdateMainPassCB(const GameTimer& gt)
 	XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));
 	XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));
-	m_MainPassCB.m_EyePosW = m_EyePos;
-	m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)m_win->Width(), (float)m_win->Height());
-	m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_win->Width(), 1.0f / m_win->Height());
+	m_MainPassCB.m_EyePosW = mCamera.GetPosition3f();
+	m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)mSwapChainDesc.width, (float)mSwapChainDesc.heigh);
+	m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / mSwapChainDesc.width, 1.0f / mSwapChainDesc.heigh);
 	m_MainPassCB.m_NearZ = 1.0f;
 	m_MainPassCB.m_FarZ = 1000.0f;
 	m_MainPassCB.m_TotalTime = gt.TotalTime();

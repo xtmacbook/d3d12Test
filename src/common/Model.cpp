@@ -110,6 +110,7 @@ ModelMesh::~ModelMesh()
 {
 }
 
+
 void __cdecl  ModelMesh::DrawOpaque(ID3D12GraphicsCommandList* commandList) const
 {
 	ModelMeshPart::DrawMeshParts(commandList, opaqueMeshParts);
@@ -133,7 +134,7 @@ Model::~Model()
 {
 }
 
-const EffectInfo* DirectX::DX12::Model::getMaterialInfo(const ModelMeshPart& part) const
+const EffectInfo* DirectX::DX12::Model::GetMaterialInfo(const ModelMeshPart& part) const
 {
 
 	if (part.materialIndex >= materials.size())
@@ -147,6 +148,17 @@ std::size_t Model::getTextureResouceSlotByNameIndex(int idx)
 	auto textureEntiry = mTextureCache.find(textureName);
 	return textureEntiry->second.slot;
 
+}
+
+std::size_t DirectX::DX12::Model::GetMeshPartCount() const
+{
+	std::size_t meshPartCount(0);
+	for (const auto& mesh : meshes)
+	{
+		meshPartCount += mesh->opaqueMeshParts.size();
+		meshPartCount += mesh->alphaMeshParts.size();
+	}
+	return meshPartCount;
 }
 
 Model::Model(Model const& other) :
@@ -454,6 +466,83 @@ bool Model::testEqualMaterial() const
 
 	return true;
 }
+
+
+std::vector< std::shared_ptr<SDKMesh::Effect> > Model::CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
+{
+	uint32_t partCount = 0;
+	for (const auto& mesh : meshes)
+	{
+		for (const auto& part : mesh->opaqueMeshParts)
+			partCount = (std::max)(part->partIndex + 1, partCount);
+		for (const auto& part : mesh->alphaMeshParts)
+			partCount = (std::max)(part->partIndex + 1, partCount);
+	}
+
+	std::vector< std::shared_ptr<SDKMesh::Effect> > effects;
+	effects.resize(partCount);
+
+
+	auto CreateEffectForMeshPart = [&](ModelMeshPart*part, SDKMesh::EffectPipelineStateDescription& psd) {
+		
+		std::shared_ptr< SDKMesh::Effect> effect(new SDKMesh::Effect);
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
+		ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+		opaquePsoDesc = psd.desc;
+
+		opaquePsoDesc.InputLayout = { part->vbDecl.get()->data(), (UINT)part->vbDecl.get()->size() };
+		opaquePsoDesc.VS =
+		{
+			reinterpret_cast<BYTE*>(psd.standardVS->GetBufferPointer()),
+			psd.standardVS->GetBufferSize()
+		};
+		opaquePsoDesc.PS =
+		{
+			reinterpret_cast<BYTE*>(psd.opaquesPS->GetBufferPointer()),
+			psd.opaquesPS->GetBufferSize()
+		};
+
+		ThrowIfFailed(psd.device->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&(effect->m_PSO))));
+
+		return effect;
+	};
+
+	for (const auto& mesh : meshes)
+	{
+		assert(mesh != nullptr);
+
+		for (const auto& part : mesh->opaqueMeshParts)
+		{
+			assert(part != nullptr);
+
+			if (part->materialIndex == uint32_t(-1))
+				continue;
+
+			// If this fires, you have multiple parts with the same unique ID
+			assert(effects[part->partIndex] == nullptr);
+
+			effects[part->partIndex] = CreateEffectForMeshPart(part.get(), pipeLineStateDescription);
+		}
+
+		for (const auto& part : mesh->alphaMeshParts)
+		{
+			assert(part != nullptr);
+
+			if (part->materialIndex == uint32_t(-1))
+				continue;
+
+			// If this fires, you have multiple parts with the same unique ID
+			assert(effects[part->partIndex] == nullptr);
+
+			effects[part->partIndex] = CreateEffectForMeshPart(part.get(), pipeLineStateDescription);
+
+		}
+	}
+	
+	return effects;
+}
+
 
 
 SharedGraphicsResource::SharedGraphicsResource() noexcept :mSize(0)

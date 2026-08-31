@@ -43,7 +43,7 @@
 #include <DirectXMath.h>
 #include <DirectXCollision.h>
 #include "d3dx12.h"
-
+#include "SDKMeshEffect.h"
 
 namespace DirectX
 {
@@ -68,10 +68,11 @@ namespace DirectX
             XMFLOAT3            specularColor;
             XMFLOAT3            emissiveColor;
 
+            //下面这个索引是
             int                 diffuseTextureIndex;
             int                 specularTextureIndex;
             int                 normalTextureIndex;
-            int                 emissiveTextureIndex;
+            int                 emissiveTextureIndex; 
 
             int                 samplerIndex;
             int                 samplerIndex2;
@@ -233,7 +234,6 @@ namespace DirectX
             std::shared_ptr<InputLayoutCollection>                  vbDecl;
         };
 
-
         //------------------------------------------------------------------------------
         // A mesh consists of one or more model mesh parts
         class  ModelMesh
@@ -248,7 +248,6 @@ namespace DirectX
             ModelMesh& operator= (ModelMesh const&) = delete;
 
             virtual ~ModelMesh();
-
 
             void __cdecl DrawOpaque(_In_ ID3D12GraphicsCommandList* commandList) const;
             void __cdecl DrawAlpha(_In_ ID3D12GraphicsCommandList* commandList) const;
@@ -284,9 +283,11 @@ namespace DirectX
             using ModelMaterialInfoCollection = std::vector<ModelMaterialInfo>;
             using TextureCollection = std::vector<std::wstring>;
 
-            const EffectInfo* getMaterialInfo(const ModelMeshPart& part) const;
+            const EffectInfo* GetMaterialInfo(const ModelMeshPart& part) const;
 
             std::size_t getTextureResouceSlotByNameIndex(int idx);
+
+            std::size_t GetMeshPartCount()const;
 
             // The Model::Draw* functions use variadic templates and perfect-forwarding in order to support future
             // overloads to the ModelMesh::Draw* family of functions. This means that a new ModelMesh overload can be
@@ -314,13 +315,18 @@ namespace DirectX
                 _In_opt_z_ const wchar_t* texturesPath = nullptr, int destinationDescriptorOffset = 0,
                 D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE) ;
 
+             std::vector< std::shared_ptr<SDKMesh::Effect> >  CreateEffect(SDKMesh::EffectPipelineStateDescription&);
 
             //test 测试这个model里的所有mesh是否material相同
              bool testEqualMaterial()const;
 
             ModelMesh::Collection           meshes;
-            ModelMaterialInfoCollection     materials;
-            TextureCollection               textureNames;
+
+            //part结构体里的materialindex可以访问这个容器后去材质
+            ModelMaterialInfoCollection     materials; 
+            
+            // 结构体EffectInfo:里纹理的索引:如:diffuseTextureIndex,可以访问这个变量(textureNames)获取纹理的名称
+            TextureCollection               textureNames; 
             ModelBone::Collection           bones;
             ModelBone::TransformArray       boneMatrices;
             ModelBone::TransformArray       invBindPoseMatrices;
@@ -338,7 +344,7 @@ namespace DirectX
             };
 
             using TextureCache = std::map< std::wstring, TextureCacheEntry >;
-            TextureCache                   mTextureCache;
+            TextureCache                   mTextureCache; //key:是纹理的名称
 
             std::vector<TextureCacheEntry> mResources; // flat list of unique resources so we can index into it
 
