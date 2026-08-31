@@ -9,7 +9,7 @@
 #include "common/D3DContext.h"
 #include "interface/FrameResourceContextInterface.h"
 #include "common/util.h"
-
+#include "common/BufferStruct.h"
 
 namespace SDKMesh
 {
@@ -32,19 +32,19 @@ public:
 	virtual void BuildMaterials();
 	void BuildPSOs();
 	void BuildTextures();
-
+	void BuildTextureResourceView();
 	void Update(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
 	void UpdateObjectCBs(const GameTimer& gt);
 
-	virtual void DrawRenderItem(ID3D12GraphicsCommandList* cmdList, const RenderItem* ritems);
-	virtual void DrawFrameResource(ID3D12CommandAllocator*)override;
+	void Draw(const GameTimer& gt)override;
+	void DrawFrameResource(ID3D12CommandAllocator*)override;
 
 	std::shared_ptr<SDKMesh::SDKMeshModel> m_sdkMeshModel = nullptr;	
 
 
-
+	PassConstantsWithFrog															m_MainPassCB;
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source
 

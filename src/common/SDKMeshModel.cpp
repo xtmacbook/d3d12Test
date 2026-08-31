@@ -1,5 +1,4 @@
 #include "SDKMeshModel.h"
-#include "Model.h"
 #include "DirectXHelpers.h"
 #include "Geometry.h"
 #include "Struct.h"
@@ -12,76 +11,77 @@ using Microsoft::WRL::ComPtr;
 namespace SDKMesh
 {
 
-	void SDKMeshModel::BuildMaterialsFromSDKMesh(UINT frameResourceIndex)
-	{
-		const auto& materials = m_model->materials;
-		UINT localFrameResourceIndex = frameResourceIndex;
-
-		for (auto i = 0;i < materials.size();++i)
-		{
-			const auto& sdkMaterial = materials[i];
-
-			auto material = std::make_unique<SDKMeshMaterial>();
-			
-			material->MaterialCBIndex = localFrameResourceIndex;
-			material->Name = WStringToString(sdkMaterial.name);
-			material->AmbientColor = sdkMaterial.ambientColor;
-			material->DiffuseColor = sdkMaterial.diffuseColor;
-			material->SpecularColor = sdkMaterial.specularColor;
-			material->EmissiveColor = sdkMaterial.emissiveColor;
-			material->SpecularPower = sdkMaterial.specularPower;
-
-			material->DiffuseTextureHeapIndex =  (sdkMaterial.diffuseTextureIndex == -1)? -1 : m_model->getTextureResouceSlotByNameIndex( sdkMaterial.diffuseTextureIndex);
-			material->SpecularTextureHeapIndex = (sdkMaterial.specularTextureIndex == -1)? -1 : m_model->getTextureResouceSlotByNameIndex( sdkMaterial.specularTextureIndex);
-			material->NormalTextureHeapIndex = (sdkMaterial.normalTextureIndex == -1)? -1 : m_model->getTextureResouceSlotByNameIndex( sdkMaterial.normalTextureIndex);
-			material->EmissiveTextureHeapIndex = (sdkMaterial.emissiveTextureIndex == -1)? -1 : m_model->getTextureResouceSlotByNameIndex( sdkMaterial.emissiveTextureIndex);
-			m_Materials.emplace_back(std::move(material));
-
-			localFrameResourceIndex++;
-		}
-	}
-
 	void SDKMeshModel::BuildTextures(ID3D12GraphicsCommandList* mCommandList)
 	{
 		m_model->LoadTextures(m_device,
 			mCommandList, (SourcePath() + L"Models/powerplant/").c_str(), 0);
 	}
 
-	void SDKMeshModel::BuildRenderItems(DirectX::XMMATRIX world, UINT frameResourceIndex)
+	void SDKMeshModel::DrawRenderItems(ID3D12CommandAllocator* allocator,
+		ID3D12Device* device,
+		ID3D12GraphicsCommandList* mCommandList, FrameResourceInterface * resouce,
+		ID3D12DescriptorHeap* heapDescriptor, UINT CbvSrvUavDescriptorSize)
 	{
-		UINT localFrameResourceIndex = frameResourceIndex;
-
-		for (auto& geo : m_opaqueGeometries)
-		{
-			auto ritem = std::make_unique<SDKMeshRenderItemWithMaterial>();
-			XMStoreFloat4x4(&ritem->m_World, world);
-			ritem->m_ObjCBIndex = localFrameResourceIndex;
-			ritem->m_Material = m_Materials[geo->m_DrawArgs["subMesh"].m_materialIndex].get();
-			ritem->m_Geo = geo.get();
-			ritem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			ritem->m_IndexCount = ritem->m_Geo->m_DrawArgs["subMesh"].m_IndexCount;
-			ritem->m_StartIndexLocation = ritem->m_Geo->m_DrawArgs["subMesh"].m_StartIndexLocation;
-			ritem->m_BaseVertexLocation = ritem->m_Geo->m_DrawArgs["subMesh"].m_BaseVertexLocation;
-			ritem->m_vbDecl = geo->m_DrawArgs["subMesh"].m_vbDecl;
-			m_opaqueRitems.push_back(std::move(ritem));
-			localFrameResourceIndex++;
-		}
 		 
-		for (auto& geo : m_alphaGeometries)
+		CD3DX12_GPU_DESCRIPTOR_HANDLE descriptorStart(heapDescriptor->GetGPUDescriptorHandleForHeapStart());
+
+		UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(SDKMesh::SDKMeshObjectConstants));
+		UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(SDKMesh::SDKMeshMaterialConstants));
+
+		int meshIdex = 0;
+		int descriptorC = 0;
+		for (auto& mesh : m_model->meshes)
 		{
-			auto ritem = std::make_unique<SDKMeshRenderItemWithMaterial>();
-			XMStoreFloat4x4(&ritem->m_World, world);
-			ritem->m_ObjCBIndex = localFrameResourceIndex;
-			ritem->m_Material = m_Materials[geo->m_DrawArgs["subMesh"].m_materialIndex].get();
-			ritem->m_Geo = geo.get();
-			ritem->m_PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			ritem->m_IndexCount = ritem->m_Geo->m_DrawArgs["subMesh"].m_IndexCount;
-			ritem->m_StartIndexLocation = ritem->m_Geo->m_DrawArgs["subMesh"].m_StartIndexLocation;
-			ritem->m_BaseVertexLocation = ritem->m_Geo->m_DrawArgs["subMesh"].m_BaseVertexLocation;
-			ritem->m_vbDecl = geo->m_DrawArgs["subMesh"].m_vbDecl;
-			m_alphaRitems.push_back(std::move(ritem));
-			localFrameResourceIndex++;
+			int opaqueMPIndex = 0;
+			for (auto& opaqueMP : mesh->opaqueMeshParts)
+			{
+				int partIndex = opaqueMP->partIndex;
+
+				Effect* effect = m_effects[partIndex].get();
+
+				mCommandList->SetPipelineState(effect->m_PSO.Get());
+				//ThrowIfFailed(mCommandList->Reset(allocator, effect->m_PSO.Get()));
+
+				//set obj const
+				UINT64 offset = static_cast<UINT64>(partIndex) * objCBByteSize;
+				D3D12_GPU_VIRTUAL_ADDRESS startAddress = resouce->getConstGpuAddress();
+
+				mCommandList->SetGraphicsRootConstantBufferView(0, startAddress + offset);
+				
+				//set texture
+				const auto& material =  m_model->materials[opaqueMP->materialIndex];
+
+				INT diffusetLocalOffset = getTextureOffset(material.diffuseTextureIndex);
+				INT normalLocalOffset =  getTextureOffset(material.normalTextureIndex);
+
+				CD3DX12_GPU_DESCRIPTOR_HANDLE diffuseTextureHandle = descriptorStart;
+				CD3DX12_GPU_DESCRIPTOR_HANDLE normalTextureHandle = descriptorStart;
+				diffuseTextureHandle.Offset(m_textureDescriptorOffset + diffusetLocalOffset, CbvSrvUavDescriptorSize);
+				normalTextureHandle.Offset(m_textureDescriptorOffset + normalLocalOffset, CbvSrvUavDescriptorSize);
+
+				mCommandList->SetGraphicsRootDescriptorTable(3, diffuseTextureHandle);
+				mCommandList->SetGraphicsRootDescriptorTable(4, normalTextureHandle);
+
+				//set material
+				D3D12_GPU_VIRTUAL_ADDRESS matCBAddress =
+					resouce->getMaterialGpuAddress() +
+					opaqueMP->materialIndex  * matCBByteSize;
+				mCommandList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+
+				opaqueMP->Draw(mCommandList);
+
+				opaqueMPIndex++;
+				descriptorC++;
+			}
+
+			for (auto& alphaMP : mesh->alphaMeshParts)
+			{
+				alphaMP->Draw(mCommandList);
+			}
+
+			meshIdex++;
 		}
+
 	}
 
 	UINT SDKMeshModel::GetTextureCount() const
@@ -93,105 +93,63 @@ namespace SDKMesh
 
 	UINT SDKMeshModel::GetRenderItemCount() const
 	{
-		return m_alphaRitems.size() + m_opaqueRitems.size();
+		return m_model->GetMeshPartCount();
 	}
 
 	UINT SDKMeshModel::GetMaterialCount() const
 	{
-		return m_Materials.size();
+		return m_model->materials.size();
 	}
 
 	void SDKMeshModel::UpdateObjectCBs(const GameTimer& gt, FrameResourceInterface* frameResource)
 	{
-		for (auto& e : m_opaqueRitems)
+		for (auto& mesh : m_model->meshes)
 		{
-			SDKMeshRenderItemWithMaterial* itemWithM = static_cast<SDKMeshRenderItemWithMaterial*>(e.get());
-
-			if (itemWithM->m_NumFramesDirty > 0)
+			for (auto& opaqueMP : mesh->opaqueMeshParts)
 			{
-				XMMATRIX world = XMLoadFloat4x4(&e->m_World);
-
+				XMMATRIX world= DirectX::XMMatrixIdentity();
 				SDKMeshObjectConstants objConstants;
-				XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(world));
 				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-
-				frameResource->CopyConstData(itemWithM->m_ObjCBIndex, &objConstants);
-				e->m_NumFramesDirty--;
+				frameResource->CopyConstData(opaqueMP->partIndex, &objConstants);
+			}
+			
+			for (auto& alphaMP : mesh->alphaMeshParts)
+			{
+				XMMATRIX world = DirectX::XMMatrixIdentity();
+				SDKMeshObjectConstants objConstants;
+				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+				frameResource->CopyConstData(alphaMP->partIndex, &objConstants);
 			}
 		}
 	}
 
 	void SDKMeshModel::UpdateMaterialCBs(const GameTimer& gt, FrameResourceInterface* frameResource)
 	{
-		for (auto& e : m_Materials)
+		int idx = 0;
+
+		for (auto& mat : m_model->materials)
 		{
-			SDKMeshMaterial* mat = static_cast<SDKMeshMaterial*>(e.get());
-			if (mat->NumFramesDirty > 0)
-			{
-				SDKMeshMaterialConstants matConstants;
-				matConstants.DiffuseAlbedo = mat->DiffuseColor;
-				matConstants.EmissiveColor = mat->EmissiveColor;
-				matConstants.SpecularColor = mat->SpecularColor;
-				matConstants.SpecularPower = mat->SpecularPower;
-				matConstants.ambientColor = mat->ambientColor;
+			SDKMeshMaterialConstants matConstants;
 
-				frameResource->CopyMaterialData(mat->MaterialCBIndex, &matConstants);
+			matConstants.DiffuseAlbedo.x = mat.diffuseColor.x;
+			matConstants.DiffuseAlbedo.y = mat.diffuseColor.y;
+			matConstants.DiffuseAlbedo.z = mat.diffuseColor.z;
 
-				mat->NumFramesDirty--;
-			}
+			matConstants.SpecularColor = mat.specularColor;
+			matConstants.EmissiveColor = mat.ambientColor;
+			matConstants.SpecularPower = mat.specularPower;
+
+			frameResource->CopyMaterialData(idx, &matConstants);
+
+			idx++;
 		}
 	}
 
-	void SDKMeshModel::BuildPSOs(D3D12_GRAPHICS_PIPELINE_STATE_DESC desc,Microsoft::WRL::ComPtr<ID3DBlob> standardVS,
-		Microsoft::WRL::ComPtr<ID3DBlob> opaquesPS, 
-		Microsoft::WRL::ComPtr<ID3DBlob> alphaPS)
+	void SDKMeshModel::CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
 	{
-		for (auto& ritem : m_opaqueRitems)
-		{
-			auto& drawAble = ritem->m_Geo->m_DrawArgs["subMesh"];
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
-			ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-			opaquePsoDesc = desc;
-
-			opaquePsoDesc.InputLayout = { drawAble.m_vbDecl.get()->data(), (UINT)drawAble.m_vbDecl.get()->size() };
-			opaquePsoDesc.VS =
-			{
-				reinterpret_cast<BYTE*>(standardVS->GetBufferPointer()),
-				standardVS->GetBufferSize()
-			};
-			opaquePsoDesc.PS =
-			{
-				reinterpret_cast<BYTE*>(opaquesPS->GetBufferPointer()),
-				opaquesPS->GetBufferSize()
-			};
-		
-			ThrowIfFailed(m_device->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(& ritem->m_PSO)));
-		}
-
-		for (auto& ritem : m_alphaRitems)
-		{
-			auto& drawAble = ritem->m_Geo->m_DrawArgs["subMesh"];
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC alphPsoDesc;
-			ZeroMemory(&alphPsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-			alphPsoDesc = desc;
-
-			alphPsoDesc.InputLayout = { drawAble.m_vbDecl.get()->data(), (UINT)drawAble.m_vbDecl.get()->size() };
-			alphPsoDesc.VS =
-			{
-				reinterpret_cast<BYTE*>(standardVS->GetBufferPointer()),
-				standardVS->GetBufferSize()
-			};
-			alphPsoDesc.PS =
-			{
-				reinterpret_cast<BYTE*>(opaquesPS->GetBufferPointer()),
-				alphaPS->GetBufferSize()
-			};
-
-			ThrowIfFailed(m_device->CreateGraphicsPipelineState(&alphPsoDesc, IID_PPV_ARGS(&ritem->m_PSO)));
-		}
-
+		m_effects = m_model->CreateEffect(pipeLineStateDescription);
 	}
-	
+
 	SDKMeshModel::SDKMeshModel(ID3D12Device* device)
 	{
 		m_device = device;
@@ -208,59 +166,16 @@ namespace SDKMesh
 	void SDKMeshModel::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 	{
 		m_model->LoadStaticBuffers(device, mCommandList, false);
-
-		SubmeshGeometry submesh;
-		submesh.m_StartIndexLocation = 0;
-		submesh.m_BaseVertexLocation = 0;
-
-		for (const auto& mesh : m_model->meshes)
-		{
-			for (const auto& part : mesh->opaqueMeshParts)
-			{
-				auto geo = std::make_unique<MeshGeometry>();
-
-				geo->m_VertexBufferGPU = part->staticVertexBuffer;
-				geo->m_IndexBufferGPU = part->staticIndexBuffer;
-
-				geo->m_VertexByteStride = part->vertexStride;
-				geo->m_VertexBufferByteSize = part->vertexBufferSize;
-				geo->m_IndexFormat = part->indexFormat;
-				geo->m_IndexBufferByteSize = part->indexBufferSize;
-				submesh.m_IndexCount = part->indexCount;
-				submesh.m_materialIndex = part->materialIndex;
-				submesh.m_vbDecl = part->vbDecl;
-				geo->m_DrawArgs["subMesh"] = submesh;
-
-				m_opaqueGeometries.emplace_back(std::move(geo));
-			}
-
-			for (const auto& part : mesh->alphaMeshParts)
-			{
-				auto geo = std::make_unique<MeshGeometry>();
-
-				geo->m_VertexBufferGPU = part->staticVertexBuffer;
-				geo->m_IndexBufferGPU = part->staticIndexBuffer;
-
-				geo->m_VertexByteStride = part->vertexStride;
-				geo->m_VertexBufferByteSize = part->vertexBufferSize;
-				geo->m_IndexFormat = part->indexFormat;
-				geo->m_IndexBufferByteSize = part->indexBufferSize;
-				submesh.m_IndexCount = part->indexCount;
-				submesh.m_materialIndex = part->materialIndex;
-				submesh.m_vbDecl = part->vbDecl;
-				geo->m_DrawArgs["subMesh"] = submesh;
-
-				m_alphaGeometries.emplace_back(std::move(geo));
-			}
-		}
-
 	}
 
-	void SDKMeshModel::BuildDescriptorHeaps(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+	void SDKMeshModel::BuildTextureResourceView(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
+		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+		INT offset,
 		UINT CbvSrvUavDescriptorSize)
 	{
 		m_HeapCPUSrv = hCpuSrv;
 		m_HeapGpuSRrv = hGpuSrv;
+		m_textureDescriptorOffset = offset;
 
 		int idx = 0;
 		for (auto iter = m_model->mResources.begin(); iter != m_model->mResources.end(); iter++)
@@ -275,6 +190,16 @@ namespace SDKMesh
 
 			idx++;
 		}
+	}
+
+	UINT SDKMeshModel::getTextureOffset(int textureIndex)
+	{
+		auto& textureName =  m_model->textureNames[textureIndex];
+
+		auto find = m_model->mTextureCache.find(textureName);
+		if (find == m_model->mTextureCache.end()) return -1;
+
+		return find->second.slot + m_textureDescriptorOffset;
 	}
 
 }

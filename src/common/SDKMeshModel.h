@@ -5,6 +5,8 @@
 #include "Util.h"
 #include "Struct.h"
 #include "GameTimer.h"
+#include "Model.h"
+#include "SDKMeshEffect.h"
 
 #include <memory>
 #include <vector>
@@ -32,7 +34,6 @@ namespace SDKMesh
         float                        SpecularPower;
         
         int							 NumFramesDirty = 3;
-		int							 MaterialCBIndex = -1; //在frameResource里的material常量缓冲区的索引
 
         int                 DiffuseTextureHeapIndex;
         int                 SpecularTextureHeapIndex;
@@ -40,17 +41,10 @@ namespace SDKMesh
         int                 EmissiveTextureHeapIndex;
     };
 
-    struct SDKMeshRenderItemWithMaterial : public RenderItem
-    {
-        SDKMeshMaterial* m_Material = nullptr;
-        std::shared_ptr<std::vector<D3D12_INPUT_ELEMENT_DESC> >  m_vbDecl = nullptr;  
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> m_PSO = nullptr;
-    };
 
     //buffer
 	struct SDKMeshObjectConstants
 	{
-		DirectX::XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
 		DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
 	};
 
@@ -96,14 +90,18 @@ namespace SDKMesh
 
         void BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList);
 
-        void BuildDescriptorHeaps(
-            CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, UINT CbvSrvUavDescriptorSize);
+        void BuildTextureResourceView(
+            CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+            INT offset,
+            UINT CbvSrvUavDescriptorSize);
 
-        void BuildMaterialsFromSDKMesh(UINT frameResouceIndex);
+        UINT getTextureOffset(int textureIndex);
 
         void BuildTextures(ID3D12GraphicsCommandList* mCommandList);
 
-        void BuildRenderItems(DirectX::XMMATRIX world,UINT frameResourceIndex);
+        void DrawRenderItems(ID3D12CommandAllocator* allocator,
+            ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList, 
+            FrameResourceInterface*, ID3D12DescriptorHeap*, UINT);
 
         UINT GetTextureCount()const;
 
@@ -111,27 +109,19 @@ namespace SDKMesh
 
         UINT GetMaterialCount()const;
 
+        void CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription);
+
         void UpdateObjectCBs(const GameTimer& gt, FrameResourceInterface* frameResource);
         void UpdateMaterialCBs(const GameTimer& gt, FrameResourceInterface* frameResource);
-
-        void BuildPSOs(D3D12_GRAPHICS_PIPELINE_STATE_DESC desc,Microsoft::WRL::ComPtr<ID3DBlob> standardVS,
-            Microsoft::WRL::ComPtr<ID3DBlob> opaquesPS,
-            Microsoft::WRL::ComPtr<ID3DBlob> alphaPS);
 
         ID3D12Device* m_device = nullptr;
 
         std::shared_ptr< DirectX::DX12::Model> m_model = nullptr;
 
-        std::vector< std::unique_ptr<MeshGeometry> >					                m_opaqueGeometries;
-        std::vector< std::unique_ptr<MeshGeometry> >					                m_alphaGeometries;
-
-        std::vector<std::unique_ptr<SDKMeshRenderItemWithMaterial>>										m_opaqueRitems;
-        std::vector<std::unique_ptr<SDKMeshRenderItemWithMaterial>>										m_alphaRitems;
-
-        std::vector<std::unique_ptr<SDKMeshMaterial>>						            m_Materials;
-
         CD3DX12_GPU_DESCRIPTOR_HANDLE			                                        m_HeapGpuSRrv;
         CD3DX12_CPU_DESCRIPTOR_HANDLE			                                        m_HeapCPUSrv;
+        INT                                                                            m_textureDescriptorOffset;
+        std::vector< std::shared_ptr<SDKMesh::Effect> >                                          m_effects;
 
     }; 
 

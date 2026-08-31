@@ -8,6 +8,8 @@
 #include <set>
 #include <map>
 
+//SDKMesh 文件格式见:https://github.com/walbourn/contentexporter/wiki/SDKMESH
+//http://richardssoftware.net/Images/sdkmesh/sdkmesh.pdf
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
@@ -242,24 +244,24 @@ namespace
                 bool unk = false;
                 switch (decl[index].Type)
                 {
-                case D3DDECLTYPE_FLOAT3:                 assert(desc.Format == DXGI_FORMAT_R32G32B32_FLOAT); offset += 12; break;
-                case D3DDECLTYPE_UBYTE4N:                desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; flags |= BIASED_VERTEX_NORMALS; offset += 4; break;
-                case D3DDECLTYPE_SHORT4N:                desc.Format = DXGI_FORMAT_R16G16B16A16_SNORM; offset += 8; break;
-                case D3DDECLTYPE_FLOAT16_4:              desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; offset += 8; break;
-                case D3DDECLTYPE_DXGI_R10G10B10A2_UNORM: desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM; flags |= BIASED_VERTEX_NORMALS; offset += 4; break;
-                case D3DDECLTYPE_DXGI_R11G11B10_FLOAT:   desc.Format = DXGI_FORMAT_R11G11B10_FLOAT; flags |= BIASED_VERTEX_NORMALS; offset += 4; break;
-                case D3DDECLTYPE_DXGI_R8G8B8A8_SNORM:    desc.Format = DXGI_FORMAT_R8G8B8A8_SNORM; offset += 4; break;
+                    case D3DDECLTYPE_FLOAT3:                 assert(desc.Format == DXGI_FORMAT_R32G32B32_FLOAT); offset += 12; break;
+                    case D3DDECLTYPE_UBYTE4N:                desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; flags |= BIASED_VERTEX_NORMALS; offset += 4; break;
+                    case D3DDECLTYPE_SHORT4N:                desc.Format = DXGI_FORMAT_R16G16B16A16_SNORM; offset += 8; break;
+                    case D3DDECLTYPE_FLOAT16_4:              desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; offset += 8; break;
+                    case D3DDECLTYPE_DXGI_R10G10B10A2_UNORM: desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM; flags |= BIASED_VERTEX_NORMALS; offset += 4; break;
+                    case D3DDECLTYPE_DXGI_R11G11B10_FLOAT:   desc.Format = DXGI_FORMAT_R11G11B10_FLOAT; flags |= BIASED_VERTEX_NORMALS; offset += 4; break;
+                    case D3DDECLTYPE_DXGI_R8G8B8A8_SNORM:    desc.Format = DXGI_FORMAT_R8G8B8A8_SNORM; offset += 4; break;
 
-                #if (defined(_XBOX_ONE) && defined(_TITLE)) || defined(_GAMING_XBOX)
-                case D3DDECLTYPE_DEC3N:                  desc.Format = DXGI_FORMAT_R10G10B10_SNORM_A2_UNORM; offset += 4; break;
-                case (32 + DXGI_FORMAT_R10G10B10_SNORM_A2_UNORM): desc.Format = DXGI_FORMAT_R10G10B10_SNORM_A2_UNORM; offset += 4; break;
-                #else
-                case D3DDECLTYPE_DEC3N:                  desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM; flags |= USES_OBSOLETE_DEC3N; offset += 4; break;
-                #endif
+                    #if (defined(_XBOX_ONE) && defined(_TITLE)) || defined(_GAMING_XBOX)
+                    case D3DDECLTYPE_DEC3N:                  desc.Format = DXGI_FORMAT_R10G10B10_SNORM_A2_UNORM; offset += 4; break;
+                    case (32 + DXGI_FORMAT_R10G10B10_SNORM_A2_UNORM): desc.Format = DXGI_FORMAT_R10G10B10_SNORM_A2_UNORM; offset += 4; break;
+                    #else
+                    case D3DDECLTYPE_DEC3N:                  desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM; flags |= USES_OBSOLETE_DEC3N; offset += 4; break;
+                    #endif
 
-                default:
-                    unk = true;
-                    break;
+                    default:
+                        unk = true;
+                        break;
                 }
 
                 if (unk)
@@ -491,7 +493,9 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
     // Create vertex buffers
     std::vector<std::shared_ptr<ModelMeshPart::InputLayoutCollection>> vbDecls;
-    vbDecls.resize(header->NumVertexBuffers);
+    //看来不同的vertexbuffer,使用不同的 Decl: This is an array of D3DVERTEXELEMENT9 structures,
+    // which is used to describe the members of a vertex structure. This is saved as a fixed-size array of 32 elements.
+    vbDecls.resize(header->NumVertexBuffers); 
 
     std::vector<unsigned int> materialFlags;
     materialFlags.resize(header->NumVertexBuffers);
@@ -593,7 +597,7 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
             || (dataSize < oneMeshData.SubsetOffset + sizeBytes))
             throw std::runtime_error("End of file");
 
-        auto subsets = reinterpret_cast<const uint32_t*>(meshData + oneMeshData.SubsetOffset);
+        auto subsets = reinterpret_cast<const uint32_t*>(meshData + oneMeshData.SubsetOffset); //这块获取subsets的起始地址
 
         const uint32_t* influences = nullptr;
         if (oneMeshData.NumFrameInfluences > 0)
@@ -632,31 +636,31 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
         // Create subsets
         for (size_t j = 0; j < oneMeshData.NumSubsets; ++j)
         {
-            const auto sIndex = subsets[j];
+            const auto sIndex = subsets[j];//获取的是subset的index
             if (sIndex >= header->NumTotalSubsets)
                 throw std::out_of_range("Invalid mesh found");
 
-            auto& subset = subsetArray[sIndex];
+            const DXUT::SDKMESH_SUBSET& subset = subsetArray[sIndex];
 
             D3D_PRIMITIVE_TOPOLOGY primType;
             switch (subset.PrimitiveType)
             {
-            case DXUT::PT_TRIANGLE_LIST:        primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;       break;
-            case DXUT::PT_TRIANGLE_STRIP:       primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;      break;
-            case DXUT::PT_LINE_LIST:            primType = D3D_PRIMITIVE_TOPOLOGY_LINELIST;           break;
-            case DXUT::PT_LINE_STRIP:           primType = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;          break;
-            case DXUT::PT_POINT_LIST:           primType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;          break;
-            case DXUT::PT_TRIANGLE_LIST_ADJ:    primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;   break;
-            case DXUT::PT_TRIANGLE_STRIP_ADJ:   primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;  break;
-            case DXUT::PT_LINE_LIST_ADJ:        primType = D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;       break;
-            case DXUT::PT_LINE_STRIP_ADJ:       primType = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;      break;
+                case DXUT::PT_TRIANGLE_LIST:        primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;       break;
+                case DXUT::PT_TRIANGLE_STRIP:       primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;      break;
+                case DXUT::PT_LINE_LIST:            primType = D3D_PRIMITIVE_TOPOLOGY_LINELIST;           break;
+                case DXUT::PT_LINE_STRIP:           primType = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;          break;
+                case DXUT::PT_POINT_LIST:           primType = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;          break;
+                case DXUT::PT_TRIANGLE_LIST_ADJ:    primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;   break;
+                case DXUT::PT_TRIANGLE_STRIP_ADJ:   primType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;  break;
+                case DXUT::PT_LINE_LIST_ADJ:        primType = D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;       break;
+                case DXUT::PT_LINE_STRIP_ADJ:       primType = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;      break;
 
-            case DXUT::PT_QUAD_PATCH_LIST:
-            case DXUT::PT_TRIANGLE_PATCH_LIST:
-                throw std::runtime_error("Direct3D9 era tessellation not supported");
+                case DXUT::PT_QUAD_PATCH_LIST:
+                case DXUT::PT_TRIANGLE_PATCH_LIST:
+                    throw std::runtime_error("Direct3D9 era tessellation not supported");
 
-            default:
-                throw std::runtime_error("Unknown primitive type");
+                default:
+                    throw std::runtime_error("Unknown primitive type");
             }
 
             if (subset.MaterialID >= header->NumMaterials)
@@ -685,29 +689,33 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
             auto part = std::make_unique<ModelMeshPart>(partCount++);
 
-            const auto& vh = vbArray[oneMeshData.VertexBuffers[0]];//这个还是SDKMESH_VERTEX_BUFFER_HEADER结构体
-            const auto& ih = ibArray[oneMeshData.IndexBuffer];
+            const DXUT::SDKMESH_VERTEX_BUFFER_HEADER& vertexBufferHeader = vbArray[oneMeshData.VertexBuffers[0]];//这个还是SDKMESH_VERTEX_BUFFER_HEADER结构体
+            const DXUT::SDKMESH_INDEX_BUFFER_HEADER& indexBufferHeader = ibArray[oneMeshData.IndexBuffer];
 
             part->indexCount = static_cast<uint32_t>(subset.IndexCount);
             part->startIndex = static_cast<uint32_t>(subset.IndexStart);
+
             part->vertexOffset = static_cast<int32_t>(subset.VertexStart);
-            part->vertexStride = static_cast<uint32_t>(vh.StrideBytes);
+            part->vertexStride = static_cast<uint32_t>(vertexBufferHeader.StrideBytes);
             part->vertexCount = static_cast<uint32_t>(subset.VertexCount);
+
             part->primitiveType = primType;
             part->indexFormat = (ibArray[oneMeshData.IndexBuffer].IndexType == DXUT::IT_32BIT) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
             // Vertex data
-            auto verts = bufferData + (vh.DataOffset - bufferDataOffset);
-            const auto vbytes = static_cast<size_t>(vh.SizeBytes);
-            part->vertexBufferSize = static_cast<uint32_t>(vh.SizeBytes);
-            part->vertexBuffer = SharedGraphicsResource(device, verts, vbytes);//  GraphicsMemory::Get(device).Allocate(vbytes, 16, GraphicsMemory::TAG_VERTEX);
+            const uint8_t* verts = bufferData + (vertexBufferHeader.DataOffset - bufferDataOffset);
+            const auto vbytes = static_cast<size_t>(vertexBufferHeader.SizeBytes);
+            part->vertexBufferSize = static_cast<uint32_t>(vertexBufferHeader.SizeBytes);
+            part->vertexBuffer = SharedGraphicsResource(device, verts, vbytes);
+            //  GraphicsMemory::Get(device).Allocate(vbytes, 16, GraphicsMemory::TAG_VERTEX);
             //memcpy(part->vertexBuffer.Memory(), verts, vbytes);
 
             // Index data
-            auto indices = bufferData + (ih.DataOffset - bufferDataOffset);
-            const auto ibytes = static_cast<size_t>(ih.SizeBytes);
-            part->indexBufferSize = static_cast<uint32_t>(ih.SizeBytes);
-            part->indexBuffer = SharedGraphicsResource(device, indices, ibytes);//  GraphicsMemory::Get(device).Allocate(ibytes, 16, GraphicsMemory::TAG_INDEX);
+            auto indices = bufferData + (indexBufferHeader.DataOffset - bufferDataOffset);
+            const auto ibytes = static_cast<size_t>(indexBufferHeader.SizeBytes);
+            part->indexBufferSize = static_cast<uint32_t>(indexBufferHeader.SizeBytes);
+            part->indexBuffer = SharedGraphicsResource(device, indices, ibytes);
+            //  GraphicsMemory::Get(device).Allocate(ibytes, 16, GraphicsMemory::TAG_INDEX);
            // memcpy(part->indexBuffer.Memory(), indices, ibytes);
 
             part->materialIndex = subset.MaterialID;
@@ -727,7 +735,7 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
     model->textureNames.resize(textureDictionary.size());
     for (auto texture = std::cbegin(textureDictionary); texture != std::cend(textureDictionary); ++texture)
     {
-        model->textureNames[static_cast<size_t>(texture->second)] = texture->first;
+        model->textureNames[static_cast<size_t>(texture->second)] = texture->first; 
     }
 
     // Load model bones (if present and requested)

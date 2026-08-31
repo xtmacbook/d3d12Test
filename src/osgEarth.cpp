@@ -32,11 +32,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		CascadedShadowMaps d3dContext;
+		//CascadedShadowMaps d3dContext;
 		
+		ShadowMapContext d3dContext;
+		
+
 		MainApp app(hInstance, &d3dContext);
 
-		app.setRadius(12.0f);
 		app.setPixelUnitScale(0.2, 0.2);
 		app.setSceneClampRange(5.0f, 150.f);
 		
