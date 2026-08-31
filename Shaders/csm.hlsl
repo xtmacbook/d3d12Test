@@ -22,7 +22,6 @@ SamplerState gsamAnisotropicWrap  : register(s0);
 cbuffer cbPerObject : register(b0)
 {
     float4x4 gWorld;
-    float4x4 gWorldViewProj;
 };
 
 // Constant data that varies per pass.
@@ -90,7 +89,10 @@ VertexOut VS(VertexIn vin)
 {
     VertexOut vout = (VertexOut)0.0f;
 
-     
+    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+    vout.PosW = posW.xyz;
+    vout.PosH = mul(posW, gViewProj);
+
     return vout;
 }
 

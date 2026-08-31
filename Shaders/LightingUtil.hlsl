@@ -20,7 +20,7 @@ struct Material
 {
     float4 DiffuseAlbedo;
     float3 FresnelR0;
-    float Shininess;
+    float  Shininess;
 };
 
 float CalcAttenuation(float d, float falloffStart, float falloffEnd)
