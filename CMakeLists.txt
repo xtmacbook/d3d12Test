@@ -41,6 +41,10 @@ set (COMMON_SOURCE
     src/common/ModelLoadSDKMESH.cpp
     src/common/Model.cpp
     src/common/BinaryReader.cpp
+    src/common/DirectXHelpers.cpp
+    src/common/SDKMeshModel.cpp
+    src/common/SDKMeshEffect.cpp
+    src/common/Camera.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -64,6 +68,10 @@ set (COMMON_SOURCE_HEADS
     src/common/Model.h
     src/common/SDKMesh.h
     src/common/BinaryReader.h
+    src/common/DirectXHelpers.h
+    src/common/SDKMeshModel.h
+    src/common/SDKMeshEffect.h
+    src/common/Camera.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
