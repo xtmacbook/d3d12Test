@@ -6,7 +6,7 @@
 
 #define MaxLights 16
 
-struct Light
+struct PBRLight
 {
     float3 Strength;
     float FalloffStart; // point/spot light only
@@ -16,11 +16,32 @@ struct Light
     float SpotPower;    // spot light only
 };
 
-struct Material
+struct PBRMaterial
 {
     float4 DiffuseAlbedo;
     float3 FresnelR0;
     float  Shininess;
+};
+
+struct Light
+{
+    float4 LightDirection;
+    float4 LightDiffuseColor;
+    float4 LightSpecularColor;
+};
+
+struct MaterialNoPBR
+{
+    float4  gDiffuseColor; 
+    float3  gEmissiveColor;             
+    float3  gSpecularColor;            
+    float   gSpecularPower; 
+};
+
+struct ColorPair
+{
+    float3 Diffuse;
+    float3 Specular;
 };
 
 float CalcAttenuation(float d, float falloffStart, float falloffEnd)
@@ -41,7 +62,7 @@ float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
     return reflectPercent;
 }
 
-float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, Material mat)
+float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, PBRMaterial mat)
 {
     const float m = mat.Shininess * 256.0f;
     float3 halfVec = normalize(toEye + lightVec);
@@ -61,7 +82,7 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
 //---------------------------------------------------------------------------------------
 // Evaluates the lighting equation for directional lights.
 //---------------------------------------------------------------------------------------
-float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye)
+float3 ComputeDirectionalLight(PBRLight L, PBRMaterial mat, float3 normal, float3 toEye)
 {
     // The light vector aims opposite the direction the light rays travel.
     float3 lightVec = -L.Direction;
@@ -76,7 +97,7 @@ float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEy
 //---------------------------------------------------------------------------------------
 // Evaluates the lighting equation for point lights.
 //---------------------------------------------------------------------------------------
-float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
+float3 ComputePointLight(PBRLight L, PBRMaterial mat, float3 pos, float3 normal, float3 toEye)
 {
     // The vector from the surface to the light.
     float3 lightVec = L.Position - pos;
@@ -105,7 +126,7 @@ float3 ComputePointLight(Light L, Material mat, float3 pos, float3 normal, float
 //---------------------------------------------------------------------------------------
 // Evaluates the lighting equation for spot lights.
 //---------------------------------------------------------------------------------------
-float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3 toEye)
+float3 ComputeSpotLight(PBRLight L, PBRMaterial mat, float3 pos, float3 normal, float3 toEye)
 {
     // The vector from the surface to the light.
     float3 lightVec = L.Position - pos;
@@ -135,7 +156,7 @@ float3 ComputeSpotLight(Light L, Material mat, float3 pos, float3 normal, float3
     return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }
 
-float4 ComputeLighting(Light gLights[MaxLights], Material mat,
+float4 ComputeLighting(PBRLight gLights[MaxLights], PBRMaterial mat,
     float3 pos, float3 normal, float3 toEye,
     float3 shadowFactor)
 {
@@ -167,4 +188,38 @@ float4 ComputeLighting(Light gLights[MaxLights], Material mat,
     return float4(result, 0.0f);
 }
 
+ColorPair ComputeLights(float3 eyeVector, float3 worldNormal, 
+Light lights[MaxLights],MaterialNoPBR mat,
+uniform int numLights)
+{
+    float3x3 lightDirections = 0;
+    float3x3 lightDiffuse = 0;
+    float3x3 lightSpecular = 0;
+    float3x3 halfVectors = 0;
+
+    [unroll]
+    for (int i = 0; i < numLights; i++)
+    {
+        lightDirections[i] = lights[i].LightDirection;
+        lightDiffuse[i] = lights[i].LightDiffuseColor;
+        lightSpecular[i] = lights[i].LightSpecularColor;
+
+        halfVectors[i] = normalize(eyeVector - lightDirections[i]);
+    }
+
+    float3 dotL = mul(-lightDirections, worldNormal);
+    float3 dotH = mul(halfVectors, worldNormal);
+
+    float3 zeroL = step(0, dotL);
+
+    float3 diffuse = zeroL * dotL;
+    float3 specular = pow(max(dotH, 0) * zeroL, mat.gSpecularPower) * dotL;
+
+    ColorPair result;
+
+    result.Diffuse = mul(diffuse, lightDiffuse)  * mat.gDiffuseColor.rgb + mat.gEmissiveColor;
+    result.Specular = mul(specular, lightSpecular) * mat.gSpecularColor;
+
+    return result;
+}
 

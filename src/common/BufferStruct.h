@@ -133,13 +133,13 @@ struct PassConstantsWithShadow
 struct PassConstantsWithLight : public PassConstants
 {
 	DirectX::XMFLOAT4			m_AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
-	Light						m_Lights[MaxLights];
+	PRBLight					m_Lights[MaxLights];
 };
 
 struct PassConstantsWithLightAndShadow : public PassConstantsWithShadow
 {
 	DirectX::XMFLOAT4			m_AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
-	Light						m_Lights[MaxLights];
+	PRBLight					m_Lights[MaxLights];
 };
 
 
@@ -152,8 +152,14 @@ struct PassConstantsWithFrog : public PassConstants
 	float                       gFogRange = 150.0f;
 	DirectX::XMFLOAT2           cbPerObjectPad2;
 
-	Light						m_Lights[MaxLights];
+	PRBLight					m_Lights[MaxLights];
 
+};
+
+//这里的light 不是pbr的light
+struct PassConstantsWithNLight : public PassConstants
+{
+	Light			  m_Lights[MaxLights];
 };
 
 /*

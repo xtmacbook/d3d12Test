@@ -154,7 +154,7 @@ void CascadedShadowMaps::BuildFrameResources()
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
 		m_frameResources.push_back(std::make_unique<FrameResourceWithConstMaterial<SDKMesh::SDKMeshObjectConstants,
-			PassConstantsWithFrog, SDKMesh::SDKMeshMaterialConstants>  >(m_d3dDevice.Get(),
+			PassConstantsWithNLight, SDKMesh::SDKMeshMaterialConstants>  >(m_d3dDevice.Get(),
 				1, (UINT) m_sdkMeshModel->GetRenderItemCount(), (UINT)m_sdkMeshModel->GetMaterialCount()));
 	}
 }
@@ -182,13 +182,17 @@ void CascadedShadowMaps::UpdateMainPassCB(const GameTimer& gt)
 {
 	UPDATE_MAIN_PASS;
 
-	m_MainPassCB.m_AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	m_MainPassCB.m_Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[0].Strength = { 0.9f, 0.9f, 0.8f };
-	m_MainPassCB.m_Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	m_MainPassCB.m_Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
-	m_MainPassCB.m_Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	m_MainPassCB.m_Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+	m_MainPassCB.m_Lights[0].lightDirection     = { -0.5265408f, -0.5735765f, -0.6275069f, 0 };
+	m_MainPassCB.m_Lights[0].lightDiffuseColor  = { 1.0000000f, 0.9607844f, 0.8078432f, 0 };
+	m_MainPassCB.m_Lights[0].lightSpecularColor = { 1.0000000f, 0.9607844f, 0.8078432f, 0 };
+
+	m_MainPassCB.m_Lights[1].lightDirection     = { 0.7198464f,  0.3420201f,  0.6040227f, 0 };
+	m_MainPassCB.m_Lights[1].lightDiffuseColor = { 0.9647059f, 0.7607844f, 0.4078432f, 0 };
+	m_MainPassCB.m_Lights[1].lightSpecularColor= { 0.0000000f, 0.0000000f, 0.0000000f, 0 };
+	
+	m_MainPassCB.m_Lights[2].lightDirection    = { 0.4545195f, -0.7660444f,  0.4545195f, 0 };
+	m_MainPassCB.m_Lights[2].lightDiffuseColor = { 0.3231373f, 0.3607844f, 0.3937255f, 0 };
+	m_MainPassCB.m_Lights[2].lightSpecularColor= { 0.3231373f, 0.3607844f, 0.3937255f, 0 };
 
 	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
 }

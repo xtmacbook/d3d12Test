@@ -13,6 +13,7 @@
 #endif
 
 #include "LightingUtil.hlsl"
+#include "util.hlsl"
 
 struct MaterialData
 {
@@ -82,34 +83,10 @@ cbuffer cbPass : register(b1)
     // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
     // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
     // are spot lights for a maximum of MaxLights per object.
-    Light gLights[MaxLights];
+    PBRLight gLights[MaxLights];
 };
 
-//---------------------------------------------------------------------------------------
-// Transforms a normal map sample to world space.
-//---------------------------------------------------------------------------------------
-//Transforms a normal map sample to world space.
-float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
-{
-// Uncompress each component from [0,1] to [-1,1].
-    float3 normalT = 2.0f * normalMapSample - 1.0f;
-// Build orthonormal basis.
-    float3 N = unitNormalW;
-    
-    /*
-        Note that there is the assumption that unitNormalW is normalized.
-    在进行interpolation后,tangent vector和normal vector可能已经不是orthonormal,
-    下面一句代码的作用就是保证T对于N来说是northonormal
-    */
-    
-    float3 T = normalize(tangentW - dot(tangentW, N) * N);
-    float3 B = cross(N, T);
-    float3x3 TBN = float3x3(T, B, N);
-// Transform from tangent space to world space.
-    float3 bumpedNormalW = mul(normalT, TBN);
-    return bumpedNormalW;
-}
- 
+
 
 float pfcFilter(float4 projTexC,float depth)
 {

@@ -74,7 +74,7 @@ cbuffer cbPass : register(b0)
     float gFogRange;
     float2 cbPerObjectPad2;
 
-    Light gLights[MaxLights];
+    PBRLight gLights[MaxLights];
 };
 
 

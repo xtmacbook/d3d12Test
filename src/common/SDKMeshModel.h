@@ -68,17 +68,18 @@ namespace SDKMesh
         For futher optimization goodness, we merge material alpha with the diffuse
         color parameter, and premultiply all color values by this alpha.
 
+        所以的SDKMeshMaterialConstants没有ambient color，被算入到emissiveColor里了
     */
 
 	struct alignas(16) SDKMeshMaterialConstants
 	{
-		DirectX::XMFLOAT4	DiffuseAlbedo = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT4	DiffuseColor = { 0.0f, 0.0f, 0.0f, 1.0f };
         
         DirectX::XMFLOAT3   EmissiveColor = { 0.0f, 0.0f, 0.0f };
         float               MaterialPad0;  
 
-        DirectX::XMFLOAT3   SpecularColor = { 0.0f, 0.0f, 0.0f };
-        float               SpecularPower = 0.0f;
+        DirectX::XMFLOAT3   SpecularColor = { 1.0f, 1.0f, 1.0f };
+        float               SpecularPower = 16.0f;
 	};
 
     struct SDKMeshModel

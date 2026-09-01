@@ -12,6 +12,7 @@
 
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
+#include "util.hlsl"
 
 Texture2D<float4> Texture : register(t0);
 Texture2D<float3> NormalTexture : register(t1);
@@ -52,26 +53,14 @@ cbuffer cbPass : register(b1)
     float gTotalTime;
     float gDeltaTime;
     
-    float4 gAmbientLight;
-
-    // Allow application to change fog parameters once per frame.
-    // For example, we may only use fog for certain times of day.
-    float4 gFogColor;
-    float gFogStart;
-    float gFogRange;
-    float2 cbPerObjectPad2;
-
-    // Indices [0, NUM_DIR_LIGHTS) are directional lights;
-    // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
-    // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
-    // are spot lights for a maximum of MaxLights per object.
     Light gLights[MaxLights];
 };
 
 cbuffer cbMaterial : register(b2)
 {
-    float4  gDiffuseAlbedo; 
-    float3  gEmissiveColor;             
+    float4  gDiffuseColor; 
+    float3  gEmissiveColor;  
+    float   cObjectPad;           
     float3  gSpecularColor;            
     float   gSpecularPower;       
 };
@@ -109,15 +98,25 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-#ifdef ALPHA_TEST
-#endif
-
     pin.NormalW = normalize(pin.NormalW);
     pin.TangentW = normalize(pin.TangentW);
 
-    float4 diffuseAlbedo = Texture.Sample(gsamAnisotropicWrap, pin.TexC);
+    float3 normalMapSample = NormalTexture.Sample(gsamAnisotropicWrap, pin.TexC);
+    float3 localNoraml = TwoChannelNormalX2(normalMapSample.xy);
+    float3 bumpedNormalW = NormalSampleToWorldSpace(localNoraml, pin.NormalW, pin.TangentW);
 
-    float4 litColor = diffuseAlbedo;
+    float3 toEyeW = gEyePosW - pin.PosW;
+    float distToEye = length(toEyeW);
+    toEyeW /= distToEye; // normalize
 
-    return litColor;
+
+    float4 color = Texture.Sample(gsamAnisotropicWrap, pin.TexC);
+
+    MaterialNoPBR mat = {gDiffuseColor,gEmissiveColor,gSpecularColor,gSpecularPower};
+
+    ColorPair lightResult = ComputeLights(toEyeW, bumpedNormalW, gLights,mat, 3);
+
+    color.rgb *= lightResult.Diffuse;
+
+    return color;
 }

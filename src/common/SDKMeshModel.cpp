@@ -123,7 +123,11 @@ namespace SDKMesh
 		}
 	}
 
-	void SDKMeshModel::UpdateMaterialCBs(const GameTimer& gt, FrameResourceInterface* frameResource)
+	/*
+		下面的计算看 SDKMeshMaterialConstants 结构体上注释
+	*/
+	void SDKMeshModel::UpdateMaterialCBs(const GameTimer& gt, 
+		FrameResourceInterface* frameResource)
 	{
 		int idx = 0;
 
@@ -131,14 +135,42 @@ namespace SDKMesh
 		{
 			SDKMeshMaterialConstants matConstants;
 
-			matConstants.DiffuseAlbedo.x = mat.diffuseColor.x;
-			matConstants.DiffuseAlbedo.y = mat.diffuseColor.y;
-			matConstants.DiffuseAlbedo.z = mat.diffuseColor.z;
+			const XMVECTOR alphaVector = XMVectorReplicate(mat.alphaValue);
 
-			matConstants.SpecularColor = mat.specularColor;
-			matConstants.EmissiveColor = mat.ambientColor;
-			matConstants.SpecularPower = mat.specularPower;
+			XMVECTOR ambientColor;
 
+			if (mat.ambientColor.x != 0 ||
+				mat.ambientColor.y != 0 ||
+				mat.ambientColor.z != 0)
+			{
+				ambientColor = XMLoadFloat3(&mat.ambientColor);
+			}
+			else
+			{
+				XMFLOAT3 ambient = { 0.05333332f, 0.09882354f, 0.1819608f };
+				ambientColor = XMLoadFloat3(&mat.ambientColor);
+			}
+
+			XMVECTOR diffuseColor = XMLoadFloat3(&mat.diffuseColor);
+			XMVECTOR emissiveColor = XMLoadFloat3(&mat.emissiveColor);
+			
+			// Merge emissive and ambient light contributions.
+			// (emissiveColor + ambientLightColor * diffuse) * alphaVector;
+			XMVECTOR emissve =  XMVectorMultiply(XMVectorMultiplyAdd(ambientColor, diffuseColor, emissiveColor), alphaVector);
+			XMStoreFloat3(&matConstants.EmissiveColor,emissve);
+
+			// xyz = diffuse * alpha, w = alpha.
+			XMVECTOR diffuse =  XMVectorSelect(alphaVector, XMVectorMultiply(diffuseColor, alphaVector), g_XMSelect1110);
+			XMStoreFloat4(&matConstants.DiffuseColor, diffuse);
+
+			if (mat.specularColor.x != 0 ||
+				mat.specularColor.y != 0 ||
+				mat.specularColor.z != 0)
+			{
+				matConstants.SpecularColor = mat.specularColor;
+				matConstants.SpecularPower = mat.specularPower;
+			}
+			
 			frameResource->CopyMaterialData(idx, &matConstants);
 
 			idx++;

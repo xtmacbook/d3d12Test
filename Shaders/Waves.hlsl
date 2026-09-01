@@ -43,7 +43,7 @@ cbuffer cbPass : register(b2)
     float gDeltaTime;
     float4 gAmbientLight;
 
-    Light   gLights[MaxLights];
+    PBRLight   gLights[MaxLights];
 };
 
 struct VertexIn
@@ -88,7 +88,7 @@ float3 toEyeW = normalize(gEyePosW - pin.PosW);
 float4 ambient = gAmbientLight * gDiffuseAlbedo;
 
 const float shininess = 1.0f - gRoughness;
-Material mat = { gDiffuseAlbedo, gFresnelR0, shininess };
+PBRMaterial mat = { gDiffuseAlbedo, gFresnelR0, shininess };
 float3 shadowFactor = 1.0f;
 float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
     pin.NormalW, toEyeW, shadowFactor);

@@ -44,7 +44,7 @@ public:
 	std::shared_ptr<SDKMesh::SDKMeshModel> m_sdkMeshModel = nullptr;	
 
 
-	PassConstantsWithFrog															m_MainPassCB;
+	PassConstantsWithNLight															m_MainPassCB;
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source
 

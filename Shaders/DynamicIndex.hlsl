@@ -81,7 +81,7 @@ float4 PS(VertexOut pin) : SV_Target
 
     const float shininess = (1.0f - matData.Roughness) * normalMapSample.a;
     
-    Material mat = { diffuseAlbedo, matData.FresnelR0, shininess };
+    PBRMaterial mat = { diffuseAlbedo, matData.FresnelR0, shininess };
     
     //shadow 
     float3 shadowFactor = float3(1.0f, 1.0f, 1.0f);
