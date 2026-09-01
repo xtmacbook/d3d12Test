@@ -16,7 +16,13 @@
 Texture2D<float4> Texture : register(t0);
 Texture2D<float3> NormalTexture : register(t1);
 
-SamplerState gsamAnisotropicWrap  : register(s0);
+SamplerState gsamPointWrap        : register(s0);
+SamplerState gsamPointClamp       : register(s1);
+SamplerState gsamLinearWrap       : register(s2);
+SamplerState gsamLinearClamp      : register(s3);
+SamplerState gsamAnisotropicWrap  : register(s4);
+SamplerState gsamAnisotropicClamp : register(s5); 
+SamplerComparisonState gsamShadow : register(s6);
 
 // Constant data that varies per frame.
 cbuffer cbPerObject : register(b0)
@@ -75,6 +81,7 @@ struct VertexIn
     float3 PosL    : POSITION;
     float3 NormalL : NORMAL;
     float2 TexC    : TEXCOORD;
+    float3 TangentU : TANGENT;
 };
 
 struct VertexOut
@@ -82,6 +89,7 @@ struct VertexOut
     float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
+    float3 TangentW : TANGENT;
     float2 TexC    : TEXCOORD;
 };
 
@@ -92,6 +100,9 @@ VertexOut VS(VertexIn vin)
     float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
     vout.PosW = posW.xyz;
     vout.PosH = mul(posW, gViewProj);
+    vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);
+    vout.TangentW = mul(vin.TangentU, (float3x3) gWorld); //转到世界坐标的矩阵
+    vout.TexC = vin.TexC;
 
     return vout;
 }
@@ -101,7 +112,12 @@ float4 PS(VertexOut pin) : SV_Target
 #ifdef ALPHA_TEST
 #endif
 
-    float4 litColor = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    pin.NormalW = normalize(pin.NormalW);
+    pin.TangentW = normalize(pin.TangentW);
+
+    float4 diffuseAlbedo = Texture.Sample(gsamAnisotropicWrap, pin.TexC);
+
+    float4 litColor = diffuseAlbedo;
 
     return litColor;
 }

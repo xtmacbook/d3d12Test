@@ -32,11 +32,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		//CascadedShadowMaps d3dContext;
+		CascadedShadowMaps d3dContext;
 		
-		ShadowMapContext d3dContext;
-		
-
 		MainApp app(hInstance, &d3dContext);
 
 		app.setPixelUnitScale(0.2, 0.2);
