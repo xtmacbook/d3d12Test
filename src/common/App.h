@@ -58,8 +58,8 @@ protected:
 	HINSTANCE					m_hInstance;
 	HWND						m_hWindow;
 
-	int							m_ClientWidth = 800;
-	int							m_ClientHeight = 600;
+	int							m_ClientWidth = 920;
+	int							m_ClientHeight = 840;
 
 	bool						m_AppPaused = false;  // is the application paused?
 	bool						m_Minimized = false;  // is the application minimized?

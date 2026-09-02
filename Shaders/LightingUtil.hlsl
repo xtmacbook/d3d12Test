@@ -207,8 +207,8 @@ uniform int numLights)
         halfVectors[i] = normalize(eyeVector - lightDirections[i]);
     }
 
-    float3 dotL = mul(-lightDirections, worldNormal);
-    float3 dotH = mul(halfVectors, worldNormal);
+    float3 dotL = max(mul(-lightDirections, worldNormal),0.0f);
+    float3 dotH = max(mul(halfVectors, worldNormal),0.0f);
 
     float3 zeroL = step(0, dotL);
 

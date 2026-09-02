@@ -78,8 +78,8 @@ namespace SDKMesh
         DirectX::XMFLOAT3   EmissiveColor = { 0.0f, 0.0f, 0.0f };
         float               MaterialPad0;  
 
-        DirectX::XMFLOAT3   SpecularColor = { 1.0f, 1.0f, 1.0f };
-        float               SpecularPower = 16.0f;
+        DirectX::XMFLOAT3   SpecularColor = { 0.0f,0.0f, 0.0f };
+        float               SpecularPower = 1.0f;
 	};
 
     struct SDKMeshModel

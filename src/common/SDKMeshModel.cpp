@@ -148,7 +148,7 @@ namespace SDKMesh
 			else
 			{
 				XMFLOAT3 ambient = { 0.05333332f, 0.09882354f, 0.1819608f };
-				ambientColor = XMLoadFloat3(&mat.ambientColor);
+				ambientColor = XMLoadFloat3(&ambient);
 			}
 
 			XMVECTOR diffuseColor = XMLoadFloat3(&mat.diffuseColor);
