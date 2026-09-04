@@ -1,5 +1,5 @@
 #include "ShadowInterface.h"
-#include "common/ShadowMap.h"
+#include "common/ShadowMapRes.h"
 #include "common/D3DContext.h"
 #include "common/FrameResource.h"
 
@@ -33,7 +33,7 @@ void ShadowInterface::BuildShaders()
 
 void ShadowInterface::BuildShadowMap()
 {
-	m_ShadowMap = std::make_shared<ShadowMap>(m_d3dContext->device(), 2048, 2048);
+	m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dContext->device(), 2048, 2048);
 }
 
 void ShadowInterface::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,

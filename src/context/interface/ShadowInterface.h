@@ -8,7 +8,7 @@
 #include <functional>
 #include <unordered_map>
 
-class ShadowMap;
+class ShadowMapRes;
 class D3DContext;
 class FrameResourceInterface;
 
@@ -17,7 +17,7 @@ class ShadowInterface
 public:
     struct ShadowMapUpdateData
     {
-        DirectX::XMFLOAT3 m_lightDir;
+        DirectX::XMFLOAT3       m_lightDir;
         DirectX::BoundingSphere m_sceneBounds;
     };
 
@@ -57,7 +57,7 @@ public:
     Microsoft::WRL::ComPtr<ID3D12PipelineState> getDebugPSO();
 
 protected:
-    std::shared_ptr<ShadowMap>                      m_ShadowMap;
+    std::shared_ptr<ShadowMapRes>                   m_ShadowMap;
     D3DContext *                                    m_d3dContext;
     DirectX::XMFLOAT3                               m_LightPosW;
     DirectX::XMFLOAT4X4                             m_LightView;

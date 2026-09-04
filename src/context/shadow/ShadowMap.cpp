@@ -1,7 +1,7 @@
 ﻿#include "ShadowMap.h"
 #include "common/Geometry.h"
 #include "common/Sky.h"
-#include "common/ShadowMap.h"
+#include "common/ShadowMapRes.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

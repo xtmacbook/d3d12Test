@@ -1,9 +1,9 @@
-#include "ShadowMap.h"
+#include "ShadowMapRes.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
-ShadowMap::ShadowMap(ID3D12Device* device, UINT width, UINT height)
+ShadowMapRes::ShadowMapRes(ID3D12Device* device, UINT width, UINT height)
     : m_d3dDevice(device)
     , m_Width(width)
     , m_Height(height)
@@ -20,42 +20,42 @@ ShadowMap::ShadowMap(ID3D12Device* device, UINT width, UINT height)
     BuildResource();
 }
 
-UINT ShadowMap::Width() const
+UINT ShadowMapRes::Width() const
 {
     return m_Width;
 }
 
-UINT ShadowMap::Height() const
+UINT ShadowMapRes::Height() const
 {
     return m_Height;
 }
 
-ID3D12Resource* ShadowMap::Resource()
+ID3D12Resource* ShadowMapRes::Resource()
 {
     return m_ShadowMap.Get();
 }
 
-CD3DX12_GPU_DESCRIPTOR_HANDLE ShadowMap::Srv() const
+CD3DX12_GPU_DESCRIPTOR_HANDLE ShadowMapRes::Srv() const
 {
     return m_hGpuSrv;
 }
 
-CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMap::Dsv() const
+CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMapRes  ::Dsv() const
 {
     return m_hCpuDsv;
 }
 
-D3D12_VIEWPORT ShadowMap::Viewport() const
+D3D12_VIEWPORT ShadowMapRes::Viewport() const
 {
     return m_Viewport;
 }
 
-D3D12_RECT ShadowMap::ScissorRect() const
+D3D12_RECT ShadowMapRes::ScissorRect() const
 {
     return m_ScissorRect;
 }
 
-void ShadowMap::BuildDescriptors(
+void ShadowMapRes::BuildDescriptors(
     CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
     CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
     CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
@@ -67,15 +67,15 @@ void ShadowMap::BuildDescriptors(
     BuildDescriptors();
 }
 
-void ShadowMap::DepthBias()
+void ShadowMapRes::DepthBias()
 {
 }
 
-void ShadowMap::orthProj()
+void ShadowMapRes::orthProj()
 {
 }
 
-void ShadowMap::DepthFilter()
+void ShadowMapRes::DepthFilter()
 {
  // we should not average depth values and use the Percentage closer filter(PCF),point filtering(MIN_MAG_MIP_POINT)
     //bilinearly interpolate the shadow map result
@@ -89,7 +89,7 @@ void ShadowMap::DepthFilter()
     //depth sampler desc for shadow mapping
 }
 
-void ShadowMap::OnResize(UINT newWidth, UINT newHeight)
+void ShadowMapRes::OnResize(UINT newWidth, UINT newHeight)
 {
     if ((m_Width != newWidth) || (m_Height != newHeight))
     {
@@ -101,7 +101,7 @@ void ShadowMap::OnResize(UINT newWidth, UINT newHeight)
     }
 }
 
-void ShadowMap::BuildDescriptors()
+void ShadowMapRes::BuildDescriptors()
 {
     // Create SRV to resource so we can sample the shadow map in a shader program.
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -123,7 +123,7 @@ void ShadowMap::BuildDescriptors()
     m_d3dDevice->CreateDepthStencilView(m_ShadowMap.Get(), &dsvDesc, m_hCpuDsv);
 }
 
-void ShadowMap::BuildResource()
+void ShadowMapRes::BuildResource()
 {
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;

@@ -30,14 +30,14 @@ projector in the world. The matrix V transforms coordinates from world space to
 
  */
 
-class ShadowMap
+class ShadowMapRes
 {
 public:
-    ShadowMap(ID3D12Device *device,UINT width, UINT height);
+    ShadowMapRes(ID3D12Device *device,UINT width, UINT height);
 
-    ShadowMap(const ShadowMap &rhs) = delete;
-    ShadowMap &operator=(const ShadowMap &rhs) = delete;
-    ~ShadowMap() = default;
+    ShadowMapRes(const ShadowMapRes &rhs) = delete;
+    ShadowMapRes&operator=(const ShadowMapRes&rhs) = delete;
+    ~ShadowMapRes() = default;
 
     UINT Width() const;
     UINT Height() const;
