@@ -17,7 +17,7 @@
 #include "context/InstanceContext.h"
 #include "context/CubeMapContext.h"
 #include "shadow/ShadowMap.h"
-#include "shadow/CascadedShadowMaps.h"
+#include "shadow/ShadowMap.h"
 
 using namespace DirectX;
 
@@ -32,7 +32,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 
 	try
 	{
-		CascadedShadowMaps d3dContext;
+		ShadowMapBase d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 

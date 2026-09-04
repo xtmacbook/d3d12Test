@@ -2,7 +2,8 @@
 #include "Common.hlsl"
 
 /*
-    1. we should not average depth values and use the Percentage closer filter(PCF),point filtering(MIN_MAG_MIP_POINT)
+    1. we should not average depth values and use the Percentage closer filter(PCF),
+       point filtering(MIN_MAG_MIP_POINT)
     2. bilinearly interpolate the shadow map result
     3. An observation is that PCF really only needs to be performed at the shadow edges.
     4. 因为需要多个sample 会很耗时,好在Direct3d11开始通过SampleCmpLevelZero方法来支持PCF:

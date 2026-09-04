@@ -52,7 +52,7 @@ public:
     
     void UpdateShadowPass(const GameTimer& gt, FrameResourceInterface*,int idx);
 
-    inline DirectX::XMFLOAT4X4     getShadowTransform() { return                        m_ShadowTransform; }
+    inline DirectX::XMFLOAT4X4     getShadowTransform() { return m_ShadowTransform; }
 
     Microsoft::WRL::ComPtr<ID3D12PipelineState> getDebugPSO();
 

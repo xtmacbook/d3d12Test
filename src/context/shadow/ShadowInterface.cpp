@@ -168,6 +168,7 @@ void ShadowInterface::BuildPSO(ID3D12RootSignature* rootSignature)
 	smapPsoDesc.RasterizerState.DepthBias = 100000;
 	smapPsoDesc.RasterizerState.DepthBiasClamp = 0.0f;
 	smapPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+
 	// Shadow map pass does not have a render target.
 	smapPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
 	smapPsoDesc.NumRenderTargets = 0;
@@ -184,12 +185,14 @@ void ShadowInterface::UpdateShadowPass(const GameTimer& gt, FrameResourceInterfa
 	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
 	XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
 	XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+	
 	XMStoreFloat4x4(&m_shadowPass.m_View, XMMatrixTranspose(view));
 	XMStoreFloat4x4(&m_shadowPass.m_InvView, XMMatrixTranspose(invView));
 	XMStoreFloat4x4(&m_shadowPass.m_Proj, XMMatrixTranspose(proj));
 	XMStoreFloat4x4(&m_shadowPass.m_InvProj, XMMatrixTranspose(invProj));
 	XMStoreFloat4x4(&m_shadowPass.m_ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&m_shadowPass.m_InvViewProj, XMMatrixTranspose(invViewProj));
+
 	m_shadowPass.m_EyePosW = m_LightPosW;
 	m_shadowPass.m_RenderTargetSize = XMFLOAT2((float)m_ShadowMap->Width(), (float)m_ShadowMap->Height());
 	m_shadowPass.m_InvRenderTargetSize = XMFLOAT2(1.0f / m_ShadowMap->Width(), 1.0f / m_ShadowMap->Height());

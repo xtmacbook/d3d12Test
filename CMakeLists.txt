@@ -37,7 +37,7 @@ set (COMMON_SOURCE
     src/common/BlurFilter.cpp
     src/common/ModelIO.cpp
     src/common/Sky.cpp
-    src/common/ShadowMap.cpp
+    src/common/ShadowMapRes.cpp
     src/common/ModelLoadSDKMESH.cpp
     src/common/Model.cpp
     src/common/BinaryReader.cpp
@@ -53,6 +53,7 @@ set (COMMON_SOURCE_HEADS
     src/common/Util.h
     src/common/Struct.h
     src/common/BufferStruct.h
+    src/common/UploadBuffer.h
     src/common/GameTimer.h
     src/common/DDSTextureLoader.h
     src/common/FrameResource.h
@@ -64,7 +65,7 @@ set (COMMON_SOURCE_HEADS
     src/common/ModelIO.h
     src/common/ObjLoader.h
     src/common/Sky.h
-    src/common/ShadowMap.h
+    src/common/ShadowMapRes.h
     src/common/Model.h
     src/common/SDKMesh.h
     src/common/BinaryReader.h
@@ -81,7 +82,6 @@ set (CONTEXT_INTERFACE_SOURCE
     src/context/interface/LayoutInterface.cpp
     src/context/interface/TexContextInterface.cpp
     src/context/interface/ComputeShaderInterface.cpp
-    src/context/interface/ShadowInterface.cpp
 )
 set (CONTEXT_INTERFACE_SOURCE_HEADS
     src/context/interface/BlendContextInterface.h
@@ -89,7 +89,6 @@ set (CONTEXT_INTERFACE_SOURCE_HEADS
     src/context/interface/GeomtryContextInterface.h
     src/context/interface/LayoutInterface.h
     src/context/interface/ComputeShaderInterface.h
-    src/context/interface/ShadowInterface.h
 )
 
 set (CONTEXT_SOURCE
@@ -126,16 +125,15 @@ set (CONTEXT_SOURCE_HEADS
 )
 
 set (CONTEXT_SHADOW_SOURCE
-    src/context/shadow/DynamicIndexComContex.cpp
     src/context/shadow/ShadowMap.cpp
-    src/context/shadow/CascadedShadowMaps.cpp
+    src/context/shadow/ShadowInterface.cpp
+
 )
 
 
 set (CONTEXT_SHADOW_HEADS
-    src/context/shadow/CascadedShadowMaps.h
     src/context/shadow/ShadowMap.h
-    src/context/shadow/DynamicIndexComContex.h
+    src/context/shadow/ShadowInterface.h
 )
 
 set(SHADER_FILES
