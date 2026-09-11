@@ -42,7 +42,7 @@ public:
 
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt) {};
-
+	virtual void OnKeyboardInput(const GameTimer& gt) {};
 
 	void setWireFrame(bool);
 
