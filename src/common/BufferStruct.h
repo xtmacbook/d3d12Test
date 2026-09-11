@@ -162,6 +162,12 @@ struct PassConstantsWithNLight : public PassConstants
 	Light			  m_Lights[MaxLights];
 };
 
+//这里的light 不是pbr的light
+struct PassConstantsWithNLightAndShadow : public PassConstantsWithShadow
+{
+	Light			  m_Lights[MaxLights];
+};
+
 /*
 	per instance data as part of render item struct
 */

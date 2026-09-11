@@ -28,10 +28,14 @@ public:
 	void preInitDirect3D(SWAPCHAINDESC desc);
 
 	virtual bool InitDirect3D();
+	
 	virtual void CreateRtvAndDsvDescriptorHeaps();
+
 	virtual void OnResize(int width,int heigh);
 
 	inline ID3D12Device* device() { return m_d3dDevice.Get(); }
+
+	inline ID3D12CommandQueue* CommandQueue() { return m_CommandQueue.Get(); }
 
 	/*同步CPU和GPU,但是目前是阻止CPU的运行,GPU完成提交的命令后继续CPU的执行*/
 	void FlushCommandQueue();
@@ -49,6 +53,9 @@ public:
 protected:
 	void CreateCommandObjects();
 	void CreateSwapChain();
+
+	virtual void CreateRtvDescriptorHeap();
+	virtual void CreateDsvDescriptorHeap();
 
 protected:
 

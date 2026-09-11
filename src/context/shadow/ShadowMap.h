@@ -11,6 +11,17 @@ namespace SDKMesh
 	struct SDKMeshModel;
 }
 
+class ShadowInterface;
+
+struct ShadowHeapDescriptor
+{
+	UINT m_shadowMapHeapOffset;
+	UINT m_sdkMeshModelTextureHeapOffset;
+	UINT m_nullHeapOffset;
+
+	CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
+};
+
 class ShadowMapBase :public D3DContext,
 	public FrameResourceContextInterface
 {
@@ -19,15 +30,19 @@ public:
 
 	void BuildDescriptorHeaps();
 
+	void CreateDsvDescriptorHeap()override;
+
 	virtual void BuildRootSignature();
+	
 	virtual void BuildShadersAndInputLayout();
+
 	virtual void BuildFrameResources()override;
 	virtual void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
 	virtual void BuildRenderItems();
 	virtual void BuildMaterials();
 	void BuildPSOs();
 	void BuildTextures();
-	void BuildTextureResourceView();
+	void BuildResourceView();
 	void Update(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
@@ -36,14 +51,20 @@ public:
 	void Draw(const GameTimer& gt)override;
 	void DrawFrameResource(ID3D12CommandAllocator*)override;
 
+
 	std::shared_ptr<SDKMesh::SDKMeshModel> m_sdkMeshModel = nullptr;	
 
 
-	PassConstantsWithNLight															m_MainPassCB;
+	PassConstantsWithNLightAndShadow												m_MainPassCB;
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>										m_RootSignature = nullptr;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>>				m_Shaders;
+
+	std::shared_ptr<ShadowInterface>												m_shadowInterface = nullptr;	
+
+	ShadowHeapDescriptor															m_HeapDescriptorOffsets;
+	
 
 };

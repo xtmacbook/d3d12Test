@@ -35,7 +35,7 @@ public:
 
     virtual void InitSceneBounds();
 
-    void BuildShaders();
+    void BuildDrawScenePSO(ID3D12RootSignature*);
 
     void BuildShadowMap();
 
@@ -44,27 +44,25 @@ public:
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
 
+    ID3D12PipelineState* GetDrawSceneToShadowMapPSO();
+
     virtual void UpdateShadowTransform(ShadowMapUpdateData data);
 
     virtual void DrawSceneToShadowMap(ID3D12GraphicsCommandList*, ShadowMapDrawData data);
-
-    virtual void BuildPSO(ID3D12RootSignature*);
     
     void UpdateShadowPass(const GameTimer& gt, FrameResourceInterface*,int idx);
 
     inline DirectX::XMFLOAT4X4     getShadowTransform() { return m_ShadowTransform; }
 
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> getDebugPSO();
-
 protected:
-    std::shared_ptr<ShadowMapRes>                   m_ShadowMap;
-    D3DContext *                                    m_d3dContext;
-    DirectX::XMFLOAT3                               m_LightPosW;
-    DirectX::XMFLOAT4X4                             m_LightView;
-    DirectX::XMFLOAT4X4                             m_LightProj;
-    DirectX::XMFLOAT4X4                             m_ShadowTransform;
-    std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PSOs;
-    std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> m_Shaders;
-    PassConstantsWithLightAndShadow                  m_shadowPass;
+    std::shared_ptr<ShadowMapRes>                    m_ShadowMap;
+    D3DContext *                                     m_d3dContext;
+    DirectX::XMFLOAT3                                m_LightPosW;
+    DirectX::XMFLOAT4X4                              m_LightView;
+    DirectX::XMFLOAT4X4                              m_LightProj;
+    DirectX::XMFLOAT4X4                              m_ShadowTransform;
+    PassConstantsWithNLightAndShadow                 m_shadowPass;
+
+    Microsoft::WRL::ComPtr<ID3D12PipelineState>      m_ShadowMapDrawPSO;
 
 };
