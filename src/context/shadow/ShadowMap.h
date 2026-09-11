@@ -9,6 +9,7 @@
 namespace SDKMesh
 {
 	struct SDKMeshModel;
+	struct Effect;
 }
 
 class ShadowInterface;
@@ -66,5 +67,5 @@ public:
 
 	ShadowHeapDescriptor															m_HeapDescriptorOffsets;
 	
-
+	std::vector< std::shared_ptr<SDKMesh::Effect> >									m_effects;
 };

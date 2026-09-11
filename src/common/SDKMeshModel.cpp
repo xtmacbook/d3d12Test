@@ -20,7 +20,7 @@ namespace SDKMesh
 	void SDKMeshModel::DrawRenderItems(ID3D12CommandAllocator* allocator,
 		ID3D12Device* device,
 		ID3D12GraphicsCommandList* mCommandList, FrameResourceInterface * resouce,
-		ID3D12DescriptorHeap* heapDescriptor, UINT CbvSrvUavDescriptorSize)
+		ID3D12DescriptorHeap* heapDescriptor, UINT CbvSrvUavDescriptorSize, std::vector< std::shared_ptr<SDKMesh::Effect> >&effects)
 	{
 		 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE descriptorStart(heapDescriptor->GetGPUDescriptorHandleForHeapStart());
@@ -37,7 +37,7 @@ namespace SDKMesh
 			{
 				int partIndex = opaqueMP->partIndex;
 
-				Effect* effect = m_effects[partIndex].get();
+				Effect* effect = effects[partIndex].get();
 
 				mCommandList->SetPipelineState(effect->m_PSO.Get());
 				//ThrowIfFailed(mCommandList->Reset(allocator, effect->m_PSO.Get()));
@@ -226,9 +226,9 @@ namespace SDKMesh
 		}
 	}
 
-	void SDKMeshModel::CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
+	std::vector< std::shared_ptr<SDKMesh::Effect> > SDKMeshModel::CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
 	{
-		m_effects = m_model->CreateEffect(pipeLineStateDescription);
+		return m_model->CreateEffect(pipeLineStateDescription);
 	}
 
 	SDKMeshModel::SDKMeshModel(ID3D12Device* device)

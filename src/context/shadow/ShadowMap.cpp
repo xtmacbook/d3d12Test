@@ -319,7 +319,7 @@ void ShadowMapBase::DrawFrameResource(ID3D12CommandAllocator* allocator)
 
 		m_sdkMeshModel->DrawRenderItems(allocator,m_d3dDevice.Get(),
 		m_CommandList.Get(),m_currFrameResource, m_SrvDescriptorHeap.Get(),
-		m_CbvSrvUavDescriptorSize) ;
+		m_CbvSrvUavDescriptorSize, m_effects) ;
 	}
 
 	
@@ -358,7 +358,7 @@ void ShadowMapBase::BuildPSOs()
 	epsd.device = m_d3dDevice.Get();
 	epsd.desc = psoDesc;
 
-	m_sdkMeshModel->CreateEffect(epsd);
+	m_effects = m_sdkMeshModel->CreateEffect(epsd);
 
 	m_shadowInterface->BuildDrawScenePSO(m_RootSignature.Get());	
 }

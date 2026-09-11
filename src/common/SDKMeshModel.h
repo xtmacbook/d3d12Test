@@ -91,6 +91,8 @@ namespace SDKMesh
 
         inline DirectX::BoundingSphere getBoundingSphere() const {return m_model->getBoundingSphere();}
 
+        inline DirectX::BoundingBox getBoundingBox() const { return m_model->getBoundingBox(); }
+
         void BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList);
 
         void BuildTextureResourceView(
@@ -104,7 +106,9 @@ namespace SDKMesh
 
         void DrawRenderItems(ID3D12CommandAllocator* allocator,
             ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList, 
-            FrameResourceInterface*, ID3D12DescriptorHeap*, UINT);
+            FrameResourceInterface*, ID3D12DescriptorHeap*, UINT,
+            std::vector< std::shared_ptr<SDKMesh::Effect> >&effects
+            );
 
         void DrawRenderItemsWithShadowPass(ID3D12CommandAllocator* allocator,
             ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList,
@@ -117,7 +121,7 @@ namespace SDKMesh
 
         UINT GetMaterialCount()const;
 
-        void CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription);
+        std::vector< std::shared_ptr<SDKMesh::Effect> > CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription);
 
         void UpdateObjectCBs(const GameTimer& gt, FrameResourceInterface* frameResource);
         void UpdateMaterialCBs(const GameTimer& gt, FrameResourceInterface* frameResource);
@@ -128,10 +132,8 @@ namespace SDKMesh
 
         CD3DX12_GPU_DESCRIPTOR_HANDLE			                                        m_HeapGpuSRrv;
         CD3DX12_CPU_DESCRIPTOR_HANDLE			                                        m_HeapCPUSrv;
-        INT                                                                            m_textureDescriptorOffset;
-        std::vector< std::shared_ptr<SDKMesh::Effect> >                                          m_effects;
+        INT                                                                             m_textureDescriptorOffset;
 
     }; 
 
-	void BuildMaterialsFromSDKMesh(_In_ ID3D12Device* device, DirectX::DX12::Model* model);
 }
