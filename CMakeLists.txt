@@ -127,6 +127,8 @@ set (CONTEXT_SOURCE_HEADS
 set (CONTEXT_SHADOW_SOURCE
     src/context/shadow/ShadowMap.cpp
     src/context/shadow/ShadowInterface.cpp
+    src/context/shadow/CascadedShadowsManager.cpp
+    src/context/shadow/CSMs.cpp
 
 )
 
@@ -134,6 +136,8 @@ set (CONTEXT_SHADOW_SOURCE
 set (CONTEXT_SHADOW_HEADS
     src/context/shadow/ShadowMap.h
     src/context/shadow/ShadowInterface.h
+    src/context/shadow/CascadedShadowsManager.h
+    src/context/shadow/CSMs.h
 )
 
 set(SHADER_FILES
@@ -156,6 +160,24 @@ set(SHADER_FILES
     Shaders/Waves.hlsl
 )
 
+set (IMGUI_SOURCE
+    src/3rd/imgui/imconfig.h
+    src/3rd/imgui/imgui.h
+    src/3rd/imgui/imgui.cpp
+    src/3rd/imgui/imgui_impl_dx12.cpp
+    src/3rd/imgui/imgui_impl_dx12.h
+    src/3rd/imgui/imgui_impl_win32.cpp
+    src/3rd/imgui/imgui_impl_win32.h
+    src/3rd/imgui/imgui_draw.cpp
+    src/3rd/imgui/imgui_internal.h
+    src/3rd/imgui/imgui_tables.cpp
+    src/3rd/imgui/imgui_widgets.cpp
+    src/3rd/imgui/imstb_rectpack.h
+    src/3rd/imgui/imstb_truetype.h
+    src/3rd/imgui/imstb_textedit.h
+    
+
+)
 
 source_group ("Source Files/common" FILES ${COMMON_SOURCE})
 source_group ("Header Files/common" FILES ${COMMON_SOURCE_HEADS})
@@ -170,6 +192,7 @@ source_group ("Source Files/context/shadow" FILES ${CONTEXT_SHADOW_SOURCE})
 source_group ("Header Files/context/shadow" FILES ${CONTEXT_SHADOW_HEADS})
 
 source_group ("Source Files/shaders" FILES ${SHADER_FILES})
+source_group ("Source Files/imgui" FILES ${IMGUI_SOURCE})
 
 INCLUDE_DIRECTORIES(include)
 
@@ -177,6 +200,7 @@ INCLUDE_DIRECTORIES(include)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/context
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/3rd/imgui
 )
 
 add_executable(
@@ -190,6 +214,7 @@ add_executable(
         ${CONTEXT_SOURCE_HEADS}
         ${CONTEXT_SHADOW_SOURCE}
         ${CONTEXT_SHADOW_HEADS}
+        ${IMGUI_SOURCE}
         src/osgEarth.cpp
         src/MainApp.cpp
 

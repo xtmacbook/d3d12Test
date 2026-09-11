@@ -47,8 +47,11 @@ protected:
 	virtual void OnResize();
 	void OnKeyboardInput(const GameTimer& gt);
 
+	void SetupImGuiContext();
+
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt);
+
 
 protected:
 
@@ -79,5 +82,6 @@ protected:
 
 	POINT						m_LastMousePos;
 
+	float						m_main_scale;
 
 };
