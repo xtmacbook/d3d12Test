@@ -317,6 +317,10 @@ namespace DirectX
 
              std::vector< std::shared_ptr<SDKMesh::Effect> >  CreateEffect(SDKMesh::EffectPipelineStateDescription&);
 
+
+             BoundingSphere getBoundingSphere() const;
+             BoundingBox getBoundingBox() const;
+
             //test 测试这个model里的所有mesh是否material相同
              bool testEqualMaterial()const;
 
@@ -348,6 +352,8 @@ namespace DirectX
 
             std::vector<TextureCacheEntry> mResources; // flat list of unique resources so we can index into it
 
+            BoundingSphere              boundingSphere;
+            BoundingBox                 boundingBox;
         };
 
  

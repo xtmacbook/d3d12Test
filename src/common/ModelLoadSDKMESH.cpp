@@ -793,6 +793,13 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
         std::swap(model->invBindPoseMatrices, invBoneTransforms);
     }
 
+
+    for (const auto& mesh : model->meshes)
+    {
+        BoundingBox::CreateMerged(model->boundingBox, model->boundingBox, mesh->boundingBox);
+        BoundingSphere::CreateMerged(model->boundingSphere, model->boundingSphere, mesh->boundingSphere);
+    }
+
     return model;
 }
 

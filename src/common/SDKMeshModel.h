@@ -89,6 +89,8 @@ namespace SDKMesh
 
         bool LoadModel(std::wstring filename);
 
+        inline DirectX::BoundingSphere getBoundingSphere() const {return m_model->getBoundingSphere();}
+
         void BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList);
 
         void BuildTextureResourceView(
@@ -103,6 +105,11 @@ namespace SDKMesh
         void DrawRenderItems(ID3D12CommandAllocator* allocator,
             ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList, 
             FrameResourceInterface*, ID3D12DescriptorHeap*, UINT);
+
+        void DrawRenderItemsWithShadowPass(ID3D12CommandAllocator* allocator,
+            ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList,
+            FrameResourceInterface*, ID3D12DescriptorHeap*, UINT, 
+            ID3D12PipelineState*shadowPSO, CD3DX12_GPU_DESCRIPTOR_HANDLE nullSrvGpuHandle);
 
         UINT GetTextureCount()const;
 

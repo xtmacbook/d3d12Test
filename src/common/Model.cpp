@@ -543,6 +543,16 @@ std::vector< std::shared_ptr<SDKMesh::Effect> > Model::CreateEffect(SDKMesh::Eff
 	return effects;
 }
 
+BoundingSphere Model::getBoundingSphere() const
+{
+	return boundingSphere;
+}
+
+BoundingBox Model::getBoundingBox() const
+{
+	return boundingBox;
+}
+
 
 
 SharedGraphicsResource::SharedGraphicsResource() noexcept :mSize(0)
