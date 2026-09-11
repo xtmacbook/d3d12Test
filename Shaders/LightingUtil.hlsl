@@ -200,9 +200,9 @@ uniform int numLights)
     [unroll]
     for (int i = 0; i < numLights; i++)
     {
-        lightDirections[i] = lights[i].LightDirection;
-        lightDiffuse[i] = lights[i].LightDiffuseColor;
-        lightSpecular[i] = lights[i].LightSpecularColor;
+        lightDirections[i] = lights[i].LightDirection.xyz;
+        lightDiffuse[i] = lights[i].LightDiffuseColor.xyz;
+        lightSpecular[i] = lights[i].LightSpecularColor.xyz;
 
         halfVectors[i] = normalize(eyeVector - lightDirections[i]);
     }
