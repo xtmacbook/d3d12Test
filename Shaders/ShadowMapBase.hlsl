@@ -14,8 +14,9 @@
 #include "LightingUtil.hlsl"
 #include "util.hlsl"
 
-Texture2D<float4> Texture : register(t0);
-Texture2D<float3> NormalTexture : register(t1);
+Texture2D<float4> Texture :         register(t0);
+Texture2D<float3> NormalTexture :   register(t1);
+Texture2D         gShadowMap :      register(t2);
 
 SamplerState gsamPointWrap        : register(s0);
 SamplerState gsamPointClamp       : register(s1);
@@ -40,6 +41,7 @@ cbuffer cbPass : register(b1)
     float4x4 gInvProj;
     float4x4 gViewProj;
     float4x4 gInvViewProj;
+    float4x4 gShadowTransform;
     
     float3 gEyePosW;
     float cbPerObjectPad1;
@@ -65,63 +67,43 @@ cbuffer cbMaterial : register(b2)
     float   gSpecularPower;       
 };
 
-struct VertexIn
+// shoadowPosH in clip space
+float CalcShadowFactorWithPCF(float4 shadowPosH)
 {
-    float3 PosL    : POSITION;
-    float3 NormalL : NORMAL;
-    float2 TexC    : TEXCOORD;
-    float3 TangentU : TANGENT;
-};
+    // Complete projection by doing division by w.
+    shadowPosH.xyz /= shadowPosH.w;
 
-struct VertexOut
-{
-    float4 PosH    : SV_POSITION;
-    float3 PosW    : POSITION;
-    float3 NormalW : NORMAL;
-    float3 TangentW : TANGENT;
-    float2 TexC    : TEXCOORD;
-};
+    // Depth in NDC space.
+    float depth = shadowPosH.z;
+    uint width, height, numMips;
+    gShadowMap.GetDimensions(0, width, height, numMips);
+    // Texel size.
+    float dx = 1.0f / (float) width;
+    float percentLit = 0.0f;
+    const float2 offsets[9] =
+    {
+        float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
+            float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+            float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
+    };
 
-VertexOut VS(VertexIn vin)
-{
-    VertexOut vout = (VertexOut)0.0f;
-
-    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
-    
-    vout.PosW = posW.xyz;
-    vout.PosH = mul(posW, gViewProj);
-    
-    vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);
-    vout.TangentW = mul(vin.TangentU, (float3x3) gWorld); //转到世界坐标的矩阵
-    vout.TexC = vin.TexC;
-
-    return vout;
+    [unroll]
+    for (int i = 0; i < 9; ++i)
+    {
+        percentLit += gShadowMap.SampleCmpLevelZero(gsamShadow,
+                                                    shadowPosH.xy + offsets[i], depth).r;
+    }
+    return percentLit / 9.0f;
 }
 
-//因为当前该项目使用的是powerplant.sdkmesh,这个模型里的normal texture是无效的，所以不用normal texture的采样结果来计算bumpedNormalW,而是直接使用顶点着色器传过来的法线和切线来计算bumpedNormalW
-float4 PS(VertexOut pin) : SV_Target
+float CalcShadowFactor(float4 shadowPosH)
 {
-    pin.NormalW = normalize(pin.NormalW);
-    pin.TangentW = normalize(pin.TangentW);
+    // Complete projection by doing division by w.
+    shadowPosH.xyz /= shadowPosH.w;
 
-    //float3 normalMapSample = NormalTexture.Sample(gsamAnisotropicWrap, pin.TexC);
-    //float3 localNoraml = TwoChannelNormalX2(normalMapSample.xy);
-    //float3 bumpedNormalW = NormalSampleToWorldSpace(localNoraml, pin.NormalW, pin.TangentW);
-
-    float3 toEyeW = gEyePosW - pin.PosW;
-    float distToEye = length(toEyeW);
-    toEyeW /= distToEye; // normalize
-
-
-    float4 color = Texture.Sample(gsamAnisotropicWrap, pin.TexC);
-
-    MaterialNoPBR mat = {gDiffuseColor,gEmissiveColor,gSpecularColor,gSpecularPower};
-
-    //ColorPair lightResult = ComputeLights(toEyeW, bumpedNormalW, gLights,mat, 3);
-    ColorPair lightResult = ComputeLights(toEyeW, pin.NormalW, gLights,mat, 3);
-
-    color.rgb *= lightResult.Diffuse;
-    color.rgb += lightResult.Specular * color.a;
-
-    return color;
+    // Depth in NDC space.
+    float depth = shadowPosH.z;
+    float percentLit = gShadowMap.SampleCmpLevelZero(gsamShadow,
+                                                    shadowPosH.xy , depth).r;
+    return percentLit;
 }
