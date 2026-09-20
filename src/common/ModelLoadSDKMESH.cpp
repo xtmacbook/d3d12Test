@@ -622,16 +622,17 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
 
         mesh->name = meshName;
 
-        // Extents
-        mesh->boundingBox.Center = oneMeshData.BoundingBoxCenter;
-        mesh->boundingBox.Extents = oneMeshData.BoundingBoxExtents;
-        BoundingSphere::CreateFromBoundingBox(mesh->boundingSphere, mesh->boundingBox);
-
         if (influences)
         {
             mesh->boneInfluences.resize(oneMeshData.NumFrameInfluences);
             memcpy(mesh->boneInfluences.data(), influences, sizeof(uint32_t) * oneMeshData.NumFrameInfluences);
         }
+
+        XMFLOAT3 lower;
+        XMFLOAT3 upper;
+
+        lower.x = FLT_MAX; lower.y = FLT_MAX; lower.z = FLT_MAX;
+        upper.x = -FLT_MAX; upper.y = -FLT_MAX; upper.z = -FLT_MAX;
 
         // Create subsets
         for (size_t j = 0; j < oneMeshData.NumSubsets; ++j)
@@ -718,6 +719,69 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
             //  GraphicsMemory::Get(device).Allocate(ibytes, 16, GraphicsMemory::TAG_INDEX);
            // memcpy(part->indexBuffer.Memory(), indices, ibytes);
 
+            //from sdkmesh for box
+            INT indsize = (part->indexFormat == DXGI_FORMAT_R16_UINT) ? 2 : 4;
+            UINT* ind = (UINT*)(bufferData + (indexBufferHeader.DataOffset - bufferDataOffset));
+            UINT stride = part->vertexStride / 4;
+            const float* tverts =(float*)(bufferData + (vertexBufferHeader.DataOffset - bufferDataOffset));
+
+            for (UINT vertind = part->startIndex; vertind < part->startIndex + part->indexCount; ++vertind) 
+            {
+                UINT current_ind = 0;
+                if (indsize == 2) 
+                {
+                    UINT ind_div2 = vertind / 2;
+                    current_ind = ind[ind_div2];
+                    if (vertind % 2 == 0) 
+                    {
+                        current_ind = current_ind << 16;
+                        current_ind = current_ind >> 16;
+                    }
+                    else 
+                    {
+                        current_ind = current_ind >> 16;
+                    }
+                }
+                else 
+                {
+                    current_ind = ind[vertind];
+                }
+
+                XMFLOAT3* pt = (XMFLOAT3*)&(tverts[stride * current_ind]);
+                if (pt->x < lower.x) 
+                    lower.x = pt->x;
+                if (pt->y < lower.y) 
+                    lower.y = pt->y;
+                if (pt->z < lower.z) 
+                    lower.z = pt->z;
+                if (pt->x > upper.x) 
+                    upper.x = pt->x;
+                if (pt->y > upper.y) 
+                    upper.y = pt->y;
+                if (pt->z > upper.z) 
+                    upper.z = pt->z;
+            }
+
+
+            XMFLOAT3 half((upper.x - lower.x) * 0.5f,
+                (upper.y - lower.y) * 0.5f,
+                (upper.z - lower.z) * 0.5f);
+
+
+           /* oneMeshData.BoundingBoxCenter.x = lower.x + half.x;
+            oneMeshData.BoundingBoxCenter.y = lower.y + half.y;
+            oneMeshData.BoundingBoxCenter.z = lower.z + half.z;
+            oneMeshData.BoundingBoxExtents = half;*/
+
+            // Extents
+            mesh->boundingBox.Center.x = lower.x + half.x;
+            mesh->boundingBox.Center.y = lower.y + half.y;
+            mesh->boundingBox.Center.z = lower.z + half.z;
+            mesh->boundingBox.Extents = half;
+
+             BoundingBox tmp;
+             BoundingSphere::CreateFromBoundingBox(mesh->boundingSphere, tmp);
+
             part->materialIndex = subset.MaterialID;
             part->vbDecl = vbDecls[oneMeshData.VertexBuffers[0]];
 
@@ -793,11 +857,19 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
         std::swap(model->invBindPoseMatrices, invBoneTransforms);
     }
 
-
+    model->boundingBox = model->meshes[0]->boundingBox;
+    int index = 0;
     for (const auto& mesh : model->meshes)
     {
         BoundingBox::CreateMerged(model->boundingBox, model->boundingBox, mesh->boundingBox);
         BoundingSphere::CreateMerged(model->boundingSphere, model->boundingSphere, mesh->boundingSphere);
+
+        index++;
+        if (mesh->boundingBox.Extents.y > 80)
+        {
+            int a = 4;
+        }
+
     }
 
     return model;
