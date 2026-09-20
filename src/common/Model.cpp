@@ -14,7 +14,6 @@
 
 #include <set>
 
-
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
@@ -24,32 +23,29 @@ using namespace DirectX::DX12;
 #error Model requires RTTI
 #endif
 
-
 //--------------------------------------------------------------------------------------
 // ModelMeshPart
 //--------------------------------------------------------------------------------------
 
-ModelMeshPart::ModelMeshPart(uint32_t ipartIndex) noexcept :
-	partIndex(ipartIndex),
-	materialIndex(0),
-	indexCount(0),
-	startIndex(0),
-	vertexOffset(0),
-	vertexStride(0),
-	vertexCount(0),
-	indexBufferSize(0),
-	vertexBufferSize(0),
-	primitiveType(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST),
-	indexFormat(DXGI_FORMAT_R16_UINT)
+ModelMeshPart::ModelMeshPart(uint32_t ipartIndex) noexcept : partIndex(ipartIndex),
+materialIndex(0),
+indexCount(0),
+startIndex(0),
+vertexOffset(0),
+vertexStride(0),
+vertexCount(0),
+indexBufferSize(0),
+vertexBufferSize(0),
+primitiveType(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST),
+indexFormat(DXGI_FORMAT_R16_UINT)
 {
 }
-
 
 ModelMeshPart::~ModelMeshPart()
 {
 }
 
-void __cdecl  ModelMeshPart::Draw(ID3D12GraphicsCommandList* commandList) const
+void __cdecl ModelMeshPart::Draw(ID3D12GraphicsCommandList* commandList) const
 {
 	if (!indexBufferSize || !vertexBufferSize)
 	{
@@ -100,27 +96,23 @@ void __cdecl ModelMeshPart::DrawMeshParts(ID3D12GraphicsCommandList* commandList
 // ModelMesh
 //--------------------------------------------------------------------------------------
 
-ModelMesh::ModelMesh() noexcept :
-	boneIndex(ModelBone::c_Invalid)
+ModelMesh::ModelMesh() noexcept : boneIndex(ModelBone::c_Invalid)
 {
 }
-
 
 ModelMesh::~ModelMesh()
 {
 }
 
-
-void __cdecl  ModelMesh::DrawOpaque(ID3D12GraphicsCommandList* commandList) const
+void __cdecl ModelMesh::DrawOpaque(ID3D12GraphicsCommandList* commandList) const
 {
 	ModelMeshPart::DrawMeshParts(commandList, opaqueMeshParts);
 }
 
-void __cdecl  ModelMesh::DrawAlpha(ID3D12GraphicsCommandList* commandList) const
+void __cdecl ModelMesh::DrawAlpha(ID3D12GraphicsCommandList* commandList) const
 {
 	ModelMeshPart::DrawMeshParts(commandList, alphaMeshParts);
 }
-
 
 //--------------------------------------------------------------------------------------
 // Model
@@ -147,7 +139,6 @@ std::size_t Model::getTextureResouceSlotByNameIndex(int idx)
 	auto textureName = textureNames[idx].c_str();
 	auto textureEntiry = mTextureCache.find(textureName);
 	return textureEntiry->second.slot;
-
 }
 
 std::size_t DirectX::DX12::Model::GetMeshPartCount() const
@@ -161,12 +152,11 @@ std::size_t DirectX::DX12::Model::GetMeshPartCount() const
 	return meshPartCount;
 }
 
-Model::Model(Model const& other) :
-	meshes(other.meshes),
-	materials(other.materials),
-	textureNames(other.textureNames),
-	bones(other.bones),
-	name(other.name)
+Model::Model(Model const& other) : meshes(other.meshes),
+materials(other.materials),
+textureNames(other.textureNames),
+bones(other.bones),
+name(other.name)
 {
 	const size_t nbones = other.bones.size();
 	if (nbones > 0)
@@ -184,7 +174,7 @@ Model::Model(Model const& other) :
 	}
 }
 
-Model& Model::operator= (Model const& rhs)
+Model& Model::operator=(Model const& rhs)
 {
 	if (this != &rhs)
 	{
@@ -200,7 +190,7 @@ Model& Model::operator= (Model const& rhs)
 	return *this;
 }
 
-void __cdecl  Model::LoadStaticBuffers(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, bool keepMemory)
+void __cdecl Model::LoadStaticBuffers(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList, bool keepMemory)
 {
 	if (!device)
 		throw std::invalid_argument("Direct3D device is null");
@@ -299,7 +289,7 @@ void __cdecl  Model::LoadStaticBuffers(ID3D12Device* device, ID3D12GraphicsComma
 	}
 }
 
-void  Model::LoadTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList, const wchar_t* texturesPath,
+void Model::LoadTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList, const wchar_t* texturesPath,
 	int destinationDescriptorOffset, D3D12_DESCRIPTOR_HEAP_FLAGS flags)
 {
 	if (textureNames.empty())
@@ -307,7 +297,7 @@ void  Model::LoadTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mComm
 
 	bool mSharing = true;
 
-	for (size_t i = 0;i < textureNames.size(); ++i)
+	for (size_t i = 0; i < textureNames.size(); ++i)
 	{
 		const wchar_t* textureName = textureNames[i].c_str();
 
@@ -354,7 +344,6 @@ void  Model::LoadTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mComm
 						mCommandList, fullName,
 						textureEntry.mResource, textureEntry.mUploadHeap, 0, nullptr,
 						&textureEntry.mIsCubeMap));
-
 				}
 				else
 				{
@@ -399,49 +388,48 @@ void  Model::LoadTextures(ID3D12Device* device, ID3D12GraphicsCommandList* mComm
 
 bool Model::testEqualMaterial() const
 {
-	if (materials.empty()) return false;
+	if (materials.empty())
+		return false;
 
-	bool                gperVertexColor = materials[0].perVertexColor;
-	bool                genableSkinning = materials[0].enableSkinning;
-	bool                genableDualTexture = materials[0].enableDualTexture;
-	bool                genableNormalMaps = materials[0].enableNormalMaps;
-	bool                gbiasedVertexNormals = materials[0].biasedVertexNormals;
+	bool gperVertexColor = materials[0].perVertexColor;
+	bool genableSkinning = materials[0].enableSkinning;
+	bool genableDualTexture = materials[0].enableDualTexture;
+	bool genableNormalMaps = materials[0].enableNormalMaps;
+	bool gbiasedVertexNormals = materials[0].biasedVertexNormals;
 
-	bool                gspecularPower = materials[0].specularPower == 0;
-	bool                galphaValue = materials[0].alphaValue == 0;
+	bool gspecularPower = materials[0].specularPower == 0;
+	bool galphaValue = materials[0].alphaValue == 0;
 
-	bool                gambientColor = materials[0].ambientColor.x == 0 && materials[0].ambientColor.y == 0 && materials[0].ambientColor.z == 0;
-	bool                gdiffuseColor = materials[0].diffuseColor.x == 0 && materials[0].diffuseColor.y == 0 && materials[0].diffuseColor.z == 0;
-	bool                gspecularColor = materials[0].specularColor.x == 0 && materials[0].specularColor.y == 0 && materials[0].specularColor.z == 0;
-	bool                gemissiveColor = materials[0].emissiveColor.x == 0 && materials[0].emissiveColor.y == 0 && materials[0].emissiveColor.z == 0;
+	bool gambientColor = materials[0].ambientColor.x == 0 && materials[0].ambientColor.y == 0 && materials[0].ambientColor.z == 0;
+	bool gdiffuseColor = materials[0].diffuseColor.x == 0 && materials[0].diffuseColor.y == 0 && materials[0].diffuseColor.z == 0;
+	bool gspecularColor = materials[0].specularColor.x == 0 && materials[0].specularColor.y == 0 && materials[0].specularColor.z == 0;
+	bool gemissiveColor = materials[0].emissiveColor.x == 0 && materials[0].emissiveColor.y == 0 && materials[0].emissiveColor.z == 0;
 
-	bool                 gdiffuseTextureIndex = materials[0].diffuseTextureIndex == -1;
-	bool                 gspecularTextureIndex = materials[0].specularTextureIndex == -1;
-	bool                 gnormalTextureIndex = materials[0].normalTextureIndex == -1;
-	bool                 gemissiveTextureIndex = materials[0].emissiveTextureIndex == -1;
-
+	bool gdiffuseTextureIndex = materials[0].diffuseTextureIndex == -1;
+	bool gspecularTextureIndex = materials[0].specularTextureIndex == -1;
+	bool gnormalTextureIndex = materials[0].normalTextureIndex == -1;
+	bool gemissiveTextureIndex = materials[0].emissiveTextureIndex == -1;
 
 	for (auto& mt : materials)
 	{
-		bool                perVertexColor = mt.perVertexColor;
-		bool                enableSkinning = mt.enableSkinning;
-		bool                enableDualTexture = mt.enableDualTexture;
-		bool                enableNormalMaps = mt.enableNormalMaps;
-		bool                biasedVertexNormals = mt.biasedVertexNormals;
+		bool perVertexColor = mt.perVertexColor;
+		bool enableSkinning = mt.enableSkinning;
+		bool enableDualTexture = mt.enableDualTexture;
+		bool enableNormalMaps = mt.enableNormalMaps;
+		bool biasedVertexNormals = mt.biasedVertexNormals;
 
-		bool                specularPower = mt.specularPower == 0;
-		bool                alphaValue = mt.alphaValue == 0;
+		bool specularPower = mt.specularPower == 0;
+		bool alphaValue = mt.alphaValue == 0;
 
-		bool                ambientColor = mt.ambientColor.x == 0 && mt.ambientColor.y == 0 && mt.ambientColor.z == 0;
-		bool                diffuseColor = mt.diffuseColor.x == 0 && mt.diffuseColor.y == 0 && mt.diffuseColor.z == 0;
-		bool                specularColor = mt.specularColor.x == 0 && mt.specularColor.y == 0 && mt.specularColor.z == 0;
-		bool                emissiveColor = mt.emissiveColor.x == 0 && mt.emissiveColor.y == 0 && mt.emissiveColor.z == 0;
+		bool ambientColor = mt.ambientColor.x == 0 && mt.ambientColor.y == 0 && mt.ambientColor.z == 0;
+		bool diffuseColor = mt.diffuseColor.x == 0 && mt.diffuseColor.y == 0 && mt.diffuseColor.z == 0;
+		bool specularColor = mt.specularColor.x == 0 && mt.specularColor.y == 0 && mt.specularColor.z == 0;
+		bool emissiveColor = mt.emissiveColor.x == 0 && mt.emissiveColor.y == 0 && mt.emissiveColor.z == 0;
 
-		bool                 diffuseTextureIndex = mt.diffuseTextureIndex == -1;
-		bool                 specularTextureIndex = mt.specularTextureIndex == -1;
-		bool                 normalTextureIndex = mt.normalTextureIndex == -1;
-		bool                 emissiveTextureIndex = mt.emissiveTextureIndex == -1;
-
+		bool diffuseTextureIndex = mt.diffuseTextureIndex == -1;
+		bool specularTextureIndex = mt.specularTextureIndex == -1;
+		bool normalTextureIndex = mt.normalTextureIndex == -1;
+		bool emissiveTextureIndex = mt.emissiveTextureIndex == -1;
 
 		if (perVertexColor != gperVertexColor ||
 			enableSkinning != genableSkinning ||
@@ -461,14 +449,12 @@ bool Model::testEqualMaterial() const
 		{
 			return false;
 		}
-
 	}
 
 	return true;
 }
 
-
-std::vector< std::shared_ptr<SDKMesh::Effect> > Model::CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
+std::vector<std::shared_ptr<SDKMesh::Effect>> Model::CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
 {
 	uint32_t partCount = 0;
 	for (const auto& mesh : meshes)
@@ -479,34 +465,31 @@ std::vector< std::shared_ptr<SDKMesh::Effect> > Model::CreateEffect(SDKMesh::Eff
 			partCount = (std::max)(part->partIndex + 1, partCount);
 	}
 
-	std::vector< std::shared_ptr<SDKMesh::Effect> > effects;
+	std::vector<std::shared_ptr<SDKMesh::Effect>> effects;
 	effects.resize(partCount);
 
-
-	auto CreateEffectForMeshPart = [&](ModelMeshPart*part, SDKMesh::EffectPipelineStateDescription& psd) {
-		
-		std::shared_ptr< SDKMesh::Effect> effect(new SDKMesh::Effect);
-
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
-		ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-		opaquePsoDesc = psd.desc;
-
-		opaquePsoDesc.InputLayout = { part->vbDecl.get()->data(), (UINT)part->vbDecl.get()->size() };
-		opaquePsoDesc.VS =
+	auto CreateEffectForMeshPart = [&](ModelMeshPart* part, SDKMesh::EffectPipelineStateDescription& psd)
 		{
-			reinterpret_cast<BYTE*>(psd.standardVS->GetBufferPointer()),
-			psd.standardVS->GetBufferSize()
-		};
-		opaquePsoDesc.PS =
-		{
-			reinterpret_cast<BYTE*>(psd.opaquesPS->GetBufferPointer()),
-			psd.opaquesPS->GetBufferSize()
-		};
+			std::shared_ptr<SDKMesh::Effect> effect(new SDKMesh::Effect);
 
-		ThrowIfFailed(psd.device->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&(effect->m_PSO))));
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
+			ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+			opaquePsoDesc = psd.desc;
 
-		return effect;
-	};
+			opaquePsoDesc.InputLayout = { part->vbDecl.get()->data(), (UINT)part->vbDecl.get()->size() };
+			opaquePsoDesc.VS =
+			{
+				reinterpret_cast<BYTE*>(psd.standardVS->GetBufferPointer()),
+				psd.standardVS->GetBufferSize() };
+			opaquePsoDesc.PS =
+			{
+				reinterpret_cast<BYTE*>(psd.opaquesPS->GetBufferPointer()),
+				psd.opaquesPS->GetBufferSize() };
+
+			ThrowIfFailed(psd.device->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&(effect->m_PSO))));
+
+			return effect;
+		};
 
 	for (const auto& mesh : meshes)
 	{
@@ -536,11 +519,51 @@ std::vector< std::shared_ptr<SDKMesh::Effect> > Model::CreateEffect(SDKMesh::Eff
 			assert(effects[part->partIndex] == nullptr);
 
 			effects[part->partIndex] = CreateEffectForMeshPart(part.get(), pipeLineStateDescription);
-
 		}
 	}
-	
+
 	return effects;
+}
+
+std::shared_ptr<SDKMesh::Effect> DirectX::DX12::Model::CreateOnlyOneEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription)
+{
+	auto CreateEffectForMeshPart = [&](ModelMeshPart* part, SDKMesh::EffectPipelineStateDescription& psd)
+		{
+			std::shared_ptr<SDKMesh::Effect> effect(new SDKMesh::Effect);
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
+			ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+			opaquePsoDesc = psd.desc;
+
+			opaquePsoDesc.InputLayout = { part->vbDecl.get()->data(), (UINT)part->vbDecl.get()->size() };
+			opaquePsoDesc.VS =
+			{
+				reinterpret_cast<BYTE*>(psd.standardVS->GetBufferPointer()),
+				psd.standardVS->GetBufferSize() 
+			};
+			
+			if (psd.opaquesPS)
+			{
+				opaquePsoDesc.PS =
+				{
+					reinterpret_cast<BYTE*>(psd.opaquesPS->GetBufferPointer()),
+					psd.opaquesPS->GetBufferSize()
+				};
+			}
+			ThrowIfFailed(psd.device->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&(effect->m_PSO))));
+
+			return effect;
+		};
+
+	for (const auto& part : meshes[0]->opaqueMeshParts)
+	{
+		assert(part != nullptr);
+
+		if (part->materialIndex == uint32_t(-1))
+			continue;
+
+		return CreateEffectForMeshPart(part.get(), pipeLineStateDescription);
+	}
 }
 
 BoundingSphere Model::getBoundingSphere() const
@@ -553,13 +576,11 @@ BoundingBox Model::getBoundingBox() const
 	return boundingBox;
 }
 
-
-
-SharedGraphicsResource::SharedGraphicsResource() noexcept :mSize(0)
+SharedGraphicsResource::SharedGraphicsResource() noexcept : mSize(0)
 {
 }
 
-SharedGraphicsResource::SharedGraphicsResource(ID3D12Device* device, const VOID* Source, size_t size) :mSize(size)
+SharedGraphicsResource::SharedGraphicsResource(ID3D12Device* device, const VOID* Source, size_t size) : mSize(size)
 {
 	ThrowIfFailed(D3DCreateBlob(size, &bufferCPU));
 	CopyMemory(bufferCPU->GetBufferPointer(), Source, size);
@@ -571,11 +592,10 @@ SharedGraphicsResource::SharedGraphicsResource(ID3D12Device* device, const VOID*
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
-
 }
 
 SharedGraphicsResource::SharedGraphicsResource(SharedGraphicsResource&& other) noexcept
-	:mSize(other.mSize), bufferCPU(std::move(other.bufferCPU)), uploadBuffer(std::move(other.uploadBuffer))
+	: mSize(other.mSize), bufferCPU(std::move(other.bufferCPU)), uploadBuffer(std::move(other.uploadBuffer))
 {
 }
 
@@ -602,7 +622,7 @@ SharedGraphicsResource& SharedGraphicsResource::operator=(const SharedGraphicsRe
 	return *this;
 }
 
-Microsoft::WRL::ComPtr<ID3D12Resource>  SharedGraphicsResource::UpLoad(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
+Microsoft::WRL::ComPtr<ID3D12Resource> SharedGraphicsResource::UpLoad(ID3D12Device* device, ID3D12GraphicsCommandList* cmdList)
 {
 	ComPtr<ID3D12Resource> defaultBuffer;
 
@@ -612,8 +632,7 @@ Microsoft::WRL::ComPtr<ID3D12Resource>  SharedGraphicsResource::UpLoad(ID3D12Dev
 		&CD3DX12_RESOURCE_DESC::Buffer(mSize),
 		D3D12_RESOURCE_STATE_COMMON,
 		nullptr,
-		IID_PPV_ARGS(defaultBuffer.GetAddressOf())
-	));
+		IID_PPV_ARGS(defaultBuffer.GetAddressOf())));
 
 	D3D12_SUBRESOURCE_DATA subResourceData = {};
 	subResourceData.pData = bufferCPU->GetBufferPointer();

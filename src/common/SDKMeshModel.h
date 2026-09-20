@@ -123,6 +123,8 @@ namespace SDKMesh
 
         std::vector< std::shared_ptr<SDKMesh::Effect> > CreateEffect(SDKMesh::EffectPipelineStateDescription& pipeLineStateDescription);
 
+        std::shared_ptr<SDKMesh::Effect>  CreateOnlyOneEffect(SDKMesh::EffectPipelineStateDescription&);
+
         void UpdateObjectCBs(const GameTimer& gt, FrameResourceInterface* frameResource);
         void UpdateMaterialCBs(const GameTimer& gt, FrameResourceInterface* frameResource);
 

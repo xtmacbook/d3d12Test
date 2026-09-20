@@ -317,6 +317,9 @@ namespace DirectX
 
              std::vector< std::shared_ptr<SDKMesh::Effect> >  CreateEffect(SDKMesh::EffectPipelineStateDescription&);
 
+             //目的是在确保所有part使用相同的layout的时候为了减少创建的POS而添加的
+             std::shared_ptr<SDKMesh::Effect>  CreateOnlyOneEffect(SDKMesh::EffectPipelineStateDescription&);
+
 
              BoundingSphere getBoundingSphere() const;
              BoundingBox getBoundingBox() const;

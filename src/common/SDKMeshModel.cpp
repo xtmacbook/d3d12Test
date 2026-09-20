@@ -173,7 +173,6 @@ namespace SDKMesh
 	}
 
 	/*
-		下面的计算看 SDKMeshMaterialConstants 结构体上注释
 	*/
 	void SDKMeshModel::UpdateMaterialCBs(const GameTimer& gt, 
 		FrameResourceInterface* frameResource)
@@ -231,7 +230,12 @@ namespace SDKMesh
 		return m_model->CreateEffect(pipeLineStateDescription);
 	}
 
-	SDKMeshModel::SDKMeshModel(ID3D12Device* device)
+    std::shared_ptr<SDKMesh::Effect> SDKMeshModel::CreateOnlyOneEffect(SDKMesh::EffectPipelineStateDescription &pipeLineStateDescription)
+    {
+       return m_model->CreateOnlyOneEffect(pipeLineStateDescription);
+    }
+
+    SDKMeshModel::SDKMeshModel(ID3D12Device* device)
 	{
 		m_device = device;
 	}

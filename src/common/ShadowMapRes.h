@@ -55,6 +55,12 @@ public:
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
 
+    void SetDescriptors(
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
+        CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
+
+
     void DepthBias();
 
     void orthProj();
