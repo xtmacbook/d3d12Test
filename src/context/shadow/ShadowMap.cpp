@@ -18,6 +18,10 @@ using Microsoft::WRL::ComPtr;
 bool ShadowMapBase::InitDirect3D()
 {
 	if (!D3DContext::InitDirect3D()) return false;
+
+	static const XMVECTORF32 s_vecEye = { 100.0f, 5.0f, 5.0f, 0.f };
+	mCamera.LookAt(s_vecEye, g_XMZero, { 0.0f, 1.0f, 0.0f,0.0f });
+
 	
 	m_shadowInterface = std::make_shared<ShadowInterface>(this);
 	m_shadowInterface->BuildShadowMap();
