@@ -87,14 +87,7 @@ void CascadedShadowsManager::BuildShadowMap()
 
 void CascadedShadowsManager::BuildPOS(SDKMesh::SDKMeshModel*meshModel, D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc)
 {
-    SDKMesh::EffectPipelineStateDescription epsd;
-    epsd.standardVS = m_ShadowVSShader;
-    epsd.opaquesPS = nullptr;
-    epsd.alphaPS = nullptr;
-    epsd.device = m_d3dDevice;
-    epsd.desc = psoDesc;
-    m_shadowDrawPSO = meshModel->CreateOnlyOneEffect(epsd)->m_PSO;
-
+  
     for (INT iCascadeIndex = 0; iCascadeIndex < MAX_CASCADES; ++iCascadeIndex)
     {
         for (INT iDerivativeIndex = 0; iDerivativeIndex < 2; ++iDerivativeIndex)
@@ -114,6 +107,23 @@ void CascadedShadowsManager::BuildPOS(SDKMesh::SDKMeshModel*meshModel, D3D12_GRA
             }
         }
     }
+
+    psoDesc.RasterizerState.DepthBias = 100000;
+    psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
+    psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
+
+    // Shadow map pass does not have a render target.
+    psoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+    psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    psoDesc.NumRenderTargets = 0;
+
+    SDKMesh::EffectPipelineStateDescription epsd;
+    epsd.standardVS = m_ShadowVSShader;
+    epsd.opaquesPS = nullptr;
+    epsd.alphaPS = nullptr;
+    epsd.device = m_d3dDevice;
+    epsd.desc = psoDesc;
+    m_shadowDrawPSO = meshModel->CreateOnlyOneEffect(epsd)->m_PSO;
 }
 
 
@@ -308,6 +318,8 @@ void CascadedShadowsManager::RenderShadowsForAllCascades(ID3D12GraphicsCommandLi
 void CascadedShadowsManager::RenderScene(ID3D12GraphicsCommandList* cmmandList, 
 	CSMShadowMapDrawData& data)
 {
+    if (data.m_drawCb)
+        data.m_drawCb(cmmandList);
 }
 
 void CascadedShadowsManager::ReleasePreFrameResource()
@@ -801,8 +813,9 @@ ID3D12PipelineState* CascadedShadowsManager::GetDrawSceneToShadowMapPSO()
 	return m_shadowDrawPSO.Get();
 }
 
-std::vector<std::shared_ptr<SDKMesh::Effect>>& CascadedShadowsManager::GetEffect()
+ID3D12PipelineState* CascadedShadowsManager::GetEffect()
 {
-	//return m_effects;
-    return std::vector<std::shared_ptr<SDKMesh::Effect>>();
+    return m_effects.effectCluster[2][m_iDerivativeBasedOffset]
+        [m_iBlurBetweenCascades]
+        [m_eSelectedCascadeSelection]->m_PSO.Get();
 }

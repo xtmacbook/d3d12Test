@@ -271,6 +271,10 @@ void CSMMapContext::UpdateMainPassCB(const GameTimer& gt)
 	mainConstantsData.m_fShadowBiasFromGUI = m_fPCFOffset;
 	mainConstantsData.m_fCascadeBlendArea = m_fBlurBetweenCascadesAmount;
 	m_cascadedShadowsMgr->UpdateMainPassData(mainConstantsData);
+
+	XMVECTOR lightDir = XMVector3Normalize(-m_shadowLightCamera.GetLook());
+	XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&mainConstantsData.m_vLightDir), lightDir);
+	mainConstantsData.m_vLightDir.w = 1.0f;
 	m_currFrameResource->CopyPassData(0, &mainConstantsData);
 
 	for (UINT i = 0; i < m_csmConfig->m_nCascadeLevels; i++)
@@ -357,12 +361,10 @@ void CSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 
 		data.m_drawCb = [&](ID3D12GraphicsCommandList*)
 			{
-				m_sdkMeshModel->DrawRenderItems(allocator, m_d3dDevice.Get(),
+				m_sdkMeshModel->DrawRenderItemsWithOnePass(allocator, m_d3dDevice.Get(),
 					m_CommandList.Get(), m_currFrameResource, m_SrvDescriptorHeap.Get(),
-					m_CbvSrvUavDescriptorSize, m_cascadedShadowsMgr->GetEffect() );
+					m_CbvSrvUavDescriptorSize, m_cascadedShadowsMgr->GetEffect());
 			};
-		
-
 		m_cascadedShadowsMgr->RenderScene(m_CommandList.Get(), data);
 
 	}
@@ -402,6 +404,7 @@ void CSMMapContext::BuildPSOs()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = GetDefaultPSODesc();
 	psoDesc.pRootSignature = m_RootSignature.Get();
+
 	m_cascadedShadowsMgr->BuildPOS(m_sdkMeshModel.get(), psoDesc);
 }
 

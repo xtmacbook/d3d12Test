@@ -133,6 +133,67 @@ namespace SDKMesh
 
 	}
 
+	void SDKMeshModel::DrawRenderItemsWithOnePass(ID3D12CommandAllocator* allocator, ID3D12Device* device, 
+		ID3D12GraphicsCommandList* mCommandList, FrameResourceInterface* resouce, ID3D12DescriptorHeap* heapDescriptor,
+		UINT CbvSrvUavDescriptorSize, ID3D12PipelineState* PSO)
+	{
+		CD3DX12_GPU_DESCRIPTOR_HANDLE descriptorStart(heapDescriptor->GetGPUDescriptorHandleForHeapStart());
+
+		UINT objCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(SDKMesh::SDKMeshObjectConstants));
+		UINT matCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(SDKMesh::SDKMeshMaterialConstants));
+
+		int meshIdex = 0;
+		int descriptorC = 0;
+		for (auto& mesh : m_model->meshes)
+		{
+			int opaqueMPIndex = 0;
+			for (auto& opaqueMP : mesh->opaqueMeshParts)
+			{
+				int partIndex = opaqueMP->partIndex;
+
+				mCommandList->SetPipelineState(PSO);
+
+				//set obj const
+				UINT64 offset = static_cast<UINT64>(partIndex) * objCBByteSize;
+				D3D12_GPU_VIRTUAL_ADDRESS startAddress = resouce->getConstGpuAddress();
+
+				mCommandList->SetGraphicsRootConstantBufferView(0, startAddress + offset);
+
+				//set texture
+				const auto& material = m_model->materials[opaqueMP->materialIndex];
+
+				INT diffusetLocalOffset = getTextureOffset(material.diffuseTextureIndex);
+				INT normalLocalOffset = getTextureOffset(material.normalTextureIndex);
+
+				CD3DX12_GPU_DESCRIPTOR_HANDLE diffuseTextureHandle = descriptorStart;
+				CD3DX12_GPU_DESCRIPTOR_HANDLE normalTextureHandle = descriptorStart;
+				diffuseTextureHandle.Offset(m_textureDescriptorOffset + diffusetLocalOffset, CbvSrvUavDescriptorSize);
+				normalTextureHandle.Offset(m_textureDescriptorOffset + normalLocalOffset, CbvSrvUavDescriptorSize);
+
+				mCommandList->SetGraphicsRootDescriptorTable(3, diffuseTextureHandle);
+				mCommandList->SetGraphicsRootDescriptorTable(4, normalTextureHandle);
+
+				//set material
+				D3D12_GPU_VIRTUAL_ADDRESS matCBAddress =
+					resouce->getMaterialGpuAddress() +
+					opaqueMP->materialIndex * matCBByteSize;
+				mCommandList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+
+				opaqueMP->Draw(mCommandList);
+
+				opaqueMPIndex++;
+				descriptorC++;
+			}
+
+			for (auto& alphaMP : mesh->alphaMeshParts)
+			{
+				alphaMP->Draw(mCommandList);
+			}
+
+			meshIdex++;
+		}
+	}
+
 	UINT SDKMeshModel::GetTextureCount() const
 	{
 		if (m_model)

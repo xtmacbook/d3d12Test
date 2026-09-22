@@ -115,6 +115,11 @@ namespace SDKMesh
             FrameResourceInterface*, ID3D12DescriptorHeap*, UINT, 
             ID3D12PipelineState*shadowPSO, CD3DX12_GPU_DESCRIPTOR_HANDLE nullSrvGpuHandle);
 
+        void DrawRenderItemsWithOnePass(ID3D12CommandAllocator* allocator,
+            ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList,
+            FrameResourceInterface*, ID3D12DescriptorHeap*, UINT,
+            ID3D12PipelineState* PSO);
+
         UINT GetTextureCount()const;
 
 		UINT GetRenderItemCount()const;

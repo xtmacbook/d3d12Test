@@ -779,8 +779,7 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
             mesh->boundingBox.Center.z = lower.z + half.z;
             mesh->boundingBox.Extents = half;
 
-             BoundingBox tmp;
-             BoundingSphere::CreateFromBoundingBox(mesh->boundingSphere, tmp);
+            BoundingSphere::CreateFromBoundingBox(mesh->boundingSphere, mesh->boundingBox);
 
             part->materialIndex = subset.MaterialID;
             part->vbDecl = vbDecls[oneMeshData.VertexBuffers[0]];
@@ -858,18 +857,11 @@ std::unique_ptr<Model> Model::CreateFromSDKMESH(
     }
 
     model->boundingBox = model->meshes[0]->boundingBox;
-    int index = 0;
+
     for (const auto& mesh : model->meshes)
     {
         BoundingBox::CreateMerged(model->boundingBox, model->boundingBox, mesh->boundingBox);
         BoundingSphere::CreateMerged(model->boundingSphere, model->boundingSphere, mesh->boundingSphere);
-
-        index++;
-        if (mesh->boundingBox.Extents.y > 80)
-        {
-            int a = 4;
-        }
-
     }
 
     return model;

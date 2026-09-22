@@ -52,7 +52,6 @@ struct CSMPassConstants
 	DirectX::XMFLOAT4       m_fCascadeFrustumsEyeSpaceDepthsFloat4[8];// the values along Z that separte the cascades.  
 	// Wastefully stored in float4 so they are array indexable :(
 	DirectX::XMFLOAT4       m_vLightDir;
-
 };
 
 enum SHADOW_TEXTURE_FORMAT
@@ -117,7 +116,7 @@ public:
 
 	ID3D12PipelineState* GetDrawSceneToShadowMapPSO();
 
-	std::vector< std::shared_ptr<SDKMesh::Effect> >& GetEffect();
+	ID3D12PipelineState* GetEffect();
 
 	void BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
@@ -145,7 +144,7 @@ public:
 	FIT_TO_NEAR_FAR																	m_eSelectedNearFarFit;
 
 	INT																				m_iCascadePartitionsMax;
-	FLOAT																			m_fCascadePartitionsFrustum[MAX_CASCADES]; //程序计算的真是只 Values are  between near and far
+	FLOAT																			m_fCascadePartitionsFrustum[MAX_CASCADES]; //程序计算的真实值 Values are  between near and far
 	INT																				m_iCascadePartitionsZeroToOne[MAX_CASCADES]; //这个是用户设置的： Values are 0 to 100 and represent a percent of the frstum
 	INT																				m_iPCFBlurSize;
 	bool																			m_bMoveLightTexelSize = true;
