@@ -3,3 +3,4 @@ vsbuiled/
 x64/
 src/x64/
 build/
+.vscode/

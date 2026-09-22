@@ -17,7 +17,7 @@
 #include "context/InstanceContext.h"
 #include "context/CubeMapContext.h"
 #include "shadow/ShadowMap.h"
-#include "shadow/ShadowMap.h"
+#include "shadow/CSMs.h"
 
 using namespace DirectX;
 

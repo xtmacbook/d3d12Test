@@ -138,6 +138,7 @@ set (CONTEXT_SHADOW_HEADS
     src/context/shadow/ShadowInterface.h
     src/context/shadow/CascadedShadowsManager.h
     src/context/shadow/CSMs.h
+    src/context/shadow/LSPSMs.h
 )
 
 set(SHADER_FILES
@@ -179,6 +180,35 @@ set (IMGUI_SOURCE
 
 )
 
+
+set(SHADER_SHADOW_CSM
+    Shaders/CSM/csm_scene.hlsl
+    Shaders/CSM/csm_shadowMap.hlsl
+    Shaders/CSM/csm_base.hlsl
+
+)
+
+set(SHADER_BASE
+    Shaders/Blur.hlsl
+    Shaders/ShadowMapDraw.hlsl
+    Shaders/ShadowMapBase.hlsl
+    Shaders/ShadowMap.hlsl
+    Shaders/LightingUtil.hlsl
+    Shaders/util.hlsl
+)
+
+set(SHADER_FILES
+    ${SHADER_BASE}
+    ${SHADER_SHADOW_CSM}
+)
+
+
+set_source_files_properties(${SHADER_FILES} 
+    PROPERTIES
+    VS_SETTINGS "ExcludedFromBuild=true"
+)
+
+
 source_group ("Source Files/common" FILES ${COMMON_SOURCE})
 source_group ("Header Files/common" FILES ${COMMON_SOURCE_HEADS})
 
@@ -191,8 +221,10 @@ source_group ("Header Files/context" FILES ${CONTEXT_SOURCE_HEADS})
 source_group ("Source Files/context/shadow" FILES ${CONTEXT_SHADOW_SOURCE})
 source_group ("Header Files/context/shadow" FILES ${CONTEXT_SHADOW_HEADS})
 
-source_group ("Source Files/shaders" FILES ${SHADER_FILES})
 source_group ("Source Files/imgui" FILES ${IMGUI_SOURCE})
+
+source_group ("Shaders" FILES ${SHADER_BASE})
+source_group ("Shaders/shadow/csm" FILES ${SHADER_SHADOW_CSM})
 
 INCLUDE_DIRECTORIES(include)
 
@@ -215,7 +247,8 @@ add_executable(
         ${CONTEXT_SHADOW_SOURCE}
         ${CONTEXT_SHADOW_HEADS}
         ${IMGUI_SOURCE}
-        src/osgEarth.cpp
+        ${SHADER_FILES}
+        src/main.cpp
         src/MainApp.cpp
 
 )
