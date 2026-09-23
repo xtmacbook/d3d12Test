@@ -19,11 +19,14 @@ void ShadowInterface::BuildDrawScenePSO(ID3D12RootSignature* rootSignature)
 {
 	std::vector<D3D12_INPUT_ELEMENT_DESC> InputLayout;
 
-	auto shadowVS = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMapDraw.hlsl", nullptr, "VS", "vs_5_1");
-	auto shadowOpaquePS = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMapDraw.hlsl", nullptr, "PS", "ps_5_1");
+	const D3D_SHADER_MACRO defines[] =
+	{
+		"NUM_DIR_LIGHTS", "1",
+		NULL, NULL
+	};
 
-	//m_Shaders["debugVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowDebug.hlsl", nullptr, "VS", "vs_5_1");
-	//m_Shaders["debugPS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowDebug.hlsl", nullptr, "PS", "ps_5_1");
+	auto shadowVS = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMapDraw.hlsl", defines, "VS", "vs_5_1");
+	auto shadowOpaquePS = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMapDraw.hlsl", defines, "PS", "ps_5_1");
 	
 	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout =
 	{

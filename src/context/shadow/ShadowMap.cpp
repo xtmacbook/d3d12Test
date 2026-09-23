@@ -13,7 +13,9 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
-
+ShadowMapBase::ShadowMapBase():m_usePCF(USEPCF::USE_PCF)
+{
+}
 
 bool ShadowMapBase::InitDirect3D()
 {
@@ -22,7 +24,6 @@ bool ShadowMapBase::InitDirect3D()
 	static const XMVECTORF32 s_vecEye = { 100.0f, 5.0f, 5.0f, 0.f };
 	mCamera.LookAt(s_vecEye, g_XMZero, { 0.0f, 1.0f, 0.0f,0.0f });
 
-	
 	m_shadowInterface = std::make_shared<ShadowInterface>(this);
 	m_shadowInterface->BuildShadowMap();
 
@@ -183,15 +184,24 @@ void ShadowMapBase::BuildRootSignature()
 void ShadowMapBase::BuildShadersAndInputLayout()
 {
 	//这里每个sdkmesh的mesh part使用不同的layout
-	const D3D_SHADER_MACRO alphaTestDefines[] =
-	{
-		"ALPHA_TEST", "1",
-		NULL, NULL
+	
+	const D3D_SHADER_MACRO noUsePCF[]={
+
+		"USE_PCF","0",
+		NULL,NULL
 	};
 
-	m_Shaders["standardVS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", nullptr, "VS", "vs_5_1");
-	m_Shaders["opaquePS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", nullptr, "PS", "ps_5_1");
-	m_Shaders["alphaTestedPS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", alphaTestDefines, "PS", "ps_5_1");
+	m_ppsRenderSceneVSShadersBlob[0] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", noUsePCF, "VS", "vs_5_1");
+	m_ppsRenderScenePSShadersBlob[0] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", noUsePCF, "PS", "ps_5_1");
+
+	const D3D_SHADER_MACRO UsePCF[]={
+
+		"USE_PCF","1",
+		NULL,NULL
+	};
+
+	m_ppsRenderSceneVSShadersBlob[1] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", UsePCF, "VS", "vs_5_1");
+	m_ppsRenderScenePSShadersBlob[1] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/ShadowMap.hlsl", UsePCF, "PS", "ps_5_1");
 }
 
 void ShadowMapBase::BuildFrameResources()
@@ -208,10 +218,31 @@ void ShadowMapBase::Update(const GameTimer& gt)
 {
 	D3DContext::Update(gt);
 	FrameResourceContextInterface::Update(gt, m_Fence.Get());
+	
 	UpdateObjectCBs(gt);
+	
 	UpdateMaterialCBs(gt);
 	
-	UpdateMainPassCB(gt);
+	UPDATE_MAIN_PASS;
+
+	//为了和csm例子进行比较，同步这两个例子的光源，目前采用一个光源
+
+	static const XMVECTORF32 s_lightEye = { -320.0f, 300.0f, -220.3f, 0.f };
+
+	XMVECTOR lightDir = XMVectorSubtract(g_XMZero,s_lightEye);
+	lightDir = XMVector3Normalize(lightDir);
+	XMStoreFloat4(&m_MainPassCB.m_Lights[0].lightDirection, lightDir);
+	m_MainPassCB.m_Lights[0].lightDirection.w = .0;
+	m_MainPassCB.m_Lights[0].lightDiffuseColor  = { 1.0000000f, 0.9607844f, 0.8078432f, 0 };
+	m_MainPassCB.m_Lights[0].lightSpecularColor = { 1.0000000f, 0.9607844f, 0.8078432f, 0 };
+
+	// m_MainPassCB.m_Lights[1].lightDirection     = { 0.7198464f,  0.3420201f,  0.6040227f, 0 };
+	// m_MainPassCB.m_Lights[1].lightDiffuseColor = { 0.9647059f, 0.7607844f, 0.4078432f, 0 };
+	// m_MainPassCB.m_Lights[1].lightSpecularColor= { 0.0000000f, 0.0000000f, 0.0000000f, 0 };
+	
+	// m_MainPassCB.m_Lights[2].lightDirection    = { 0.4545195f, -0.7660444f,  0.4545195f, 0 };
+	// m_MainPassCB.m_Lights[2].lightDiffuseColor = { 0.3231373f, 0.3607844f, 0.3937255f, 0 };
+	// m_MainPassCB.m_Lights[2].lightSpecularColor= { 0.3231373f, 0.3607844f, 0.3937255f, 0 };
 
 
 	ShadowInterface::ShadowMapUpdateData shadowMapUpdateData;
@@ -219,9 +250,15 @@ void ShadowMapBase::Update(const GameTimer& gt)
 	shadowMapUpdateData.m_lightDir.x = m_MainPassCB.m_Lights[0].lightDirection.x;
 	shadowMapUpdateData.m_lightDir.y = m_MainPassCB.m_Lights[0].lightDirection.y;
 	shadowMapUpdateData.m_lightDir.z = m_MainPassCB.m_Lights[0].lightDirection.z;
+
 	m_shadowInterface->UpdateShadowTransform(shadowMapUpdateData);
 
 	m_shadowInterface->UpdateShadowPass(gt, m_currFrameResource, 1);
+
+	
+	XMMATRIX shadowTransform = XMLoadFloat4x4(&m_shadowInterface->getShadowTransform());
+	XMStoreFloat4x4(&m_MainPassCB.m_ShadowTransform, XMMatrixTranspose(shadowTransform));
+	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
 
 }
 
@@ -234,28 +271,6 @@ void ShadowMapBase::UpdateMaterialCBs(const GameTimer& gt)
 		bufferNum--;
 	}
 }		
-
-void ShadowMapBase::UpdateMainPassCB(const GameTimer& gt)
-{
-	UPDATE_MAIN_PASS;
-
-	XMMATRIX shadowTransform = XMLoadFloat4x4(&m_shadowInterface->getShadowTransform());
-	XMStoreFloat4x4(&m_MainPassCB.m_ShadowTransform, XMMatrixTranspose(shadowTransform));
-
-	m_MainPassCB.m_Lights[0].lightDirection     = { -0.5265408f, -0.5735765f, -0.6275069f, 0 };
-	m_MainPassCB.m_Lights[0].lightDiffuseColor  = { 1.0000000f, 0.9607844f, 0.8078432f, 0 };
-	m_MainPassCB.m_Lights[0].lightSpecularColor = { 1.0000000f, 0.9607844f, 0.8078432f, 0 };
-
-	m_MainPassCB.m_Lights[1].lightDirection     = { 0.7198464f,  0.3420201f,  0.6040227f, 0 };
-	m_MainPassCB.m_Lights[1].lightDiffuseColor = { 0.9647059f, 0.7607844f, 0.4078432f, 0 };
-	m_MainPassCB.m_Lights[1].lightSpecularColor= { 0.0000000f, 0.0000000f, 0.0000000f, 0 };
-	
-	m_MainPassCB.m_Lights[2].lightDirection    = { 0.4545195f, -0.7660444f,  0.4545195f, 0 };
-	m_MainPassCB.m_Lights[2].lightDiffuseColor = { 0.3231373f, 0.3607844f, 0.3937255f, 0 };
-	m_MainPassCB.m_Lights[2].lightSpecularColor= { 0.3231373f, 0.3607844f, 0.3937255f, 0 };
-
-	m_currFrameResource->CopyPassData(0, &m_MainPassCB);
-}
 
 void ShadowMapBase::UpdateObjectCBs(const GameTimer& gt)
 {
@@ -276,7 +291,6 @@ void ShadowMapBase::DrawFrameResource(ID3D12CommandAllocator* allocator)
 {
 	ThrowIfFailed(m_CommandList->Reset(allocator, nullptr));
 	
-
 	//DescriptorHeaps
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_SrvDescriptorHeap.Get() };
 	m_CommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -321,12 +335,10 @@ void ShadowMapBase::DrawFrameResource(ID3D12CommandAllocator* allocator)
 		shadowMapTex.Offset(m_HeapDescriptorOffsets.m_shadowMapHeapOffset, m_CbvSrvUavDescriptorSize);
 		m_CommandList->SetGraphicsRootDescriptorTable(5, shadowMapTex);
 
-		m_sdkMeshModel->DrawRenderItems(allocator,m_d3dDevice.Get(),
+		m_sdkMeshModel->DrawRenderItemsWithOnePass(allocator,m_d3dDevice.Get(),
 		m_CommandList.Get(),m_currFrameResource, m_SrvDescriptorHeap.Get(),
-		m_CbvSrvUavDescriptorSize, m_effects) ;
+		m_CbvSrvUavDescriptorSize, m_effect[static_cast<size_t>(m_usePCF)]->m_PSO.Get()) ;
 	}
-
-	
 
 	// Indicate a state transition on the resource usage.
 	m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -340,6 +352,14 @@ void ShadowMapBase::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	// Swap the back and front buffers
 	ThrowIfFailed(m_SwapChain->Present(0, 0));
 	m_CurrBackBuffer = (m_CurrBackBuffer + 1) % SwapChainBufferCount;
+}
+
+void ShadowMapBase::OnKeyboardInput(const GameTimer &gt)
+{
+	if (GetAsyncKeyState('C') & 0x8000)
+	{
+		m_usePCF = (m_usePCF == USEPCF::USE_PCF) ? USEPCF::NO_USE_PCF: USEPCF::USE_PCF;
+	}
 }
 
 void ShadowMapBase::BuildRenderItems()
@@ -356,13 +376,18 @@ void ShadowMapBase::BuildPSOs()
 	psoDesc.pRootSignature = m_RootSignature.Get();
 
 	SDKMesh::EffectPipelineStateDescription epsd;
-	epsd.standardVS = m_Shaders["standardVS"];
-	epsd.opaquesPS = m_Shaders["opaquePS"];
-	epsd.alphaPS = m_Shaders["alphaTestedPS"];
+
+	epsd.standardVS = m_ppsRenderSceneVSShadersBlob[0];
+	epsd.opaquesPS = m_ppsRenderScenePSShadersBlob[0];
 	epsd.device = m_d3dDevice.Get();
 	epsd.desc = psoDesc;
+	m_effect[0] = m_sdkMeshModel->CreateOnlyOneEffect (epsd);
 
-	m_effects = m_sdkMeshModel->CreateEffect(epsd);
+	epsd.standardVS = m_ppsRenderSceneVSShadersBlob[1];
+	epsd.opaquesPS = m_ppsRenderScenePSShadersBlob[1];
+	epsd.device = m_d3dDevice.Get();
+	epsd.desc = psoDesc;
+	m_effect[1] = m_sdkMeshModel->CreateOnlyOneEffect (epsd);
 
 	m_shadowInterface->BuildDrawScenePSO(m_RootSignature.Get());	
 }

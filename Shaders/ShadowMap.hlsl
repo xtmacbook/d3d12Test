@@ -1,6 +1,9 @@
 
 #include "ShadowMapBase.hlsl"
 
+#ifndef USE_PCF
+#define USE_PCF 1
+#endif
 
 struct VertexIn
 {
@@ -38,7 +41,7 @@ VertexOut VS(VertexIn vin)
 }
 
 //因为当前该项目使用的是powerplant.sdkmesh,这个模型里的normal texture是无效的，所以不用normal texture的采样结果来计算bumpedNormalW,而是直接使用顶点着色器传过来的法线和切线来计算bumpedNormalW
-float4 PS(VertexOut pin) : SV_Target
+float4 PS_(VertexOut pin) : SV_Target
 {
     pin.NormalW = normalize(pin.NormalW);
     pin.TangentW = normalize(pin.TangentW);
@@ -67,4 +70,35 @@ float4 PS(VertexOut pin) : SV_Target
     color.rgb += lightResult.Specular * color.a;
 
     return color;
+}
+
+float4 PS(VertexOut pin) : SV_Target
+{
+    pin.NormalW = normalize(pin.NormalW);
+    pin.TangentW = normalize(pin.TangentW);
+
+    float4 vDiffuse = Texture.Sample(gsamAnisotropicWrap, pin.TexC);
+    
+    float shadowFactor  = (USE_PCF > 0 )? CalcShadowFactorWithPCF(pin.ShadowPosH) :CalcShadowFactor(pin.ShadowPosH);
+
+    float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
+    float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);
+    float3 vLightDir3 = float3(0.0f, -1.0f, 0.0f);
+    float3 vLightDir4 = float3(1.0f, 1.0f, 1.0f);
+   
+    // Some ambient-like lighting.
+    float fLighting = saturate(dot(vLightDir1, pin.NormalW)) * 0.05f +
+                      saturate(dot(vLightDir2, pin.NormalW)) * 0.05f +
+                      saturate(dot(vLightDir3, pin.NormalW)) * 0.05f +
+                      saturate(dot(vLightDir4, pin.NormalW)) * 0.05f;
+    
+    float vShadowLighting = fLighting * 0.5f;
+
+    float test = dot(-gLights[0].LightDirection.xyz,pin.NormalW);
+    test = saturate(test);
+
+    fLighting += test; //(dot(-gLights[0].LightDirection.xyz, pin.NormalW));
+    fLighting = lerp(vShadowLighting, fLighting, shadowFactor);
+
+    return fLighting * vDiffuse;
 }

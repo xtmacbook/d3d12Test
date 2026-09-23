@@ -23,10 +23,19 @@ struct ShadowHeapDescriptor
 	CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
 };
 
+enum class USEPCF
+{
+	NO_USE_PCF,
+	USE_PCF
+};
+
 class ShadowMapBase :public D3DContext,
 	public FrameResourceContextInterface
 {
 public:
+
+	ShadowMapBase();
+
 	virtual bool InitDirect3D()override;
 
 	void BuildDescriptorHeaps();
@@ -46,26 +55,33 @@ public:
 	void BuildResourceView();
 	void Update(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt);
-	void UpdateMainPassCB(const GameTimer& gt);
 	void UpdateObjectCBs(const GameTimer& gt);
 
 	void Draw(const GameTimer& gt)override;
 	void DrawFrameResource(ID3D12CommandAllocator*)override;
 
+	void OnKeyboardInput(const GameTimer& gt) override;
+
 
 	std::shared_ptr<SDKMesh::SDKMeshModel> m_sdkMeshModel = nullptr;	
-
 
 	PassConstantsWithNLightAndShadow												m_MainPassCB;
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>										m_RootSignature = nullptr;
+
+	Microsoft::WRL::ComPtr<ID3DBlob> 												m_ppsRenderSceneVSShadersBlob[2];
+	Microsoft::WRL::ComPtr<ID3DBlob> 												m_ppsRenderScenePSShadersBlob[2];
+
+
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>>				m_Shaders;
 
 	std::shared_ptr<ShadowInterface>												m_shadowInterface = nullptr;	
 
 	ShadowHeapDescriptor															m_HeapDescriptorOffsets;
 	
-	std::vector< std::shared_ptr<SDKMesh::Effect> >									m_effects;
+	std::shared_ptr<SDKMesh::Effect>												m_effect[2];
+
+	USEPCF																			m_usePCF;
 };
