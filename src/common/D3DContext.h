@@ -9,6 +9,8 @@
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "dxgi.lib")
 
+#define USE_IMGUI
+
 
 struct SWAPCHAINDESC
 {
@@ -39,6 +41,9 @@ public:
 
 	/*同步CPU和GPU,但是目前是阻止CPU的运行,GPU完成提交的命令后继续CPU的执行*/
 	void FlushCommandQueue();
+	bool InitImGui();
+	void ShutdownImGui();
+	void RenderImGui(ID3D12GraphicsCommandList* commandList);
 
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt) {};
@@ -96,6 +101,7 @@ protected:
 
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_RtvHeap;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_DsvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_ImGuiSrvDescriptorHeap;
 
 	UINT													m_RtvDescriptorSize = 0;
 	UINT													m_DsvDescriptorSize = 0;

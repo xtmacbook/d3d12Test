@@ -1,11 +1,15 @@
 ﻿#include "D3DContext.h"
 
+#ifdef USE_IMGUI
+#include "imgui.h"
+#include "imgui_impl_dx12.h"
+#endif
+
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
-D3DContext::D3DContext():
-	m_FrustumCullingEnabled(true)
+D3DContext::D3DContext() : m_FrustumCullingEnabled(true)
 {
 	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
 }
@@ -25,7 +29,7 @@ void D3DContext::preInitDirect3D(SWAPCHAINDESC desc)
 
 bool D3DContext::InitDirect3D()
 {
-#if defined(DEBUG) || defined(_DEBUG) 
+#if defined(DEBUG) || defined(_DEBUG)
 	// Enable the D3D12 debug layer.
 	{
 		ComPtr<ID3D12Debug> debugController;
@@ -39,7 +43,7 @@ bool D3DContext::InitDirect3D()
 	// ------------------------------------------------ CreateDevice ------------------------------------------------
 
 	HRESULT hardwareResult = D3D12CreateDevice(
-		nullptr,             // default adapter
+		nullptr, // default adapter
 		D3D_FEATURE_LEVEL_11_0,
 		IID_PPV_ARGS(&m_d3dDevice));
 
@@ -57,13 +61,12 @@ bool D3DContext::InitDirect3D()
 	// ------------------------------------------------ CreateFence ------------------------------------------------
 
 	ThrowIfFailed(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE,
-		IID_PPV_ARGS(&m_Fence)));
+										   IID_PPV_ARGS(&m_Fence)));
 
 	// ------------------------------------------------ Get Descriptor Size ------------------------------------------------
 	m_RtvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	m_DsvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 	m_CbvSrvUavDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
 
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
 	msQualityLevels.Format = m_BackBufferFormat;
@@ -167,11 +170,11 @@ void D3DContext::OnResize(int width, int heigh)
 
 	// Transition the resource from its initial state to be used as a depth buffer.
 	m_CommandList->ResourceBarrier(1,
-		&CD3DX12_RESOURCE_BARRIER::Transition(m_DepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+								   &CD3DX12_RESOURCE_BARRIER::Transition(m_DepthStencilBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
 	// Execute the resize commands.
 	ThrowIfFailed(m_CommandList->Close());
-	ID3D12CommandList* cmdsLists[] = { m_CommandList.Get() };
+	ID3D12CommandList *cmdsLists[] = {m_CommandList.Get()};
 	m_CommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	// Wait until resize is complete.
@@ -185,13 +188,11 @@ void D3DContext::OnResize(int width, int heigh)
 	m_ScreenViewport.MinDepth = 0.0f;
 	m_ScreenViewport.MaxDepth = 1.0f;
 
-	m_ScissorRect = { 0, 0, width,heigh };
+	m_ScissorRect = {0, 0, width, heigh};
 
-
-	//从proj 获取视锥体的frustum
+	// 从proj 获取视锥体的frustum
 	BoundingFrustum::CreateFromMatrix(m_CamFrustum, mCamera.GetProj());
 }
-
 
 void D3DContext::setWireFrame(bool frame)
 {
@@ -202,7 +203,7 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC D3DContext::GetDefaultPSODesc()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
 	ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	
+
 	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -217,7 +218,7 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC D3DContext::GetDefaultPSODesc()
 	return opaquePsoDesc;
 }
 
-Camera& D3DContext::GetCamera()
+Camera &D3DContext::GetCamera()
 {
 	return mCamera;
 }
@@ -237,10 +238,10 @@ void D3DContext::CreateCommandObjects()
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
 		m_DirectCmdListAlloc.Get(), // Associated command allocator
-		nullptr,                   // Initial PipelineStateObject
+		nullptr,					// Initial PipelineStateObject
 		IID_PPV_ARGS(m_CommandList.GetAddressOf())));
 
-	// Start off in a closed state.  This is because the first time we refer 
+	// Start off in a closed state.  This is because the first time we refer
 	// to the command list we will Reset it, and it needs to be closed before
 	// calling Reset.
 	m_CommandList->Close();
@@ -278,7 +279,6 @@ void D3DContext::CreateSwapChain()
 		m_CommandQueue.Get(),
 		&sd,
 		m_SwapChain.GetAddressOf()));
-
 }
 
 void D3DContext::CreateRtvDescriptorHeap()
@@ -310,27 +310,81 @@ void D3DContext::FlushCommandQueue()
 	// Advance the fence value to mark commands up to this fence point.
 	m_CurrentFence++;
 
-	// Add an instruction to the command queue to set a new fence point.  Because we 
+	// Add an instruction to the command queue to set a new fence point.  Because we
 	// are on the GPU timeline, the new fence point won't be set until the GPU finishes
 	// processing all the commands prior to this Signal().
-	ThrowIfFailed(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence)); //更新m_Fence为特定的值
+	ThrowIfFailed(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence)); // 更新m_Fence为特定的值
 
 	// Wait until the GPU has completed commands up to this fence point.
 	if (m_Fence->GetCompletedValue() < m_CurrentFence)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
 
-		// Fire event when GPU hits current fence.  
+		// Fire event when GPU hits current fence.
 		ThrowIfFailed(m_Fence->SetEventOnCompletion(m_CurrentFence, eventHandle));
 
 		// Wait until the GPU hits current fence event is fired.
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
-
 }
 
-void D3DContext::Update(const GameTimer& gt)
+bool D3DContext::InitImGui()
+{
+#ifdef USE_IMGUI
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(
+		&heapDesc, IID_PPV_ARGS(&m_ImGuiSrvDescriptorHeap)));
+
+	ImGui_ImplDX12_InitInfo initInfo;
+	initInfo.Device = m_d3dDevice.Get();
+	initInfo.CommandQueue = m_CommandQueue.Get();
+	initInfo.NumFramesInFlight = 3;
+	initInfo.RTVFormat = m_BackBufferFormat;
+	initInfo.DSVFormat = m_DepthStencilFormat;
+	initInfo.SrvDescriptorHeap = m_ImGuiSrvDescriptorHeap.Get();
+	initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo *info,
+									   D3D12_CPU_DESCRIPTOR_HANDLE *cpuHandle,
+									   D3D12_GPU_DESCRIPTOR_HANDLE *gpuHandle)
+	{
+		*cpuHandle = info->SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+		*gpuHandle = info->SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	};
+	initInfo.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo *,
+									  D3D12_CPU_DESCRIPTOR_HANDLE,
+									  D3D12_GPU_DESCRIPTOR_HANDLE) {};
+
+	return ImGui_ImplDX12_Init(&initInfo);
+#else
+	return true;
+#endif
+}
+
+void D3DContext::ShutdownImGui()
+{
+#ifdef USE_IMGUI
+	if (m_ImGuiSrvDescriptorHeap)
+	{
+		ImGui_ImplDX12_Shutdown();
+		m_ImGuiSrvDescriptorHeap.Reset();
+	}
+#endif
+}
+
+void D3DContext::RenderImGui(ID3D12GraphicsCommandList *commandList)
+{
+#ifdef USE_IMGUI
+	ID3D12DescriptorHeap *descriptorHeaps[] = {m_ImGuiSrvDescriptorHeap.Get()};
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
+	#endif
+}
+
+void D3DContext::Update(const GameTimer &gt)
 {
 	UpdateCamera(gt);
 }
@@ -348,15 +402,12 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DContext::DepthStencilCPUView() const
 	return m_DsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
-ID3D12Resource* D3DContext::CurrentBackBuffer() const
+ID3D12Resource *D3DContext::CurrentBackBuffer() const
 {
 	return m_SwapChainBuffer[m_CurrBackBuffer].Get();
 }
 
-void D3DContext::UpdateCamera(const GameTimer& gt)
+void D3DContext::UpdateCamera(const GameTimer &gt)
 {
 	mCamera.UpdateViewMatrix();
 }
-
-
- 

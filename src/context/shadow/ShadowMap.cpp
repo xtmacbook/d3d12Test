@@ -338,6 +338,7 @@ void ShadowMapBase::DrawFrameResource(ID3D12CommandAllocator* allocator)
 		m_sdkMeshModel->DrawRenderItemsWithOnePass(allocator,m_d3dDevice.Get(),
 		m_CommandList.Get(),m_currFrameResource, m_SrvDescriptorHeap.Get(),
 		m_CbvSrvUavDescriptorSize, m_effect[static_cast<size_t>(m_usePCF)]->m_PSO.Get()) ;
+		RenderImGui(m_CommandList.Get());
 	}
 
 	// Indicate a state transition on the resource usage.

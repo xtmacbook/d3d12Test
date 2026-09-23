@@ -366,6 +366,7 @@ void CSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 					m_CbvSrvUavDescriptorSize, m_cascadedShadowsMgr->GetEffect());
 			};
 		m_cascadedShadowsMgr->RenderScene(m_CommandList.Get(), data);
+		RenderImGui(m_CommandList.Get());
 
 	}
 
