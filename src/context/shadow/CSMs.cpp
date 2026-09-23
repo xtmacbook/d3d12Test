@@ -9,6 +9,11 @@
 
 #include "CascadedShadowsManager.h"
 
+#ifdef USE_IMGUI
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx12.h"
+#endif
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -116,6 +121,18 @@ void CSMMapContext::CreateDsvDescriptorHeap()
 void CSMMapContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
 {
 	m_sdkMeshModel->BuildShapeGeometry(device, mCommandList);
+}
+
+void CSMMapContext::ShowCustomImguiWin()
+{
+#ifdef USE_IMGUI
+	static bool show_demo_window = true;
+
+	ImGui::Begin("Hello, world!");
+	ImGui::Text("This is some useful text.");
+	ImGui::Checkbox("Demo Window", &show_demo_window);
+	ImGui::End();
+#endif
 }
 
 void CSMMapContext::BuildRootSignature()

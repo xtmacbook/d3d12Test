@@ -81,6 +81,9 @@ public:
 
 	virtual void BuildFrameResources()override;
 	virtual void BuildShapeGeometry(ID3D12Device*, ID3D12GraphicsCommandList* mCommandList);
+
+	void ShowCustomImguiWin() override;
+	
 	void BuildPSOs();
 	void BuildTextures();
 	void BuildResourceView();

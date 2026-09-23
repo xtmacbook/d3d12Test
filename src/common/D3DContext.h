@@ -44,6 +44,7 @@ public:
 	bool InitImGui();
 	void ShutdownImGui();
 	void RenderImGui(ID3D12GraphicsCommandList* commandList);
+	inline virtual void ShowCustomImguiWin() {};
 
 	virtual void Update(const GameTimer& gt);
 	virtual void Draw(const GameTimer& gt) {};
