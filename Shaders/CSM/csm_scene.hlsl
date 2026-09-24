@@ -48,14 +48,12 @@ struct VertexOut
 VertexOut VS(VertexIn vin)
 {
     VertexOut vout = (VertexOut) 0.0f;
-    
-    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
-    vout.PosH = mul(posW, m_mWorldViewProjection);
-    vout.NormalW = mul(vin.NormalL, (float3x3) gWorld);
-    vout.TangentW = mul(vin.TangentU, (float3x3) gWorld); //转到世界坐标的矩阵
+    vout.PosH = mul(float4(vin.PosL, 1.0f), m_mWorldViewProjection);
+    vout.NormalW = mul(vin.NormalL, (float3x3) m_mWorld);
+    vout.TangentW = mul(vin.TangentU, (float3x3) m_mWorld); //转到世界坐标的矩阵
     vout.TexC = vin.TexC;
     vout.Depth = mul(float4(vin.PosL, 1.0f), m_mWorldView).z; //主镜头坐标系下的深度
-    vout.TexShadow = mul(posW, m_mShadow); //转到shadow space
+    vout.TexShadow = mul(float4(vin.PosL, 1.0f), m_mShadow); //转到shadow space
     return vout;
 }
 
@@ -91,7 +89,7 @@ float CalcShadowFactor(float4 shadowPosH)
 
 float4 PS(VertexOut pin) : SV_Target
 {
-    float4 vDiffuse = Texture.Sample(gsamAnisotropicWrap, pin.TexC);
+    float4 vDiffuse = Texture.Sample(gsamLinearWrap, pin.TexC);
     
     
     int iCurrentCascadeIndex = 0;
@@ -101,7 +99,7 @@ float4 PS(VertexOut pin) : SV_Target
     float4 vShadowMapTextureCoord = 0.0f;
 
     //select cascade index
-    if (SELECT_CASCADE_BY_INTERVAL_FLAG)
+    if (SELECT_CASCADE_BY_INTERVAL_FLAG) //interval sele
     {
         if (CASCADE_COUNT_FLAG > 1)
         {
@@ -126,7 +124,7 @@ float4 PS(VertexOut pin) : SV_Target
             iCurrentCascadeIndex = (int) fIndex;
         }
     }
-    else
+    else // screne map sel
     {
         
         if (CASCADE_COUNT_FLAG == 1)
@@ -170,15 +168,17 @@ float4 PS(VertexOut pin) : SV_Target
     float3 vLightDir4 = float3(1.0f, 1.0f, 1.0f);
    
     // Some ambient-like lighting.
-    float fLighting = .0f;
-                      //saturate(dot(vLightDir1, pin.NormalW)) * 0.05f +
-                      //saturate(dot(vLightDir2, pin.NormalW)) * 0.05f +
-                      //saturate(dot(vLightDir3, pin.NormalW)) * 0.05f +
-                      //saturate(dot(vLightDir4, pin.NormalW)) * 0.05f;
+    float fLighting = saturate(dot(vLightDir1, pin.NormalW)) * 0.05f +
+                      saturate(dot(vLightDir2, pin.NormalW)) * 0.05f +
+                      saturate(dot(vLightDir3, pin.NormalW)) * 0.05f +
+                      saturate(dot(vLightDir4, pin.NormalW)) * 0.05f;
     
-    float vShadowLighting = fLighting * 0.5f;
+    float4 vShadowLighting = fLighting * 0.5f;
     
-    fLighting += saturate(dot(m_vLightDir, pin.NormalW));
+
+    float cosLight = dot(m_vLightDir, pin.NormalW);
+    fLighting += saturate(cosLight);
+    
     fLighting = lerp(vShadowLighting, fLighting, shadowFactor[0]);
     
     return fLighting * vDiffuse;
