@@ -142,7 +142,8 @@ public:
 
 	FIT_PROJECTION_TO_CASCADES														m_eSelectedCascadesFit;
 	FIT_TO_NEAR_FAR																	m_eSelectedNearFarFit;
-
+	CASCADE_SELECTION																m_eSelectedCascadeSelection = CASCADE_SELECTION_INTERVAL;
+	
 	INT																				m_iCascadePartitionsMax;
 	FLOAT																			m_fCascadePartitionsFrustum[MAX_CASCADES]; //程序计算的真实值 Values are  between near and far
 	INT																				m_iCascadePartitionsZeroToOne[MAX_CASCADES]; //这个是用户设置的： Values are 0 to 100 and represent a percent of the frstum
@@ -203,7 +204,6 @@ private:
 	//更新shader
 	INT																				m_iDerivativeBasedOffset = 0; //是否使用梯度计算偏移
 	INT																				m_iBlurBetweenCascades = 0;//是否blur
-	CASCADE_SELECTION																m_eSelectedCascadeSelection = CASCADE_SELECTION_INTERVAL;
 	
 	DirectX::XMMATRIX																m_matShadowProj[MAX_CASCADES];
 	DirectX::XMMATRIX																m_matShadowView;

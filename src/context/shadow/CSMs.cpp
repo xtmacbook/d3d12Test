@@ -126,12 +126,27 @@ void CSMMapContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsComma
 void CSMMapContext::ShowCustomImguiWin()
 {
 #ifdef USE_IMGUI
-	static bool show_demo_window = true;
 
-	ImGui::Begin("Hello, world!");
-	ImGui::Text("This is some useful text.");
-	ImGui::Checkbox("Demo Window", &show_demo_window);
+	ImGui::Begin("Params It !");
+	
+	static int fit_item_current = 0;
+	const char* fitItems[] = { "FIT_TO_CASCADES", "FIT_TO_SCENE"};
+    ImGui::Combo("FitItems", &fit_item_current, fitItems, IM_ARRAYSIZE(fitItems));
+
+	static int fit_nearFar_item_current = 0;
+	const char* fitNearFarItems[] = { "FIT_NEARFAR_AABB", "FIT_NEARFAR_SCENE_AABB"};
+    ImGui::Combo("NearFarSel", &fit_nearFar_item_current, fitNearFarItems, IM_ARRAYSIZE(fitNearFarItems));
+
+	static int cascade_select_item_current = 0;
+	const char* cascadeSelItems[] = { "CASCADE_SELECTION_MAP", "CASCADE_SELECTION_INTERVAL"};
+    ImGui::Combo("cascade Sel", &cascade_select_item_current, cascadeSelItems, IM_ARRAYSIZE(cascadeSelItems));
+
 	ImGui::End();
+
+	m_cascadedShadowsMgr->m_eSelectedCascadesFit = (FIT_PROJECTION_TO_CASCADES) fit_item_current;
+	m_cascadedShadowsMgr->m_eSelectedNearFarFit = (FIT_TO_NEAR_FAR) (fit_nearFar_item_current + 2); //目前没有实现前两个
+	m_cascadedShadowsMgr->m_eSelectedCascadeSelection = (CASCADE_SELECTION) (cascade_select_item_current);
+
 #endif
 }
 
@@ -170,6 +185,7 @@ void CSMMapContext::BuildRootSignature()
 	rootParameters[3].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[3].DescriptorTable.pDescriptorRanges = texTable;
 
+	//normal texture
 	D3D12_DESCRIPTOR_RANGE texTable1[1];
 	texTable1[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	texTable1[0].NumDescriptors = 1;
@@ -273,7 +289,7 @@ void CSMMapContext::UpdateMaterialCBs(const GameTimer& gt)
 
 void CSMMapContext::UpdateMainPassCB(const GameTimer& gt)
 {
-	
+	//update cascade 
 	m_cascadedShadowsMgr->UpdateFrame(gt, &mCamera,&m_shadowLightCamera);
 	
 	CSMPassConstants mainConstantsData;
@@ -425,7 +441,6 @@ void CSMMapContext::BuildPSOs()
 
 	m_cascadedShadowsMgr->BuildPOS(m_sdkMeshModel.get(), psoDesc);
 }
-
 
 void CSMMapContext::BuildTextures()
 {
