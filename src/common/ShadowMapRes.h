@@ -30,10 +30,19 @@ projector in the world. The matrix V transforms coordinates from world space to
 
  */
 
+enum SHADOW_TEXTURE_FORMAT 
+{
+    SHADOW_DXGI_FORMAT_R32_TYPELESS,
+    SHADOW_DXGI_FORMAT_R24G8_TYPELESS,
+    SHADOW_DXGI_FORMAT_R16_TYPELESS,
+    SHADOW_DXGI_FORMAT_R8_TYPELESS
+};
+
 class ShadowMapRes
 {
 public:
-    ShadowMapRes(ID3D12Device *device,UINT width, UINT height);
+    ShadowMapRes(ID3D12Device *device,UINT width, UINT height,
+        SHADOW_TEXTURE_FORMAT format = SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R32_TYPELESS);
 
     ShadowMapRes(const ShadowMapRes &rhs) = delete;
     ShadowMapRes&operator=(const ShadowMapRes&rhs) = delete;
@@ -79,7 +88,7 @@ private:
     D3D12_RECT                  m_ScissorRect;
     UINT                        m_Width = 0;
     UINT                        m_Height = 0;
-    DXGI_FORMAT                 m_Format = DXGI_FORMAT_R24G8_TYPELESS;
+    SHADOW_TEXTURE_FORMAT       m_Format;
     CD3DX12_CPU_DESCRIPTOR_HANDLE m_hCpuSrv;
     CD3DX12_GPU_DESCRIPTOR_HANDLE m_hGpuSrv;
     CD3DX12_CPU_DESCRIPTOR_HANDLE m_hCpuDsv;

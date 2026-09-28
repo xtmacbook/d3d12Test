@@ -1,5 +1,4 @@
 #include "CascadedShadowsManager.h"
-#include "common/ShadowMapRes.h"
 #include "common/SDKMeshModel.h"
 #include "common/Camera.h"
 
@@ -82,7 +81,7 @@ bool CascadedShadowsManager::init(ID3D12Device* device,const DirectX::BoundingBo
 void CascadedShadowsManager::BuildShadowMap()
 {
     m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyCsmConfig.m_iBufferSize * m_copyCsmConfig.m_nCascadeLevels,
-        m_copyCsmConfig.m_iBufferSize);
+        m_copyCsmConfig.m_iBufferSize,m_copyCsmConfig.m_ShadowBufferFormat);
 }
 
 void CascadedShadowsManager::BuildPOS(SDKMesh::SDKMeshModel*meshModel, D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc)

@@ -37,7 +37,7 @@ bool CSMMapContext::InitDirect3D()
 	m_csmConfig = std::make_shared<CSMConfig>();
 	m_csmConfig->m_iBufferSize = 1024;
 	m_csmConfig->m_nCascadeLevels = 3;
-	m_csmConfig->m_ShadowBufferFormat = CASCADE_DXGI_FORMAT_R32_TYPELESS;
+	m_csmConfig->m_ShadowBufferFormat = SHADOW_DXGI_FORMAT_R24G8_TYPELESS;
 
 	static const XMVECTORF32 s_lightEye = { -320.0f, 300.0f, -220.3f, 0.f };
 

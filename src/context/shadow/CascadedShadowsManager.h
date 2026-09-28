@@ -1,6 +1,7 @@
 
 #include "common/util.h"
 #include "common/GameTimer.h"
+#include "common/ShadowMapRes.h"
 
 #include <vector>
 #include <memory>
@@ -52,14 +53,6 @@ struct CSMPassConstants
 	DirectX::XMFLOAT4       m_fCascadeFrustumsEyeSpaceDepthsFloat4[8];// the values along Z that separte the cascades.  
 	// Wastefully stored in float4 so they are array indexable :(
 	DirectX::XMFLOAT4       m_vLightDir;
-};
-
-enum SHADOW_TEXTURE_FORMAT
-{
-	CASCADE_DXGI_FORMAT_R32_TYPELESS,
-	CASCADE_DXGI_FORMAT_R24G8_TYPELESS,
-	CASCADE_DXGI_FORMAT_R16_TYPELESS,
-	CASCADE_DXGI_FORMAT_R8_TYPELESS
 };
 
 enum CASCADE_SELECTION
