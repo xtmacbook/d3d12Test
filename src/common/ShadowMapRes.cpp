@@ -155,20 +155,25 @@ void ShadowMapRes::BuildDescriptors()
 void ShadowMapRes::BuildResource()
 {
     DXGI_FORMAT texturefmt = DXGI_FORMAT_R32_TYPELESS;
+    DXGI_FORMAT clearfmt = DXGI_FORMAT_R32_FLOAT;
 
     switch (m_Format)
     {
     case SHADOW_DXGI_FORMAT_R32_TYPELESS:
         texturefmt = DXGI_FORMAT_R32_TYPELESS;
+        clearfmt = DXGI_FORMAT_R32_FLOAT;
         break;
     case SHADOW_DXGI_FORMAT_R24G8_TYPELESS:
         texturefmt = DXGI_FORMAT_R24G8_TYPELESS;
+        clearfmt = DXGI_FORMAT_D24_UNORM_S8_UINT;
         break;
     case SHADOW_DXGI_FORMAT_R16_TYPELESS:
         texturefmt = DXGI_FORMAT_R16_TYPELESS;
+        clearfmt = DXGI_FORMAT_R16_UNORM;
         break;
     case SHADOW_DXGI_FORMAT_R8_TYPELESS:
         texturefmt = DXGI_FORMAT_R8_TYPELESS;
+        clearfmt = DXGI_FORMAT_R8_UNORM;
         break;
     }
 
@@ -186,7 +191,7 @@ void ShadowMapRes::BuildResource()
     texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
     D3D12_CLEAR_VALUE optClear;
-    optClear.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    optClear.Format = clearfmt;
     optClear.DepthStencil.Depth = 1.0f;
     optClear.DepthStencil.Stencil = 0;
 

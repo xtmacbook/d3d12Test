@@ -42,7 +42,7 @@ class ShadowMapRes
 {
 public:
     ShadowMapRes(ID3D12Device *device,UINT width, UINT height,
-        SHADOW_TEXTURE_FORMAT format = SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R32_TYPELESS);
+        SHADOW_TEXTURE_FORMAT format = SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS);
 
     ShadowMapRes(const ShadowMapRes &rhs) = delete;
     ShadowMapRes&operator=(const ShadowMapRes&rhs) = delete;
