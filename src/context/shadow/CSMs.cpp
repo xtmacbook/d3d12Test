@@ -109,7 +109,7 @@ void CSMMapContext::BuildDescriptorHeaps()
 void CSMMapContext::CreateDsvDescriptorHeap()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 2; // Ò»¸öÓÃÓÚÉî¶È»º³åÇø£¬Ò»¸öÓÃÓÚÒõÓ°ÌùÍ¼
+	dsvHeapDesc.NumDescriptors = 2; // ä¸€ä¸ªç”¨äºŽæ·±åº¦ç¼“å†²åŒºï¼Œä¸€ä¸ªç”¨äºŽé˜´å½±è´´å›¾
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -141,11 +141,17 @@ void CSMMapContext::ShowCustomImguiWin()
 	const char* cascadeSelItems[] = { "CASCADE_SELECTION_MAP", "CASCADE_SELECTION_INTERVAL"};
     ImGui::Combo("cascade Sel", &cascade_select_item_current, cascadeSelItems, IM_ARRAYSIZE(cascadeSelItems));
 
+	static bool bUseDDXY = true;
+    ImGui::Checkbox("DDX DDY Offset", &bUseDDXY);
+
 	ImGui::End();
 
 	m_cascadedShadowsMgr->m_eSelectedCascadesFit = (FIT_PROJECTION_TO_CASCADES) fit_item_current;
-	m_cascadedShadowsMgr->m_eSelectedNearFarFit = (FIT_TO_NEAR_FAR) (fit_nearFar_item_current + 2); //Ä¿Ç°Ã»ÓÐÊµÏÖÇ°Á½¸ö
+	m_cascadedShadowsMgr->m_eSelectedNearFarFit = (FIT_TO_NEAR_FAR) (fit_nearFar_item_current + 2); //ç›®å‰æ²¡æœ‰å®žçŽ°å‰ä¸¤ä¸ª
 	m_cascadedShadowsMgr->m_eSelectedCascadeSelection = (CASCADE_SELECTION) (cascade_select_item_current);
+
+	(bUseDDXY)? (m_cascadedShadowsMgr->m_iDerivativeBasedOffset = 1) : 
+	(m_cascadedShadowsMgr->m_iDerivativeBasedOffset = 0);
 
 #endif
 }
@@ -254,7 +260,7 @@ void CSMMapContext::OnResize(int width, int heigh)
 
 void CSMMapContext::BuildFrameResources()
 {
-	UINT cpasCount = MAX_CASCADES + 1; //MAX_CASCADES ÊÇshadow 
+	UINT cpasCount = MAX_CASCADES + 1; //MAX_CASCADES æ˜¯shadow 
 
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
@@ -299,8 +305,8 @@ void CSMMapContext::UpdateMainPassCB(const GameTimer& gt)
 	XMStoreFloat4x4(&mainConstantsData.m_WorldView, XMMatrixTranspose(mCamera.GetView()));
 	XMStoreFloat4x4(&mainConstantsData.m_World, XMMatrixIdentity());
 
-	mainConstantsData.m_iPCFBlurForLoopStart = m_cascadedShadowsMgr->m_iPCFBlurSize / 2 + 1;
-	mainConstantsData.m_iPCFBlurForLoopEnd = m_cascadedShadowsMgr->m_iPCFBlurSize / 2 - 2;
+	mainConstantsData.m_iPCFBlurForLoopEnd = m_cascadedShadowsMgr->m_iPCFBlurSize / 2 + 1;
+	mainConstantsData.m_iPCFBlurForLoopStart = m_cascadedShadowsMgr->m_iPCFBlurSize / - 2;
 	mainConstantsData.m_fShadowBiasFromGUI = m_fPCFOffset;
 	mainConstantsData.m_fCascadeBlendArea = m_fBlurBetweenCascadesAmount;
 	m_cascadedShadowsMgr->UpdateMainPassData(mainConstantsData);

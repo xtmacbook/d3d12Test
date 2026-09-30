@@ -25,11 +25,11 @@ cbuffer cbAllShadowData : register(b1)
     matrix m_mWorld;
     matrix m_mWorldView;
     
-    matrix m_mShadow; //ÊÇshadowµÄviewmat
+    matrix m_mShadow; //æ˜¯shadowçš„viewmat
     
-    //Õâ¸öºÍÏÂÃæµÄscale¾ØÕó¹¹³ÉÁËµ½Ã¿¸öcascade×ª»»µÄ¾ØÕó,ÒòÎªÕâ¸ö¾ØÕóµÄ¶Ô³ÆµÄ£¬
-    //ËùÒÔÏÂÃæËõ·ÅÖ»ÊÇÊ¹ÓÃÁË¶Ô½ÇÏß¶ø²»ÊÇÈ«²¿¾ØÕó
-    //ÊÇ´Óshadow spaceµÄview ×ªµ½project
+    //è¿™ä¸ªå’Œä¸‹é¢çš„scaleçŸ©é˜µæ„æˆäº†åˆ°æ¯ä¸ªcascadeè½¬æ¢çš„çŸ©é˜µ,å› ä¸ºè¿™ä¸ªçŸ©é˜µçš„å¯¹ç§°çš„ï¼Œ
+    //æ‰€ä»¥ä¸‹é¢ç¼©æ”¾åªæ˜¯ä½¿ç”¨äº†å¯¹è§’çº¿è€Œä¸æ˜¯å…¨éƒ¨çŸ©é˜µ
+    //æ˜¯ä»shadow spaceçš„view è½¬åˆ°project
     float4 m_vCascadeOffset[8];
     float4 m_vCascadeScale[8];
     
@@ -44,13 +44,13 @@ cbuffer cbAllShadowData : register(b1)
     // For Map based selection scheme, this keeps the pixels inside of the the valid range.
     // When there is no boarder, these values are 0 and 1 respectivley.
     // The border padding values keep the pixel shader from reading the borders during PCF filtering.
-    float m_fMinBorderPadding; //¿ÉÄÜÊÇµ÷ÕûÁËbufferisze 1/buffsize 
+    float m_fMinBorderPadding; //å¯èƒ½æ˜¯è°ƒæ•´äº†bufferisze 1/buffsize 
     float m_fMaxBorderPadding; //buffersize-1 /buffersize
     float m_fShadowBiasFromGUI; // A shadow map offset to deal with self shadow artifacts. (0.002f) 
                                            //These artifacts are aggravated by PCF.
     float m_fShadowPartitionSize; // 1 / nCascadeLevels
     float m_fCascadeBlendArea; // Amount to overlap when blending between cascades.(0.005)
-    float m_fTexelSize; // 1 / Ò»Ö±ÊÇµ÷ÕûÇ°µÄ buffersize
+    float m_fTexelSize; // 1 / ä¸€ç›´æ˜¯è°ƒæ•´å‰çš„ buffersize
     float m_fNativeTexelSizeInX; //texlSize / cascadeLevels
     
     float m_fPaddingForCB3; // Padding variables exist because CBs must be a multiple of 16 bytes.
