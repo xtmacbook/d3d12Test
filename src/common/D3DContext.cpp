@@ -1,4 +1,4 @@
-﻿#include "D3DContext.h"
+#include "D3DContext.h"
 
 #ifdef USE_IMGUI
 #include "imgui.h"
@@ -124,10 +124,7 @@ void D3DContext::OnResize(int width, int heigh)
 	{
 		ThrowIfFailed(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&m_SwapChainBuffer[i])));
 		m_SwapChainBuffer[i]->SetName((L"BackBuffer " + std::to_wstring(i)).c_str());
-		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		rtvDesc.ViewDimension = (m_4xMsaaState) ? D3D12_RTV_DIMENSION_TEXTURE2DMS : D3D12_RTV_DIMENSION_TEXTURE2D;
-		m_d3dDevice->CreateRenderTargetView(m_SwapChainBuffer[i].Get(), &rtvDesc, rtvHeapHandle);
+		m_d3dDevice->CreateRenderTargetView(m_SwapChainBuffer[i].Get(), nullptr, rtvHeapHandle);
 		rtvHeapHandle.Offset(1, m_RtvDescriptorSize);
 	}
 
@@ -215,7 +212,7 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC D3DContext::GetDefaultPSODesc()
 	opaquePsoDesc.SampleMask = UINT_MAX;
 	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	opaquePsoDesc.NumRenderTargets = 1;
-	opaquePsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	opaquePsoDesc.RTVFormats[0] = m_BackBufferFormat;
 	opaquePsoDesc.SampleDesc.Count = m_4xMsaaState ? 4 : 1;
 	opaquePsoDesc.SampleDesc.Quality = m_4xMsaaState ? (m_4xMsaaQuality - 1) : 0;
 	opaquePsoDesc.DSVFormat = m_DepthStencilFormat;
@@ -349,7 +346,7 @@ bool D3DContext::InitImGui()
 	initInfo.Device = m_d3dDevice.Get();
 	initInfo.CommandQueue = m_CommandQueue.Get();
 	initInfo.NumFramesInFlight = 3;
-	initInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	initInfo.RTVFormat = m_BackBufferFormat;
 	initInfo.DSVFormat = m_DepthStencilFormat;
 	initInfo.SrvDescriptorHeap = m_ImGuiSrvDescriptorHeap.Get();
 	initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo *info,
@@ -416,3 +413,4 @@ void D3DContext::UpdateCamera(const GameTimer &gt)
 {
 	mCamera.UpdateViewMatrix();
 }
+

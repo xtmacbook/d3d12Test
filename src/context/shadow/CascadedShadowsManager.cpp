@@ -107,7 +107,7 @@ void CascadedShadowsManager::BuildPOS(SDKMesh::SDKMeshModel*meshModel, D3D12_GRA
         }
     }
 
-    psoDesc.RasterizerState.DepthBias = 100000;
+    psoDesc.RasterizerState.DepthBias = 0;
     psoDesc.RasterizerState.DepthBiasClamp = 0.0f;
     psoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
 
