@@ -144,6 +144,12 @@ void CSMMapContext::ShowCustomImguiWin()
 	static bool bUseDDXY = true;
     ImGui::Checkbox("DDX DDY Offset", &bUseDDXY);
 
+	static float blendAmount = 1.00f;
+    ImGui::DragFloat("shadow cascade blending value: ", &blendAmount, 0.5f);
+
+	static bool bCascadeBlur = false;
+    ImGui::Checkbox(": Use shadow cascade blending ", &bCascadeBlur);
+
 	ImGui::End();
 
 	m_cascadedShadowsMgr->m_eSelectedCascadesFit = (FIT_PROJECTION_TO_CASCADES) fit_item_current;
@@ -153,6 +159,10 @@ void CSMMapContext::ShowCustomImguiWin()
 	(bUseDDXY)? (m_cascadedShadowsMgr->m_iDerivativeBasedOffset = 1) : 
 	(m_cascadedShadowsMgr->m_iDerivativeBasedOffset = 0);
 
+	(bCascadeBlur)? (m_cascadedShadowsMgr->m_iBlurBetweenCascades = 1):
+	(m_cascadedShadowsMgr->m_iBlurBetweenCascades = 0);
+
+	//m_fBlurBetweenCascadesAmount = blendAmount;
 #endif
 }
 

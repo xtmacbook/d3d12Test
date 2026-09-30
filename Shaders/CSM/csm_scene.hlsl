@@ -62,44 +62,79 @@ float LinearToSRGB(float c)
                            : 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
 }
 
-
 //--------------------------------------------------------------------------------------
 // Use PCF to sample the depth map and return a percent lit value.
 //--------------------------------------------------------------------------------------
-void CalculatePCFPercentLit ( in float4 vShadowTexCoord, 
-                              in float fRightTexelDepthDelta, 
-                              in float fUpTexelDepthDelta, 
-                              in float fBlurRowSize,
-                              out float fPercentLit
-                              ) 
+void CalculatePCFPercentLit(in float4 vShadowTexCoord,
+                            in float fRightTexelDepthDelta,
+                            in float fUpTexelDepthDelta,
+                            in float fBlurRowSize,
+                            out float fPercentLit)
 {
     fPercentLit = 0.0f;
     // This loop could be unrolled, and texture immediate offsets could be used if the kernel size were fixed.
     // This would be performance improvment.
-    for( int x = m_iPCFBlurForLoopStart; x < m_iPCFBlurForLoopEnd; ++x ) 
+    for (int x = m_iPCFBlurForLoopStart; x < m_iPCFBlurForLoopEnd; ++x)
     {
-        for( int y = m_iPCFBlurForLoopStart; y < m_iPCFBlurForLoopEnd; ++y ) 
+        for (int y = m_iPCFBlurForLoopStart; y < m_iPCFBlurForLoopEnd; ++y)
         {
             float depthcompare = vShadowTexCoord.z;
             // A very simple solution to the depth bias problems of PCF is to use an offset.
             // Unfortunately, too much offset can lead to Peter-panning (shadows near the base of object disappear )
             // Too little offset can lead to shadow acne ( objects that should not be in shadow are partially self shadowed ).
             depthcompare -= m_fShadowBiasFromGUI;
-            if ( USE_DERIVATIVES_FOR_DEPTH_OFFSET_FLAG ) 
+            if (USE_DERIVATIVES_FOR_DEPTH_OFFSET_FLAG)
             {
                 // Add in derivative computed depth scale based on the x and y pixel.
-                depthcompare += fRightTexelDepthDelta * ( (float) x ) + fUpTexelDepthDelta * ( (float) y );
+                depthcompare += fRightTexelDepthDelta * ((float)x) + fUpTexelDepthDelta * ((float)y);
             }
             // Compare the transformed pixel depth to the depth read from the map.
-            fPercentLit += gShadowMap.SampleCmpLevelZero( gsamShadow, 
-                float2( 
-                    vShadowTexCoord.x + ( ( (float) x ) * m_fNativeTexelSizeInX ) , 
-                    vShadowTexCoord.y + ( ( (float) y ) * m_fTexelSize ) 
-                    ), 
-                depthcompare );
+            fPercentLit += gShadowMap.SampleCmpLevelZero(gsamShadow,
+                                                         float2(
+                                                             vShadowTexCoord.x + (((float)x) * m_fNativeTexelSizeInX),
+                                                             vShadowTexCoord.y + (((float)y) * m_fTexelSize)),
+                                                         depthcompare);
         }
     }
     fPercentLit /= (float)fBlurRowSize;
+}
+
+void CalculateBlendAmountForInterval(in int iCurrentCascadeIndex,
+                                     in out float fPixelDepth,
+                                     in out float fCurrentPixelsBlendBandLocation,
+                                     out float fBlendBetweenCascadesAmount)
+{
+
+    // We need to calculate the band of the current shadow map where it will fade into the next cascade.
+    // We can then early out of the expensive PCF for loop.
+    //
+    float fBlendInterval = m_fCascadeFrustumsEyeSpaceDepthsFloat4[iCurrentCascadeIndex].x;
+
+    int fBlendIntervalbelowIndex = min(0, iCurrentCascadeIndex - 1);
+    fPixelDepth -= m_fCascadeFrustumsEyeSpaceDepthsFloat4[fBlendIntervalbelowIndex].x;
+    fBlendInterval -= m_fCascadeFrustumsEyeSpaceDepthsFloat4[fBlendIntervalbelowIndex].x;
+
+    // The current pixel's blend band location will be used to determine when we need to blend and by how much.
+    fCurrentPixelsBlendBandLocation = fPixelDepth / fBlendInterval;
+    fCurrentPixelsBlendBandLocation = 1.0f - fCurrentPixelsBlendBandLocation;
+    // The fBlendBetweenCascadesAmount is our location in the blend band.
+    fBlendBetweenCascadesAmount = fCurrentPixelsBlendBandLocation / m_fCascadeBlendArea;
+}
+
+//--------------------------------------------------------------------------------------
+// Calculate amount to blend between two cascades and the band where blending will occure.
+//--------------------------------------------------------------------------------------
+void CalculateBlendAmountForMap(in float4 vShadowMapTextureCoord,
+                                in out float fCurrentPixelsBlendBandLocation,
+                                out float fBlendBetweenCascadesAmount)
+{
+    // Calcaulte the blend band for the map based selection.
+    float2 distanceToOne = float2(1.0f - vShadowMapTextureCoord.x, 1.0f - vShadowMapTextureCoord.y);
+    fCurrentPixelsBlendBandLocation = min(vShadowMapTextureCoord.x, vShadowMapTextureCoord.y);
+    float fCurrentPixelsBlendBandLocation2 = min(distanceToOne.x, distanceToOne.y);
+    fCurrentPixelsBlendBandLocation =
+        min(fCurrentPixelsBlendBandLocation, fCurrentPixelsBlendBandLocation2);
+    fBlendBetweenCascadesAmount = fCurrentPixelsBlendBandLocation / m_fCascadeBlendArea;
 }
 
 float4 PS(VertexOut pin) : SV_Target
@@ -108,6 +143,14 @@ float4 PS(VertexOut pin) : SV_Target
 
     float4 vShadowMapTextureCoord = 0.0f;
     int iCurrentCascadeIndex = 0;
+    int iNextCascadeIndex = 1;
+
+    int iBlurRowSize = m_iPCFBlurForLoopEnd - m_iPCFBlurForLoopStart;
+    iBlurRowSize *= iBlurRowSize;
+    float fBlurRowSize = (float)iBlurRowSize;
+
+    float fPercentLit = 0.0f;
+
     /*
     这里的CASCADE_COUNT_FLAG: 就是目前使用多少个cascade
     */
@@ -166,15 +209,12 @@ float4 PS(VertexOut pin) : SV_Target
         }
     }
 
-    // 因为是多个cascade拼接出来的一个大纹理 ,所以要转到真实的纹理位置
-    vShadowMapTextureCoord.x *= m_fShadowPartitionSize; // precomputed (float)iCascadeIndex / (float)CASCADE_CNT
-    vShadowMapTextureCoord.x += (m_fShadowPartitionSize * (float)iCurrentCascadeIndex);
-
-    float fUpTextDepthWeight=0;
-    float fRightTextDepthWeight=0;
+    float fUpTextDepthWeight = 0;
+    float fRightTextDepthWeight = 0;
 
     float3 vShadowMapTextureCoordDDX;
     float3 vShadowMapTextureCoordDDY;
+    
     if (USE_DERIVATIVES_FOR_DEPTH_OFFSET_FLAG)
     {
         vShadowMapTextureCoordDDX = ddx(pin.posInShadowViewSpace);
@@ -183,18 +223,69 @@ float4 PS(VertexOut pin) : SV_Target
         vShadowMapTextureCoordDDX *= m_vCascadeScale[iCurrentCascadeIndex];
         vShadowMapTextureCoordDDY *= m_vCascadeScale[iCurrentCascadeIndex];
 
-        //主要是计算fUpTextDepthWeight和fRightTextDepthWeight
-        CalculateRightAndUpTexelDepthDeltas(vShadowMapTextureCoordDDX,vShadowMapTextureCoordDDY,
-        m_fTexelSize,fUpTextDepthWeight,fRightTextDepthWeight);
+        // 主要是计算fUpTextDepthWeight和fRightTextDepthWeight
+        CalculateRightAndUpTexelDepthDeltas(vShadowMapTextureCoordDDX, vShadowMapTextureCoordDDY,
+                                            m_fTexelSize, fUpTextDepthWeight, fRightTextDepthWeight);
     }
 
-    int iBlurRowSize = m_iPCFBlurForLoopEnd - m_iPCFBlurForLoopStart;
-    iBlurRowSize *= iBlurRowSize;
-    float fBlurRowSize = (float)iBlurRowSize;
+    float4 vShadowMapTextureCoordLocal = vShadowMapTextureCoord; // 临时保存,因为下面就紧接着要真正的纹理坐标系了
 
-    float fPercentLit = 0.0f;
-    //计算percentLit : 1则全部是lit,0则全部是被遮罩的
-    CalculatePCFPercentLit(vShadowMapTextureCoord,fRightTextDepthWeight,fUpTextDepthWeight,fBlurRowSize,fPercentLit);
+    // 因为是多个cascade拼接出来的一个大纹理 ,所以要转到真实的纹理位置
+    vShadowMapTextureCoord.x *= m_fShadowPartitionSize; // precomputed (float)iCascadeIndex / (float)CASCADE_CNT
+    vShadowMapTextureCoord.x += (m_fShadowPartitionSize * (float)iCurrentCascadeIndex);
+
+    // 计算percentLit : 1则全部是lit,0则全部是被遮罩的
+    CalculatePCFPercentLit(vShadowMapTextureCoord, fRightTextDepthWeight,
+                           fUpTextDepthWeight, fBlurRowSize, fPercentLit);
+
+    if (BLEND_BETWEEN_CASCADE_LAYERS_FLAG)
+    {
+        // Repeat text coord calculations for the next cascade.
+        // The next cascade index is used for blurring between maps.
+        // 就是当前cascade和next cascade进行blend
+        iNextCascadeIndex = min(CASCADE_COUNT_FLAG - 1, iCurrentCascadeIndex + 1);
+
+        float fBlendBetweenCascadesAmount = 1.0f;
+        float fCurrentPixelsBlendBandLocation = 1.0f;
+
+        if (SELECT_CASCADE_BY_INTERVAL_FLAG)
+        {
+            if (BLEND_BETWEEN_CASCADE_LAYERS_FLAG && CASCADE_COUNT_FLAG > 1)
+            {
+                CalculateBlendAmountForInterval(iCurrentCascadeIndex, pin.DepthInMainCameraViewSpace,
+                                                fCurrentPixelsBlendBandLocation, fBlendBetweenCascadesAmount);
+            }
+        }
+        else
+        {
+
+            if (BLEND_BETWEEN_CASCADE_LAYERS_FLAG)
+            {
+                CalculateBlendAmountForMap(vShadowMapTextureCoordLocal,
+                                           fCurrentPixelsBlendBandLocation, fBlendBetweenCascadesAmount);
+            }
+        }
+
+        if (fCurrentPixelsBlendBandLocation < m_fCascadeBlendArea)
+        {
+            // 在next cascade中的坐标
+            float4 vShadowMapTextureCoord_blend =
+                pin.posInShadowViewSpace * m_vCascadeScale[iNextCascadeIndex];
+            vShadowMapTextureCoord_blend += m_vCascadeOffset[iNextCascadeIndex];
+
+            vShadowMapTextureCoord_blend.x *= m_fShadowPartitionSize; // precomputed (float)iCascadeIndex / (float)CASCADE_CNT
+            vShadowMapTextureCoord_blend.x += (m_fShadowPartitionSize * (float)iNextCascadeIndex);
+
+            // 计算在next cascade中的 percent
+            float fPercentLit_blend = 0.0;
+            CalculatePCFPercentLit(vShadowMapTextureCoord_blend, fUpTextDepthWeight, fBlurRowSize,
+                                   fBlurRowSize, fPercentLit_blend);
+
+            // blend 两个cascade的percent
+
+            fPercentLit = lerp(fPercentLit_blend, fPercentLit, fBlendBetweenCascadesAmount);
+        }
+    }
 
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
     float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);
