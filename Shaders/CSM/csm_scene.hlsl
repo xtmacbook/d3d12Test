@@ -36,12 +36,12 @@ struct VertexIn
 
 struct VertexOut
 {
-    float4 PosH :       SV_POSITION;
-    float3 NormalW :    NORMAL;
-    float3 TangentW :   TANGENT;
-    float2 TexC :       TEXCOORD;
-    float4 TexShadow:   TEXCOORD1;
-    float  Depth :      TEXCOORD2;
+    float4 PosH :                                           SV_POSITION;
+    float3 NormalW :                                        NORMAL;
+    float3 TangentW :                                       TANGENT;
+    float2 TexC :                                           TEXCOORD;
+    float4 posInShadowViewSpace:                            TEXCOORD1;
+    float  DepthInMainCameraViewSpace :                     TEXCOORD2;
 };
 
 
@@ -50,62 +50,41 @@ VertexOut VS(VertexIn vin)
     VertexOut vout = (VertexOut) 0.0f;
     vout.PosH = mul(float4(vin.PosL, 1.0f), m_mWorldViewProjection);
     vout.NormalW = mul(vin.NormalL, (float3x3) m_mWorld);
-    vout.TangentW = mul(vin.TangentU, (float3x3) m_mWorld); //ת����������ľ���
+    vout.TangentW = mul(vin.TangentU, (float3x3) m_mWorld); //转到世界坐标的矩阵
     vout.TexC = vin.TexC;
-    vout.Depth = mul(float4(vin.PosL, 1.0f), m_mWorldView).z; //����ͷ����ϵ�µ����
-    vout.TexShadow = mul(float4(vin.PosL, 1.0f), m_mShadow); //ת��shadow space
+    vout.DepthInMainCameraViewSpace = mul(float4(vin.PosL, 1.0f), m_mWorldView).z; //主镜头坐标系下的深度
+    vout.posInShadowViewSpace = mul(float4(vin.PosL, 1.0f), m_mShadow); //转到shadow space
     return vout;
 }
 
 
-void ComputeCoordinatesTransform(in int iCascadeIndex,
-                                      in out float4 vShadowTexCoord,
-                                      in out float4 vShadowTexCoordViewSpace)
+
+float LinearToSRGB(float c) 
 {
-    // Now that we know the correct map, we can transform the world space position of the current fragment                
-    if (SELECT_CASCADE_BY_INTERVAL_FLAG)
-    {
-        vShadowTexCoord = vShadowTexCoordViewSpace * m_vCascadeScale[iCascadeIndex];
-        vShadowTexCoord += m_vCascadeOffset[iCascadeIndex];
-    }
-          
-    vShadowTexCoord.x *= m_fShadowPartitionSize; // precomputed (float)iCascadeIndex / (float)CASCADE_CNT
-    vShadowTexCoord.x += (m_fShadowPartitionSize * (float) iCascadeIndex);
-
-
+    return c <= 0.0031308f ? 12.92f * c
+                           : 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
 }
 
-float CalcShadowFactor(float4 shadowPosH)
-{
-    // Complete projection by doing division by w.
-    shadowPosH.xyz /= shadowPosH.w;
-
-    // Depth in NDC space.
-    float depth = shadowPosH.z;
-    float percentLit = gShadowMap.SampleCmpLevelZero(gsamShadow,
-                                                    shadowPosH.xy, depth).r;
-    return percentLit;
-}
 
 float4 PS(VertexOut pin) : SV_Target
 {
     float4 vDiffuse = Texture.Sample(gsamLinearWrap, pin.TexC);
+    float4 vCurrentPixelDepthInMainCameraViewSpace = pin.DepthInMainCameraViewSpace;
     
-    
-    int iCurrentCascadeIndex = 0;
-    
-    float4 vCurrentPixelDepth = pin.Depth;
-    float4 vShadowMapTextureCoordViewSpace = pin.TexShadow;
     float4 vShadowMapTextureCoord = 0.0f;
+    int iCurrentCascadeIndex = 0;
 
-    //select cascade index
-    if (SELECT_CASCADE_BY_INTERVAL_FLAG) //interval sele
+    /*
+    这里的CASCADE_COUNT_FLAG: 就是目前使用多少个cascade
+    */
+
+    if (SELECT_CASCADE_BY_INTERVAL_FLAG) //选择cascade的方式
     {
         if (CASCADE_COUNT_FLAG > 1)
         {
             
-            float4 fComparison = (vCurrentPixelDepth > m_fCascadeFrustumsEyeSpaceDepthsFloat[0]);
-            float4 fComparison2 = (vCurrentPixelDepth > m_fCascadeFrustumsEyeSpaceDepthsFloat[1]);
+            float4 fComparison = (vCurrentPixelDepthInMainCameraViewSpace > m_fCascadeFrustumsEyeSpaceDepthsFloat[0]);
+            float4 fComparison2 = (vCurrentPixelDepthInMainCameraViewSpace > m_fCascadeFrustumsEyeSpaceDepthsFloat[1]);
             float fIndex = dot(
                             float4(CASCADE_COUNT_FLAG > 0,
                                     CASCADE_COUNT_FLAG > 1,
@@ -123,24 +102,27 @@ float4 PS(VertexOut pin) : SV_Target
             fIndex = min(fIndex, CASCADE_COUNT_FLAG - 1);
             iCurrentCascadeIndex = (int) fIndex;
         }
+
+        vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[iCurrentCascadeIndex];
+        vShadowMapTextureCoord += m_vCascadeOffset[iCurrentCascadeIndex];
+        
     }
     else // screne map sel
     {
         
         if (CASCADE_COUNT_FLAG == 1)
         {
-            vShadowMapTextureCoord = vShadowMapTextureCoordViewSpace * m_vCascadeScale[0];
+            vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[0];
             vShadowMapTextureCoord += m_vCascadeOffset[0];
         }
         
         int iCascadeFound = 0;
         if (CASCADE_COUNT_FLAG > 1)
         {
-            
             for (int iCascadeIndex = 0; iCascadeIndex <  CASCADE_COUNT_FLAG
                 && (iCascadeFound == 0); ++iCascadeIndex)
             {
-                vShadowMapTextureCoord = vShadowMapTextureCoordViewSpace * m_vCascadeScale[iCascadeIndex];
+                vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[iCascadeIndex];
                 vShadowMapTextureCoord += m_vCascadeOffset[iCascadeIndex];
 
                 if (min(vShadowMapTextureCoord.x, vShadowMapTextureCoord.y) > m_fMinBorderPadding
@@ -154,33 +136,37 @@ float4 PS(VertexOut pin) : SV_Target
         }
     }
     
-    ComputeCoordinatesTransform(iCurrentCascadeIndex,
-                                 vShadowMapTextureCoord,
-                                 vShadowMapTextureCoordViewSpace);
+    //因为是多个cascade拼接出来的一个大纹理 ,所以要转到真实的纹理位置
+    vShadowMapTextureCoord.x *= m_fShadowPartitionSize; // precomputed (float)iCascadeIndex / (float)CASCADE_CNT
+    vShadowMapTextureCoord.x += (m_fShadowPartitionSize * (float) iCurrentCascadeIndex);
     
     
-    float3 shadowFactor = float3(1.0f, 1.0f, 1.0f);
-    shadowFactor[0] = gShadowMap.SampleCmpLevelZero(gsamShadow, vShadowMapTextureCoord.xy, vShadowMapTextureCoord.z).r;
+    float shadowFactor = gShadowMap.SampleCmpLevelZero(gsamShadow, vShadowMapTextureCoord.xy, vShadowMapTextureCoord.z).r;
     
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
     float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);
     float3 vLightDir3 = float3(0.0f, -1.0f, 0.0f);
     float3 vLightDir4 = float3(1.0f, 1.0f, 1.0f);
    
+   float gammaS = LinearToSRGB(0.05);//与官方的cascade shadow mapping 11不同,这里将参数进行了gamma处理.官方的rtv是rgb，这里是unorm,同时输入纹理也是unorm
+
     // Some ambient-like lighting.
-    float fLighting = saturate(dot(vLightDir1, pin.NormalW)) * 0.05f +
-                      saturate(dot(vLightDir2, pin.NormalW)) * 0.05f +
-                      saturate(dot(vLightDir3, pin.NormalW)) * 0.05f +
-                      saturate(dot(vLightDir4, pin.NormalW)) * 0.05f;
+    float fLighting = saturate(dot(vLightDir1, pin.NormalW)) * gammaS +
+                      saturate(dot(vLightDir2, pin.NormalW)) * gammaS +
+                      saturate(dot(vLightDir3, pin.NormalW)) * gammaS +
+                      saturate(dot(vLightDir4, pin.NormalW)) * gammaS;
     
-    float4 vShadowLighting = fLighting * 0.5f;
+    float vShadowLighting = fLighting * LinearToSRGB(0.5);
     
 
     float cosLight = dot(m_vLightDir, pin.NormalW);
     fLighting += saturate(cosLight);
     
-    fLighting = lerp(vShadowLighting, fLighting, shadowFactor[0]);
+    fLighting = lerp(vShadowLighting, fLighting, shadowFactor);
     
-    return fLighting * vDiffuse;
+    float4 color = fLighting * vDiffuse;
+    color.w = 1.0;
+
+    return color;
     
 }
