@@ -144,8 +144,9 @@ void CSMMapContext::ShowCustomImguiWin()
 	static bool bUseDDXY = true;
     ImGui::Checkbox("DDX DDY Offset", &bUseDDXY);
 
-	static float blendAmount = 1.00f;
-    ImGui::DragFloat("shadow cascade blending value: ", &blendAmount, 0.5f);
+	static float blendAmount = 10.00f;
+	static float dragSpeed = 1.00f;
+    ImGui::DragFloat("shadow cascade blending value: ", &blendAmount, dragSpeed,0.0f,100,0);
 
 	static bool bCascadeBlur = false;
     ImGui::Checkbox(": Use shadow cascade blending ", &bCascadeBlur);
@@ -162,7 +163,7 @@ void CSMMapContext::ShowCustomImguiWin()
 	(bCascadeBlur)? (m_cascadedShadowsMgr->m_iBlurBetweenCascades = 1):
 	(m_cascadedShadowsMgr->m_iBlurBetweenCascades = 0);
 
-	//m_fBlurBetweenCascadesAmount = blendAmount;
+	m_fBlurBetweenCascadesAmount = blendAmount * 0.005;
 #endif
 }
 

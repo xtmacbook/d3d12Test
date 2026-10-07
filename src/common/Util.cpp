@@ -21,7 +21,7 @@ std::wstring DxException::toString() const
 
 std::wstring SourcePath()
 {
-    return L"D:/workspace/osgEarth/";
+    return L"C:/Users/xtdou/Documents/works/d3d12Test/";
 }
 
 void errorExit()
