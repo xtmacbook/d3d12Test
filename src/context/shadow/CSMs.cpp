@@ -30,7 +30,8 @@ bool CSMMapContext::InitDirect3D()
 	ThrowIfFailed(m_CommandList->Reset(m_DirectCmdListAlloc.Get(), nullptr));
 
 	m_sdkMeshModel = std::make_shared<SDKMesh::SDKMeshModel>(m_d3dDevice.Get());
-	m_sdkMeshModel->LoadModel((SourcePath() + L"Models/powerplant/powerplant.sdkmesh").c_str());
+	//m_sdkMeshModel->LoadModel((SourcePath() + L"Models/powerplant/powerplant.sdkmesh").c_str());
+	m_sdkMeshModel->LoadModel((SourcePath() + L"Models/ShadowColumns/testscene.sdkmesh").c_str());
 
 	auto sceneBoundBox = m_sdkMeshModel->getBoundingBox();
 
@@ -67,7 +68,7 @@ bool CSMMapContext::InitDirect3D()
 
 
 	BuildShapeGeometry(m_d3dDevice.Get(), m_CommandList.Get());
-	BuildTextures();
+	BuildTextures((SourcePath() + L"Models/ShadowColumns/").c_str()	);
 	BuildDescriptorHeaps();
 	BuildResourceView();
 	BuildFrameResources();
@@ -459,9 +460,9 @@ void CSMMapContext::BuildPSOs()
 	m_cascadedShadowsMgr->BuildPOS(m_sdkMeshModel.get(), psoDesc);
 }
 
-void CSMMapContext::BuildTextures()
+void CSMMapContext::BuildTextures(const std::wstring textureDir)
 {
-	m_sdkMeshModel->BuildTextures(m_CommandList.Get());
+	m_sdkMeshModel->BuildTextures(m_CommandList.Get(), textureDir);
 }
 
 void CSMMapContext::BuildResourceView()

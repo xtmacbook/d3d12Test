@@ -102,7 +102,7 @@ namespace SDKMesh
 
         UINT getTextureOffset(int textureIndex);
 
-        void BuildTextures(ID3D12GraphicsCommandList* mCommandList);
+        void BuildTextures(ID3D12GraphicsCommandList* mCommandList,const std::wstring textureDir);
 
         void DrawRenderItems(ID3D12CommandAllocator* allocator,
             ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList, 

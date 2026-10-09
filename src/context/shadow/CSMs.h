@@ -85,7 +85,7 @@ public:
 	void ShowCustomImguiWin() override;
 	
 	void BuildPSOs();
-	void BuildTextures();
+	void BuildTextures(const std::wstring textureDir);
 	void BuildResourceView();
 
 	void Update(const GameTimer& gt)override;

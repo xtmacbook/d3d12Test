@@ -11,10 +11,10 @@ using Microsoft::WRL::ComPtr;
 namespace SDKMesh
 {
 
-	void SDKMeshModel::BuildTextures(ID3D12GraphicsCommandList* mCommandList)
+	void SDKMeshModel::BuildTextures(ID3D12GraphicsCommandList* mCommandList,const std::wstring textureDir)
 	{
 		m_model->LoadTextures(m_device,
-			mCommandList, (SourcePath() + L"Models/powerplant/").c_str(), 0);
+			mCommandList, textureDir.c_str(), 0);
 	}
 
 	void SDKMeshModel::DrawRenderItems(ID3D12CommandAllocator* allocator,
@@ -304,8 +304,7 @@ namespace SDKMesh
 	bool SDKMeshModel::LoadModel(std::wstring filename)
 	{
 		m_model =
-			DirectX::DX12::Model::CreateFromSDKMESH(m_device,
-				(SourcePath() + L"Models/powerplant/powerplant.sdkmesh").c_str());
+			DirectX::DX12::Model::CreateFromSDKMESH(m_device, filename.c_str(), ModelLoaderFlags::ModelLoader_Default);
 		return true;
 	}
 

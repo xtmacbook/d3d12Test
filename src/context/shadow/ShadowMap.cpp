@@ -396,7 +396,7 @@ void ShadowMapBase::BuildPSOs()
 
 void ShadowMapBase::BuildTextures()
 {
-	m_sdkMeshModel->BuildTextures(m_CommandList.Get());
+	m_sdkMeshModel->BuildTextures(m_CommandList.Get(),(SourcePath() + L"Models/powerplant/"));
 }
 
 void ShadowMapBase::BuildResourceView()
