@@ -18,6 +18,7 @@
 #include "context/CubeMapContext.h"
 #include "shadow/ShadowMap.h"
 #include "shadow/CSMs.h"
+#include "shadow/VSM.h"
 
 using namespace DirectX;
 
@@ -33,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 	try
 	{
 		//ShadowMapBase d3dContext;
-		CSMMapContext d3dContext;
+		VSMMapContext d3dContext;
 		
 		MainApp app(hInstance, &d3dContext);
 

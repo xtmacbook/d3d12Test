@@ -129,7 +129,8 @@ set (CONTEXT_SHADOW_SOURCE
     src/context/shadow/ShadowInterface.cpp
     src/context/shadow/CascadedShadowsManager.cpp
     src/context/shadow/CSMs.cpp
-
+    src/context/shadow/VarianceShadowsManager.cpp
+    src/context/shadow/VSM.cpp
 )
 
 
@@ -139,6 +140,8 @@ set (CONTEXT_SHADOW_HEADS
     src/context/shadow/CascadedShadowsManager.h
     src/context/shadow/CSMs.h
     src/context/shadow/LSPSMs.h
+    src/context/shadow/VarianceShadowsManager.h
+    src/context/shadow/VSM.h    
 )
 
 set(SHADER_FILES
@@ -177,17 +180,18 @@ set (IMGUI_SOURCE
     src/3rd/imgui/imstb_rectpack.h
     src/3rd/imgui/imstb_truetype.h
     src/3rd/imgui/imstb_textedit.h
-    
-
 )
 
 
-set(SHADER_SHADOW_CSM
-    Shaders/CSM/csm_scene.hlsl
-    Shaders/CSM/csm_shadowMap.hlsl
-    Shaders/CSM/csm_base.hlsl
-
+set(SHADER_SHADOW
+    Shaders/shadow/csm_scene.hlsl
+    Shaders/shadow/csm_shadowMap.hlsl
+    Shaders/shadow/csm_base.hlsl
+    Shaders/shadow/vsm_base.hlsl
+    Shaders/shadow/vsm_scene.hlsl
+    Shaders/shadow/vsm_shadow.hlsl
 )
+
 
 set(SHADER_BASE
     Shaders/Blur.hlsl
@@ -200,7 +204,7 @@ set(SHADER_BASE
 
 set(SHADER_FILES
     ${SHADER_BASE}
-    ${SHADER_SHADOW_CSM}
+    ${SHADER_SHADOW}
 )
 
 
@@ -225,7 +229,7 @@ source_group ("Header Files/context/shadow" FILES ${CONTEXT_SHADOW_HEADS})
 source_group ("Source Files/imgui" FILES ${IMGUI_SOURCE})
 
 source_group ("Shaders" FILES ${SHADER_BASE})
-source_group ("Shaders/shadow/csm" FILES ${SHADER_SHADOW_CSM})
+source_group ("Shaders/shadow" FILES ${SHADER_SHADOW})
 
 INCLUDE_DIRECTORIES(include)
 
