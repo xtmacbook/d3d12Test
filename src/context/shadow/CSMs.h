@@ -56,7 +56,6 @@ namespace SDKMesh
 struct ShadowHeapDescriptor2
 {
 	UINT m_shadowMapHeapOffset;
-	UINT m_sdkMeshModelTextureHeapOffset;
 	UINT m_nullHeapOffset;
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;

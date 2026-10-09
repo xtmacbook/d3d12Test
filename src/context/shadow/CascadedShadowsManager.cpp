@@ -22,7 +22,7 @@ bool CascadedShadowsManager::init(ID3D12Device* device,const DirectX::BoundingBo
     m_sceneBox = sceneBox;
 
 	//init shaders
-	m_ShadowVSShader = D3DUtil::CompileShader(SourcePath() + L"/Shaders/CSM/csm_shadowMap.hlsl", nullptr, "VS", "vs_5_1");
+	m_ShadowVSShader = D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/csm_shadowMap.hlsl", nullptr, "VS", "vs_5_1");
 
     D3D_SHADER_MACRO defines[] =
     {
@@ -49,7 +49,7 @@ bool CascadedShadowsManager::init(ID3D12Device* device,const DirectX::BoundingBo
 
 
         m_ppsRenderSceneVSShadersBlob[iCascadeIndex] =
-            D3DUtil::CompileShader(SourcePath() + L"/Shaders/CSM/csm_scene.hlsl", defines, "VS", "vs_5_1");
+            D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/csm_scene.hlsl", defines, "VS", "vs_5_1");
 
         for (INT iDerivativeIndex = 0; iDerivativeIndex < 2; ++iDerivativeIndex)
         {
@@ -68,7 +68,7 @@ bool CascadedShadowsManager::init(ID3D12Device* device,const DirectX::BoundingBo
                     defines[3].Definition = cIntervalDefinition;
 
                     m_ppsRenderScenePSShadersBlob[iCascadeIndex][iDerivativeIndex][iBlendIndex][iIntervalIndex] =
-                        D3DUtil::CompileShader(SourcePath() + L"/Shaders/CSM/csm_scene.hlsl", defines, "PS", "ps_5_1");
+                        D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/csm_scene.hlsl", defines, "PS", "ps_5_1");
                 }
             }
         }

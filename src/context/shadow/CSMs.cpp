@@ -102,7 +102,6 @@ void CSMMapContext::BuildDescriptorHeaps()
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(
 		&srvHeapDesc, IID_PPV_ARGS(&m_SrvDescriptorHeap)));
 
-	m_HeapDescriptorOffsets.m_sdkMeshModelTextureHeapOffset = 0;
 	m_HeapDescriptorOffsets.m_shadowMapHeapOffset = sdkMeshModelTextureCount;
 	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + 1;
 }
@@ -216,6 +215,7 @@ void CSMMapContext::BuildRootSignature()
 	rootParameters[4].DescriptorTable.NumDescriptorRanges = 1;
 	rootParameters[4].DescriptorTable.pDescriptorRanges = texTable1;
 
+	//shadow map texture
 	D3D12_DESCRIPTOR_RANGE texTable2[1];
 	texTable2[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	texTable2[0].NumDescriptors = 1;
