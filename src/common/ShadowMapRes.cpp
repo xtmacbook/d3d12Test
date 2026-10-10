@@ -3,8 +3,10 @@
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
-ShadowMapRes::ShadowMapRes(ID3D12Device *device, UINT width, UINT height, SHADOW_TEXTURE_FORMAT formate)
-    : m_d3dDevice(device), m_Width(width), m_Height(height), m_Format(formate)
+ShadowMapRes::ShadowMapRes(ID3D12Device *device, UINT width, UINT height, SHADOW_TEXTURE_FORMAT formate,
+	 BOOL dsvOrRtv) 
+    : m_d3dDevice(device), m_Width(width), m_Height(height), m_Format(formate),
+    m_dsvOrRtv(dsvOrRtv)
 {
     m_Viewport.TopLeftX = 0.0f;
     m_Viewport.TopLeftY = 0.0f;
@@ -40,7 +42,12 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE ShadowMapRes::Srv() const
 
 CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMapRes ::Dsv() const
 {
-    return m_hCpuDsv;
+    return m_hCpuDsvOrRtv;
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMapRes::Rtv() const
+{
+    return m_hCpuDsvOrRtv;
 }
 
 D3D12_VIEWPORT ShadowMapRes::Viewport() const
@@ -56,21 +63,21 @@ D3D12_RECT ShadowMapRes::ScissorRect() const
 void ShadowMapRes::BuildDescriptors(
     CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
     CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
+    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv)
 {
     m_hCpuSrv = hCpuSrv;
     m_hGpuSrv = hGpuSrv;
-    m_hCpuDsv = hCpuDsv;
+    m_hCpuDsvOrRtv = hCpuDsvOrRtv;
 
     BuildDescriptors();
 }
 
 void ShadowMapRes::SetDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-                                  CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
+                                  CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv)
 {
     m_hCpuSrv = hCpuSrv;
     m_hGpuSrv = hGpuSrv;
-    m_hCpuDsv = hCpuDsv;
+    m_hCpuDsvOrRtv = hCpuDsvOrRtv;
 }
 
 void ShadowMapRes::DepthBias()
@@ -110,7 +117,8 @@ void ShadowMapRes::OnResize(UINT newWidth, UINT newHeight)
 void ShadowMapRes::BuildDescriptors()
 {
     DXGI_FORMAT SRVfmt = DXGI_FORMAT_R32_FLOAT;
-    DXGI_FORMAT DSVfmt = DXGI_FORMAT_D32_FLOAT;
+    DXGI_FORMAT DSVfmt = DXGI_FORMAT_D32_FLOAT;  //注意这里是一个"D"
+    DXGI_FORMAT RtVfmt = DXGI_FORMAT_D32_FLOAT;
 
     switch (m_Format)
     {
@@ -130,7 +138,14 @@ void ShadowMapRes::BuildDescriptors()
         SRVfmt = DXGI_FORMAT_R8_UNORM;
         DSVfmt = DXGI_FORMAT_R8_UNORM;
         break;
+    case SHADOW_DXGI_FORMAT_R32G32_TYPELESS:
+        SRVfmt = DXGI_FORMAT_R32G32_FLOAT;
+		break;
+    case SHADOW_DXGI_FORMAT_R16G16_TYPELESS:
+        SRVfmt = DXGI_FORMAT_R16G16_FLOAT;
     }
+
+    RtVfmt = SRVfmt;
 
     // Create SRV to resource so we can sample the shadow map in a shader program.
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -143,13 +158,24 @@ void ShadowMapRes::BuildDescriptors()
     srvDesc.Texture2D.PlaneSlice = 0;
     m_d3dDevice->CreateShaderResourceView(m_ShadowMap.Get(), &srvDesc, m_hCpuSrv);
 
-    // Create DSV to resource so we can render to the shadow map.
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-    dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    dsvDesc.Format = DSVfmt;
-    dsvDesc.Texture2D.MipSlice = 0;
-    m_d3dDevice->CreateDepthStencilView(m_ShadowMap.Get(), &dsvDesc, m_hCpuDsv);
+    if (m_dsvOrRtv)
+    {
+        // Create DSV to resource so we can render to the shadow map.
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+        dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        dsvDesc.Format = DSVfmt;
+        dsvDesc.Texture2D.MipSlice = 0;
+        m_d3dDevice->CreateDepthStencilView(m_ShadowMap.Get(), &dsvDesc, m_hCpuDsvOrRtv);
+    }
+    else
+    {
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+		rtvDesc.Format = RtVfmt;
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		rtvDesc.Texture2D.MipSlice = 0;
+        m_d3dDevice->CreateRenderTargetView(m_ShadowMap.Get(), &rtvDesc, m_hCpuDsvOrRtv);
+    }
 }
 
 void ShadowMapRes::BuildResource()
@@ -174,6 +200,12 @@ void ShadowMapRes::BuildResource()
     case SHADOW_DXGI_FORMAT_R8_TYPELESS:
         texturefmt = DXGI_FORMAT_R8_TYPELESS;
         clearfmt = DXGI_FORMAT_R8_UNORM;
+	case SHADOW_DXGI_FORMAT_R32G32_TYPELESS:
+		texturefmt = DXGI_FORMAT_R32G32_TYPELESS;
+		clearfmt = DXGI_FORMAT_R32G32_FLOAT;
+	case SHADOW_DXGI_FORMAT_R16G16_TYPELESS:
+		texturefmt = DXGI_FORMAT_R16G16_TYPELESS;
+		clearfmt = DXGI_FORMAT_R16G16_FLOAT;
         break;
     }
 
