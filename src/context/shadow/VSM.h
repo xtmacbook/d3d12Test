@@ -69,7 +69,9 @@ struct VSMShadowHeapDescriptor
 };
 
 class VarianceShadowsManager;
+class ShadowMapRes;
 struct VSMConfig;
+
 
 class VSMMapContext :public D3DContext,
 	public FrameResourceContextInterface
@@ -79,7 +81,7 @@ public:
 
 	void BuildDescriptorHeaps();
 
-	void CreateDsvDescriptorHeap()override;
+	void CreateRtvDescriptorHeap() override;
 
 	virtual void BuildRootSignature();
 
@@ -109,7 +111,8 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<Material>>						m_Materials;
 	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>									m_SrvDescriptorHeap = nullptr; //for texture source
 	Microsoft::WRL::ComPtr<ID3D12RootSignature>										m_RootSignature = nullptr;
-	
+	std::shared_ptr<ShadowMapRes>													m_ShadowMap;
+
 	Camera																			m_shadowLightCamera;
 	std::shared_ptr< VarianceShadowsManager>										m_varianceShadowsMgr = nullptr;
 	VSMShadowHeapDescriptor															m_HeapDescriptorOffsets;

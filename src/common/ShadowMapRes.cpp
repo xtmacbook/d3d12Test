@@ -174,6 +174,7 @@ void ShadowMapRes::BuildDescriptors()
 		rtvDesc.Format = RtVfmt;
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 		rtvDesc.Texture2D.MipSlice = 0;
+		rtvDesc.Texture2D.PlaneSlice = 0;
         m_d3dDevice->CreateRenderTargetView(m_ShadowMap.Get(), &rtvDesc, m_hCpuDsvOrRtv);
     }
 }
@@ -182,6 +183,8 @@ void ShadowMapRes::BuildResource()
 {
     DXGI_FORMAT texturefmt = DXGI_FORMAT_R32_TYPELESS;
     DXGI_FORMAT clearfmt = DXGI_FORMAT_R32_FLOAT;
+
+    D3D12_RESOURCE_FLAGS resFlags = D3D12_RESOURCE_FLAG_NONE;
 
     switch (m_Format)
     {
@@ -200,14 +203,20 @@ void ShadowMapRes::BuildResource()
     case SHADOW_DXGI_FORMAT_R8_TYPELESS:
         texturefmt = DXGI_FORMAT_R8_TYPELESS;
         clearfmt = DXGI_FORMAT_R8_UNORM;
+        break;
 	case SHADOW_DXGI_FORMAT_R32G32_TYPELESS:
 		texturefmt = DXGI_FORMAT_R32G32_TYPELESS;
 		clearfmt = DXGI_FORMAT_R32G32_FLOAT;
+        break;
 	case SHADOW_DXGI_FORMAT_R16G16_TYPELESS:
 		texturefmt = DXGI_FORMAT_R16G16_TYPELESS;
 		clearfmt = DXGI_FORMAT_R16G16_FLOAT;
         break;
     }
+
+    if (m_dsvOrRtv) resFlags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	else resFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;   
+
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -220,12 +229,23 @@ void ShadowMapRes::BuildResource()
     texDesc.SampleDesc.Count = 1;
     texDesc.SampleDesc.Quality = 0;
     texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    texDesc.Flags = resFlags;
 
     D3D12_CLEAR_VALUE optClear;
+
     optClear.Format = clearfmt;
-    optClear.DepthStencil.Depth = 1.0f;
-    optClear.DepthStencil.Stencil = 0;
+    if (m_dsvOrRtv)
+    {
+        optClear.DepthStencil.Depth = 1.0f;
+        optClear.DepthStencil.Stencil = 0;
+    }
+    else
+    {
+        optClear.Color[0] = 0.0f;
+        optClear.Color[1] = 0.0f;
+        optClear.Color[2] = 0.0f;
+        optClear.Color[3] = 0.0f;
+    }
 
     m_d3dDevice->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),

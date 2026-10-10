@@ -41,10 +41,13 @@ bool VSMMapContext::InitDirect3D()
 	m_shadowLightCamera.UpdateViewMatrix();
 
 	m_vsmConfig = std::make_shared<VSMConfig>();
+	m_vsmConfig->m_iBufferSize = 1024;
+	m_vsmConfig->m_ShadowBufferFormat = SHADOW_DXGI_FORMAT_R32G32_TYPELESS;
 
 	m_varianceShadowsMgr = std::make_shared< VarianceShadowsManager>();
     m_varianceShadowsMgr->init(m_d3dDevice.Get(), sceneBoundBox, &mCamera,
 		&m_shadowLightCamera, m_vsmConfig.get());
+	m_varianceShadowsMgr->BuildShadowMap();
 
 	BuildShapeGeometry(m_d3dDevice.Get(), m_CommandList.Get());
 	BuildTextures((SourcePath() + L"Models/ShadowColumns/").c_str()	);
@@ -85,16 +88,17 @@ void VSMMapContext::BuildDescriptorHeaps()
 	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + 1;
 }
 
-void VSMMapContext::CreateDsvDescriptorHeap()
+void VSMMapContext::CreateRtvDescriptorHeap()
 {
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 2; // 一个用于深度缓冲区，一个用于阴影贴图
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	dsvHeapDesc.NodeMask = 0;
+	//注意这个是写入到了m_RtvHeap中,所以要在这里创建,因为要写入两个值,不能写入到depthStencilHeap中
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
+	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + 1;
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvHeapDesc.NodeMask = 0;
 
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(
-		&dsvHeapDesc, IID_PPV_ARGS(m_DsvHeap.GetAddressOf())));
+		&rtvHeapDesc, IID_PPV_ARGS(m_RtvHeap.GetAddressOf())));
 }
 
 void VSMMapContext::BuildShapeGeometry(ID3D12Device* device, ID3D12GraphicsCommandList* mCommandList)
@@ -404,7 +408,7 @@ void VSMMapContext::BuildResourceView()
 	//build resouce view
 	auto srvCpuStart = m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	auto srvGpuStart = m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	auto dsvCpuStart = m_DsvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto rtvCpuStart = m_RtvHeap->GetCPUDescriptorHandleForHeapStart();
 
 	INT offset = 0;
 
@@ -420,7 +424,7 @@ void VSMMapContext::BuildResourceView()
 		m_varianceShadowsMgr->BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize));
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, SwapChainBufferCount, m_RtvDescriptorSize));
 	}
 
 	//some null descriptor

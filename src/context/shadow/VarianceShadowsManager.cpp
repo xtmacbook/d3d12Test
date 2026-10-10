@@ -4,7 +4,9 @@
 /**
  *
  *
-m_pCascadedShadowMapVarianceTextureArray: 数组(cascade)-------m_pCascadedShadowMapVarianceRTVArrayAll[cascade](targetview )
+m_pCascadedShadowMapVarianceTextureArray: 数组(cascade,R32G32 float array)------
+
+                            -m_pCascadedShadowMapVarianceRTVArrayAll[cascade](targetview : CreateRenderTargetView, texture formate)
                         ------m_pCascadedShadowMapVarianceSRVArraySingle(shader resouce view)
                         ------ m_pCascadedShadowMapVarianceSRVArrayAll[cascade] (shader resouce view)
 
@@ -48,17 +50,19 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
     m_ppsRenderScenePSShadersBlob =
         D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", nullptr, "PS", "ps_5_1");
 
-    return false;
+    return true;
 }
 
 UINT VarianceShadowsManager::GetResouceViewCount() const
 {
-    return 3;
+    return 1;
 }
 
 void VarianceShadowsManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-                                              CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
+                                              CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, 
+    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv)
 {
+    m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuRtv);
 }
 
 void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
@@ -85,4 +89,12 @@ void VarianceShadowsManager::RenderScene(ID3D12GraphicsCommandList *cmmandList, 
 {
      if (data.m_drawCb)
         data.m_drawCb(cmmandList);
+}
+
+void VarianceShadowsManager::BuildShadowMap()
+{
+	//最有一个参数是false，表示不创建深度视图，因为vsm不需要深度视图
+    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyCsmConfig.m_iBufferSize ,
+        m_copyCsmConfig.m_iBufferSize, m_copyCsmConfig.m_ShadowBufferFormat,false);
+
 }

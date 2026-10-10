@@ -55,7 +55,7 @@ public:
     void BuildDescriptors(
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv);
 
     void UpdateMainPassData(VSMPassConstants &constData);
 
@@ -64,6 +64,8 @@ public:
 	ID3D12PipelineState* GetEffect();
 
 	void RenderScene(ID3D12GraphicsCommandList* cmmandList, VSMShadowMapDrawData& data);
+
+    void BuildShadowMap();
 
 private:
 
