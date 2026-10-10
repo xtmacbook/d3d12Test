@@ -98,9 +98,8 @@ public:
 
 	void Update(const GameTimer& gt)override;
 	virtual void UpdateMaterialCBs(const GameTimer& gt);
-	void UpdateMainPassCB(const GameTimer& gt);
+	void UpdatePassCB(const GameTimer& gt);
 	void UpdateObjectCBs(const GameTimer& gt);
-
 
 	void Draw(const GameTimer& gt)override;
 	void DrawFrameResource(ID3D12CommandAllocator*)override;

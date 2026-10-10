@@ -57,13 +57,17 @@ public:
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv);
 
-    void UpdateMainPassData(VSMPassConstants &constData);
+    void UpdateMainPassData(VSMPassConstants& constData);
+    void UpdateShadowPassData(VSMPassConstants &constData);
 
     void BuildPOS(SDKMesh::SDKMeshModel *, D3D12_GRAPHICS_PIPELINE_STATE_DESC);
 
-	ID3D12PipelineState* GetEffect();
+    ID3D12PipelineState* GetSceneEffect();
+    ID3D12PipelineState* GetShadowEffect();
 
 	void RenderScene(ID3D12GraphicsCommandList* cmmandList, VSMShadowMapDrawData& data);
+    void RenderShadows(ID3D12GraphicsCommandList* mCommandList,
+        VSMShadowMapDrawData& data);
 
     void BuildShadowMap();
 
@@ -73,9 +77,12 @@ private:
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderSceneVSShadersBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderScenePSShadersBlob;
 
+    Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderShadowVSShadersBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderShadowPSShadersBlob;
+
     std::shared_ptr<ShadowMapRes> m_ShadowMap;
-    std::shared_ptr<SDKMesh::Effect>  m_effect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_shadowDrawPSO = nullptr;
+    std::shared_ptr<SDKMesh::Effect>  m_sceneEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
+    std::shared_ptr<SDKMesh::Effect>  m_shadowEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
 
     DirectX::BoundingBox m_sceneBox;
 

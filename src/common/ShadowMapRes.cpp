@@ -241,8 +241,8 @@ void ShadowMapRes::BuildResource()
     }
     else
     {
-        optClear.Color[0] = 0.0f;
-        optClear.Color[1] = 0.0f;
+        optClear.Color[0] = 1.0f;
+        optClear.Color[1] = 1.0f;
         optClear.Color[2] = 0.0f;
         optClear.Color[3] = 0.0f;
     }

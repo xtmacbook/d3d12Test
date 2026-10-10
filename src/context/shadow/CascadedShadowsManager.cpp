@@ -122,7 +122,6 @@ void CascadedShadowsManager::BuildPOS(SDKMesh::SDKMeshModel*meshModel, D3D12_GRA
     epsd.alphaPS = nullptr;
     epsd.device = m_d3dDevice;
     epsd.desc = psoDesc;
-    m_shadowDrawPSO = meshModel->CreateOnlyOneEffect(epsd)->m_PSO;
 }
 
 

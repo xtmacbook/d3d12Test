@@ -245,7 +245,7 @@ void VSMMapContext::OnResize(int width, int heigh)
 
 void VSMMapContext::BuildFrameResources()
 {
-	UINT cpasCount =  1; //MAX_CASCADES 是shadow 
+	UINT cpasCount =  2; //MAX_CASCADES 是shadow 
 
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
@@ -261,7 +261,7 @@ void VSMMapContext::Update(const GameTimer& gt)
 	FrameResourceContextInterface::Update(gt, m_Fence.Get());
 	UpdateObjectCBs(gt);
 	UpdateMaterialCBs(gt);
-	UpdateMainPassCB(gt);
+	UpdatePassCB(gt);
 }
 
 void VSMMapContext::UpdateMaterialCBs(const GameTimer& gt)
@@ -274,9 +274,8 @@ void VSMMapContext::UpdateMaterialCBs(const GameTimer& gt)
 	}
 }
 
-void VSMMapContext::UpdateMainPassCB(const GameTimer& gt)
+void VSMMapContext::UpdatePassCB(const GameTimer& gt)
 {
-	//update cascade 
 	
 	VSMPassConstants mainConstantsData;
 
@@ -293,6 +292,11 @@ void VSMMapContext::UpdateMainPassCB(const GameTimer& gt)
 
 	m_currFrameResource->CopyPassData(0, &mainConstantsData);
 
+	VSMPassConstants shadowConstantsData;
+	XMMATRIX LightViewProj = XMMatrixMultiply(m_shadowLightCamera.GetView(), m_shadowLightCamera.GetProj());
+	XMStoreFloat4x4(&shadowConstantsData.m_WorldViewProj, XMMatrixTranspose(LightViewProj));
+	m_varianceShadowsMgr->UpdateShadowPassData(shadowConstantsData);
+	m_currFrameResource->CopyPassData(1, &mainConstantsData);
 }
 
 void VSMMapContext::UpdateObjectCBs(const GameTimer& gt)
@@ -326,21 +330,20 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 
 	//shadow map pass
 	{
+		 D3D12_GPU_VIRTUAL_ADDRESS shadowPassAddress = m_currFrameResource->getPassGpuAddress() + 
+		 	1 * passCBByteSize;
+		 
+		 VSMShadowMapDrawData data;
+		 data.m_PassAddress = shadowPassAddress;
 
-		// D3D12_GPU_VIRTUAL_ADDRESS shadowPassAddress = m_currFrameResource->getPassGpuAddress() + 
-		// 	1 * passCBByteSize;
-		// CSMShadowMapDrawData data;
-		// data.m_shadowPassAddress = shadowPassAddress;
-		// data.m_shadowPassRootParameterIndx = 2;
+		 data.m_drawCb = [&](ID3D12GraphicsCommandList*) {
+		 	m_sdkMeshModel->DrawRenderItemsWithShadowPass(allocator, m_d3dDevice.Get(),
+		 		m_CommandList.Get(), m_currFrameResource, m_SrvDescriptorHeap.Get(),
+		 		m_CbvSrvUavDescriptorSize, m_varianceShadowsMgr->GetShadowEffect(),
+		 		m_HeapDescriptorOffsets.m_nullSrvGpuHandle);
+		 	};
 
-		// data.m_drawCb = [&](ID3D12GraphicsCommandList*) {
-		// 	m_sdkMeshModel->DrawRenderItemsWithShadowPass(allocator, m_d3dDevice.Get(),
-		// 		m_CommandList.Get(), m_currFrameResource, m_SrvDescriptorHeap.Get(),
-		// 		m_CbvSrvUavDescriptorSize, m_cascadedShadowsMgr-> GetDrawSceneToShadowMapPSO(),
-		// 		m_HeapDescriptorOffsets.m_nullSrvGpuHandle);
-		// 	};
-
-		// m_cascadedShadowsMgr->RenderShadowsForAllCascades(m_CommandList.Get(), data);
+		 m_varianceShadowsMgr ->RenderShadows(m_CommandList.Get(), data);
 
 	}
 
@@ -370,7 +373,7 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 			{
 				m_sdkMeshModel->DrawRenderItemsWithOnePass(allocator, m_d3dDevice.Get(),
 					m_CommandList.Get(), m_currFrameResource, m_SrvDescriptorHeap.Get(),
-					m_CbvSrvUavDescriptorSize, m_varianceShadowsMgr->GetEffect());
+					m_CbvSrvUavDescriptorSize, m_varianceShadowsMgr->GetSceneEffect());
 			};
 		 
         m_varianceShadowsMgr->RenderScene(m_CommandList.Get(), data);
