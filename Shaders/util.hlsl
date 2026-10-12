@@ -83,3 +83,9 @@ void CalculateRightAndUpTexelDepthDeltas ( in float3 vShadowTexDDX,
         + vRightTexelDepthRatio.y * vShadowTexDDY.z;
         
 }
+
+float LinearToSRGB(float c)
+{
+    return c <= 0.0031308f ? 12.92f * c
+                           : 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
+}

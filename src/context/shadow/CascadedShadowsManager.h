@@ -55,16 +55,17 @@ struct CSMPassConstants
 	DirectX::XMFLOAT4       m_vLightDir;
 };
 
-enum CASCADE_SELECTION
-{
-	CASCADE_SELECTION_MAP,
-	CASCADE_SELECTION_INTERVAL
-};
 
 enum FIT_PROJECTION_TO_CASCADES
 {
 	FIT_TO_CASCADES,
 	FIT_TO_SCENE
+};
+
+enum CASCADE_SELECTION
+{
+	CASCADE_SELECTION_MAP,
+	CASCADE_SELECTION_INTERVAL
 };
 
 enum FIT_TO_NEAR_FAR
@@ -116,11 +117,6 @@ public:
 		CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
 		CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
 
-	//根据cascade interval计算 project frumstum的8个角的位置
-	void CreateFrustumPointsFromCascadeInterval(float fCascadeIntervalBegin,
-		FLOAT fCascadeIntervalEnd,
-		DirectX::CXMMATRIX vProjection,
-		DirectX::XMVECTOR* pvCornerPointsWorld);
 
 	void UpdateFrame(const GameTimer& gt, Camera* viewCamera,Camera* lightCamer);
 

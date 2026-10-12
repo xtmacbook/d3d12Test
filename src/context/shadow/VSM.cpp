@@ -22,7 +22,7 @@ using Microsoft::WRL::ComPtr;
 
 
 bool VSMMapContext::InitDirect3D()
-{
+{ 
 	if (!D3DContext::InitDirect3D()) return false;
 
 	static const XMVECTORF32 s_vecEye = { 100.0f, 5.0f, 5.0f, 0.f };
@@ -276,13 +276,15 @@ void VSMMapContext::UpdateMaterialCBs(const GameTimer& gt)
 
 void VSMMapContext::UpdatePassCB(const GameTimer& gt)
 {
-	
+	m_varianceShadowsMgr->UpdateFrame(gt, &mCamera, &m_shadowLightCamera);
+
 	VSMPassConstants mainConstantsData;
 
 	XMMATRIX CameraViewProj = XMMatrixMultiply(mCamera.GetView(), mCamera.GetProj());
 	XMStoreFloat4x4(&mainConstantsData.m_WorldViewProj, XMMatrixTranspose(CameraViewProj));
 	XMStoreFloat4x4(&mainConstantsData.m_WorldView, XMMatrixTranspose(mCamera.GetView()));
 	XMStoreFloat4x4(&mainConstantsData.m_World, XMMatrixIdentity());
+	XMStoreFloat4x4(&mainConstantsData.m_Shadow, XMMatrixTranspose(m_shadowLightCamera.GetView()));
 
 	m_varianceShadowsMgr->UpdateMainPassData(mainConstantsData);
  
@@ -293,10 +295,9 @@ void VSMMapContext::UpdatePassCB(const GameTimer& gt)
 	m_currFrameResource->CopyPassData(0, &mainConstantsData);
 
 	VSMPassConstants shadowConstantsData;
-	XMMATRIX LightViewProj = XMMatrixMultiply(m_shadowLightCamera.GetView(), m_shadowLightCamera.GetProj());
-	XMStoreFloat4x4(&shadowConstantsData.m_WorldViewProj, XMMatrixTranspose(LightViewProj));
+	XMStoreFloat4x4(&shadowConstantsData.m_WorldViewProj, XMMatrixTranspose( XMMatrixMultiply(m_shadowLightCamera.GetView(), m_varianceShadowsMgr->getShadowProjMatrix())));
 	m_varianceShadowsMgr->UpdateShadowPassData(shadowConstantsData);
-	m_currFrameResource->CopyPassData(1, &mainConstantsData);
+	m_currFrameResource->CopyPassData(1, &shadowConstantsData);
 }
 
 void VSMMapContext::UpdateObjectCBs(const GameTimer& gt)
@@ -348,6 +349,7 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 	}
 
 	//main pass
+	if(1)
 	{
 		//set pass
 		m_CommandList->SetGraphicsRootConstantBufferView(2, m_currFrameResource->getPassGpuAddress());
@@ -361,9 +363,9 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 		m_CommandList->RSSetViewports(1, &m_ScreenViewport);
 		m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
 
-		//CD3DX12_GPU_DESCRIPTOR_HANDLE shadowMapTex(m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-		//shadowMapTex.Offset(m_HeapDescriptorOffsets.m_shadowMapHeapOffset, m_CbvSrvUavDescriptorSize);
-		//m_CommandList->SetGraphicsRootDescriptorTable(5, shadowMapTex);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE shadowMapTex(m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		shadowMapTex.Offset(m_HeapDescriptorOffsets.m_shadowMapHeapOffset, m_CbvSrvUavDescriptorSize);
+		m_CommandList->SetGraphicsRootDescriptorTable(5, shadowMapTex);
 
 		VSMShadowMapDrawData data;
 		data.m_PassAddress = passAddress;

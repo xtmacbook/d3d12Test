@@ -16,30 +16,32 @@
 #include "MathHelper.h"
 
 #include <string>
- 
+
 #define MaxLights 16
 
-inline std::wstring AnsiToWstring(const std::string& str)
+class Camera;
+
+inline std::wstring AnsiToWstring(const std::string &str)
 {
     WCHAR buffer[512];
     MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buffer, 512);
     return std::wstring(buffer);
 }
 
-inline std::string WStringToString(const std::wstring& wstr)
+inline std::string WStringToString(const std::wstring &wstr)
 {
-    if (wstr.empty()) return "";
+    if (wstr.empty())
+        return "";
     // 获取需要缓冲区大小
     int bufSize = WideCharToMultiByte(
-        CP_UTF8,        // 输出编码：UTF-8，改用CP_ACP为系统ANSI
+        CP_UTF8, // 输出编码：UTF-8，改用CP_ACP为系统ANSI
         0,
         wstr.c_str(),
         static_cast<int>(wstr.size()),
         nullptr,
         0,
         nullptr,
-        nullptr
-    );
+        nullptr);
     std::string res(bufSize, 0);
     WideCharToMultiByte(
         CP_UTF8,
@@ -49,8 +51,7 @@ inline std::string WStringToString(const std::wstring& wstr)
         &res[0],
         bufSize,
         nullptr,
-        nullptr
-    );
+        nullptr);
     return res;
 }
 
@@ -83,17 +84,17 @@ public:
 
     */
     static Microsoft::WRL::ComPtr<ID3D12Resource> CreateDefaultBuffer(
-        ID3D12Device* device,
-        ID3D12GraphicsCommandList* cmdList,
-        const void* initData,
+        ID3D12Device *device,
+        ID3D12GraphicsCommandList *cmdList,
+        const void *initData,
         UINT64 byteSize,
-        Microsoft::WRL::ComPtr<ID3D12Resource>& uploadBuffer);
+        Microsoft::WRL::ComPtr<ID3D12Resource> &uploadBuffer);
 
     static Microsoft::WRL::ComPtr<ID3DBlob> CompileShader(
-        const std::wstring& filename,
-        const D3D_SHADER_MACRO* defines,
-        const std::string& entrypoint,
-        const std::string& target);
+        const std::wstring &filename,
+        const D3D_SHADER_MACRO *defines,
+        const std::string &entrypoint,
+        const std::string &target);
 };
 
 class DxException
@@ -101,16 +102,15 @@ class DxException
 public:
     DxException() = default;
 
-    DxException(HRESULT hr, const std::wstring & functionName, const std::wstring & filename, int lineNumber);
+    DxException(HRESULT hr, const std::wstring &functionName, const std::wstring &filename, int lineNumber);
 
-    std::wstring toString()const;
+    std::wstring toString() const;
 
-    HRESULT         m_ErrorCode = S_OK;
-    std::wstring    m_functionName;
-    std::wstring    m_filename;
-    int             m_lineNumber = -1;
+    HRESULT m_ErrorCode = S_OK;
+    std::wstring m_functionName;
+    std::wstring m_filename;
+    int m_lineNumber = -1;
 };
-
 
 struct RootParameterIndexs
 {
@@ -119,19 +119,22 @@ struct RootParameterIndexs
     UINT m_Material_RootParameterIndex;
 };
 
-
 #ifndef ThrowIfFailed
-#define ThrowIfFailed(x)                                              \
-{                                                                     \
-    HRESULT hr__ = (x);                                               \
-    std::wstring wfn = AnsiToWstring(__FILE__);                       \
-    if(FAILED(hr__)) {                                                 \
-    throw DxException(hr__, L#x, wfn, __LINE__);                        \
-    } \
-}
+#define ThrowIfFailed(x)                                 \
+    {                                                    \
+        HRESULT hr__ = (x);                              \
+        std::wstring wfn = AnsiToWstring(__FILE__);      \
+        if (FAILED(hr__))                                \
+        {                                                \
+            throw DxException(hr__, L#x, wfn, __LINE__); \
+        }                                                \
+    }
 #endif
 
-inline void DebugTrace(_In_z_ _Printf_format_string_ const char* format, ...) noexcept
+extern const DirectX::XMVECTORF32 g_vFLTMAX;
+extern const DirectX::XMVECTORF32 g_vFLTMIN ;
+
+inline void DebugTrace(_In_z_ _Printf_format_string_ const char *format, ...) noexcept
 {
 #ifdef _DEBUG
     va_list args;
@@ -146,38 +149,45 @@ inline void DebugTrace(_In_z_ _Printf_format_string_ const char* format, ...) no
 #endif
 }
 
-void CalculateNearFarWithAABB(DirectX::XMVECTOR* vSceneAABBPointsLightSpace,
-    DirectX::XMVECTOR& vLightCameraOrthographicMin, 
-    DirectX::XMVECTOR& vLightCameraOrthographicMax, 
-    FLOAT& fNearPlane, FLOAT& fFarPlane);
+void CalculateNearFarWithAABB(DirectX::XMVECTOR *vSceneAABBPointsLightSpace,
+                              DirectX::XMVECTOR &vLightCameraOrthographicMin,
+                              DirectX::XMVECTOR &vLightCameraOrthographicMax,
+                              FLOAT &fNearPlane, FLOAT &fFarPlane);
 
+// 根据cascade interval计算 project frumstum的8个角的位置
+void CreateFrustumPointsFromCascadeInterval(float fCascadeIntervalBegin,
+                                            FLOAT fCascadeIntervalEnd,
+                                            DirectX::CXMMATRIX vProjection,
+                                            DirectX::XMVECTOR *pvCornerPointsWorld);
 
 void errorExit();
 
-#define UPDATE_MAIN_PASS  XMMATRIX view = mCamera.GetView();\
-XMMATRIX proj = mCamera.GetProj();\
-XMMATRIX viewProj = XMMatrixMultiply(view, proj);\
-XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);\
-XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);\
-XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);\
-XMStoreFloat4x4(&m_MainPassCB.m_View, XMMatrixTranspose(view));\
-XMStoreFloat4x4(&m_MainPassCB.m_InvView, XMMatrixTranspose(invView));\
-XMStoreFloat4x4(&m_MainPassCB.m_Proj, XMMatrixTranspose(proj));\
-XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));\
-XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));\
-XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));\
-m_MainPassCB.m_EyePosW = mCamera.GetPosition3f();\
-m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)mSwapChainDesc.width, (float)mSwapChainDesc.heigh);\
-m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / mSwapChainDesc.width, 1.0f /mSwapChainDesc.heigh);\
-m_MainPassCB.m_NearZ = 1.0f;\
-m_MainPassCB.m_FarZ = 1000.0f;\
-m_MainPassCB.m_TotalTime = gt.TotalTime();\
-m_MainPassCB.m_DeltaTime = gt.DeltaTime(); 
+#define UPDATE_MAIN_PASS                                                                                     \
+    XMMATRIX view = mCamera.GetView();                                                                       \
+    XMMATRIX proj = mCamera.GetProj();                                                                       \
+    XMMATRIX viewProj = XMMatrixMultiply(view, proj);                                                        \
+    XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);                                    \
+    XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);                                    \
+    XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);                        \
+    XMStoreFloat4x4(&m_MainPassCB.m_View, XMMatrixTranspose(view));                                          \
+    XMStoreFloat4x4(&m_MainPassCB.m_InvView, XMMatrixTranspose(invView));                                    \
+    XMStoreFloat4x4(&m_MainPassCB.m_Proj, XMMatrixTranspose(proj));                                          \
+    XMStoreFloat4x4(&m_MainPassCB.m_InvProj, XMMatrixTranspose(invProj));                                    \
+    XMStoreFloat4x4(&m_MainPassCB.m_ViewProj, XMMatrixTranspose(viewProj));                                  \
+    XMStoreFloat4x4(&m_MainPassCB.m_InvViewProj, XMMatrixTranspose(invViewProj));                            \
+    m_MainPassCB.m_EyePosW = mCamera.GetPosition3f();                                                        \
+    m_MainPassCB.m_RenderTargetSize = XMFLOAT2((float)mSwapChainDesc.width, (float)mSwapChainDesc.heigh);    \
+    m_MainPassCB.m_InvRenderTargetSize = XMFLOAT2(1.0f / mSwapChainDesc.width, 1.0f / mSwapChainDesc.heigh); \
+    m_MainPassCB.m_NearZ = 1.0f;                                                                             \
+    m_MainPassCB.m_FarZ = 1000.0f;                                                                           \
+    m_MainPassCB.m_TotalTime = gt.TotalTime();                                                               \
+    m_MainPassCB.m_DeltaTime = gt.DeltaTime();
 
-#define BEFORE_DRAW_SET 	m_CommandList->RSSetViewports(1, &m_ScreenViewport);\
-m_CommandList->RSSetScissorRects(1, &m_ScissorRect);\
-m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));\
-m_CommandList->ClearRenderTargetView(CurrentCPUBackBufferView(), Colors::LightSteelBlue, 0, nullptr);\
-m_CommandList->ClearDepthStencilView(DepthStencilCPUView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);\
-m_CommandList->OMSetRenderTargets(1, &CurrentCPUBackBufferView(), true, &DepthStencilCPUView());\
-m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
+#define BEFORE_DRAW_SET                                                                                                                                              \
+    m_CommandList->RSSetViewports(1, &m_ScreenViewport);                                                                                                             \
+    m_CommandList->RSSetScissorRects(1, &m_ScissorRect);                                                                                                             \
+    m_CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)); \
+    m_CommandList->ClearRenderTargetView(CurrentCPUBackBufferView(), Colors::LightSteelBlue, 0, nullptr);                                                            \
+    m_CommandList->ClearDepthStencilView(DepthStencilCPUView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);                             \
+    m_CommandList->OMSetRenderTargets(1, &CurrentCPUBackBufferView(), true, &DepthStencilCPUView());                                                                 \
+    m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());

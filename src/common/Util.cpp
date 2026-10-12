@@ -1,8 +1,14 @@
 ﻿#include "util.h"
+#include "Camera.h"
+
 #include <comdef.h>
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
+
+
+const XMVECTORF32 g_vFLTMAX = { FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX };
+const XMVECTORF32 g_vFLTMIN = { -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX };
 
 DxException::DxException(HRESULT hr, const std::wstring& functionName, const std::wstring& filename, int lineNumber):
     m_ErrorCode(hr),
@@ -310,6 +316,38 @@ void CalculateNearFarWithAABB(DirectX::XMVECTOR *vSceneAABBPointsLightSpace,
     }
 
     
+}
+
+void CreateFrustumPointsFromCascadeInterval(float fCascadeIntervalBegin,
+         FLOAT fCascadeIntervalEnd, DirectX::CXMMATRIX vProjection, 
+         DirectX::XMVECTOR *pvCornerPointsWorld)
+{
+    BoundingFrustum vViewFrust(vProjection);
+    vViewFrust.Near = fCascadeIntervalBegin;
+    vViewFrust.Far = fCascadeIntervalEnd;
+
+    static const XMVECTORU32 vGrabY = { 0x00000000,0xFFFFFFFF,0x00000000,0x00000000 };
+    static const XMVECTORU32 vGrabX = { 0xFFFFFFFF,0x00000000,0x00000000,0x00000000 };
+
+    XMVECTORF32 vRightTop = { vViewFrust.RightSlope,vViewFrust.TopSlope,1.0f,1.0f };
+    XMVECTORF32 vLeftBottom = { vViewFrust.LeftSlope,vViewFrust.BottomSlope,1.0f,1.0f };
+    XMVECTORF32 vNear = { vViewFrust.Near,vViewFrust.Near,vViewFrust.Near,1.0f };
+    XMVECTORF32 vFar = { vViewFrust.Far,vViewFrust.Far,vViewFrust.Far,1.0f };
+
+    XMVECTOR vRightTopNear = XMVectorMultiply(vRightTop, vNear);
+    XMVECTOR vRightTopFar = XMVectorMultiply(vRightTop, vFar);
+    XMVECTOR vLeftBottomNear = XMVectorMultiply(vLeftBottom, vNear);
+    XMVECTOR vLeftBottomFar = XMVectorMultiply(vLeftBottom, vFar);
+
+    pvCornerPointsWorld[0] = vRightTopNear;
+    pvCornerPointsWorld[1] = XMVectorSelect(vRightTopNear, vLeftBottomNear, vGrabX);
+    pvCornerPointsWorld[2] = vLeftBottomNear;
+    pvCornerPointsWorld[3] = XMVectorSelect(vRightTopNear, vLeftBottomNear, vGrabY);
+
+    pvCornerPointsWorld[4] = vRightTopFar;
+    pvCornerPointsWorld[5] = XMVectorSelect(vRightTopFar, vLeftBottomFar, vGrabX);
+    pvCornerPointsWorld[6] = vLeftBottomFar;
+    pvCornerPointsWorld[7] = XMVectorSelect(vRightTopFar, vLeftBottomFar, vGrabY);
 }
 
 void errorExit()

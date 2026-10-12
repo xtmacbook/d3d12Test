@@ -55,13 +55,6 @@ VertexOut VS(VertexIn vin)
     vout.posInShadowViewSpace = mul(float4(vin.PosL, 1.0f), m_mShadow);            // 转到shadow space
     return vout;
 }
-
-float LinearToSRGB(float c)
-{
-    return c <= 0.0031308f ? 12.92f * c
-                           : 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
-}
-
 //--------------------------------------------------------------------------------------
 // Use PCF to sample the depth map and return a percent lit value.
 //--------------------------------------------------------------------------------------

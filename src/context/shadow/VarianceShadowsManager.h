@@ -31,6 +31,9 @@ struct VSMPassConstants
 	DirectX::XMFLOAT4X4     m_World;
 	DirectX::XMFLOAT4X4     m_WorldView;
 	DirectX::XMFLOAT4X4     m_Shadow;
+    DirectX::XMFLOAT4       m_vShadowTextureOffset;
+	DirectX::XMFLOAT4       m_vShadowTextureScale;
+
 	DirectX::XMFLOAT4       m_vLightDir;
 };
 
@@ -71,8 +74,14 @@ public:
 
     void BuildShadowMap();
 
-private:
+    void UpdateFrame(const GameTimer& gt, Camera* viewCamera, Camera* lightCamer);
+    
+    inline DirectX::XMMATRIX getShadowProjMatrix() const { return m_matShadowProj; }
 
+    void CalculateFrustum(int iCascadeIndex, Camera* viewCamera, Camera* lightCamer,
+    DirectX::XMVECTOR& vLightCameraOrthographicMin, 
+    DirectX::XMVECTOR& vLightCameraOrthographicMax);
+private:
 
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderSceneVSShadersBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderScenePSShadersBlob;
@@ -91,5 +100,4 @@ private:
     ID3D12Device *m_d3dDevice = nullptr;
 
     DirectX::XMMATRIX m_matShadowProj;
-    DirectX::XMMATRIX m_matShadowView;
 };

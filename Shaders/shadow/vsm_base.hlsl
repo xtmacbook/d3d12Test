@@ -25,7 +25,11 @@ cbuffer cbAllShadowData : register(b1)
     matrix m_mWorld;
     matrix m_mWorldView;
     
-    matrix m_mShadow; //是shadow的viewmat
+    matrix m_mShadow; 
+
+    float4 m_vShadowTextureOffset;
+    float4 m_vShadowTextureScale;
+
     float3 m_vLightDir;
     float m_fPaddingCB4;
 
