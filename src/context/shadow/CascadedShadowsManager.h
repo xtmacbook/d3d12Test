@@ -174,13 +174,6 @@ private:
 		DirectX::XMVECTOR& vLightCameraOrthographicMin,
 		DirectX::XMVECTOR& vLightCameraOrthographicMax, FLOAT& nearPlane, FLOAT& farPlane);
 
-	// Compute the near and far plane by intersecting an Ortho Projection with the Scenes AABB.
-	void ComputeNearAndFar(FLOAT& fNearPlane,
-		FLOAT& fFarPlane,
-		DirectX::FXMVECTOR vLightCameraOrthographicMin,
-		DirectX::FXMVECTOR vLightCameraOrthographicMax,
-		DirectX::XMVECTOR* pvPointsInCameraView);
-
 private:
 	Microsoft::WRL::ComPtr<ID3DBlob> 												m_ShadowVSShader;
 

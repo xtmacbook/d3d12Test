@@ -146,6 +146,12 @@ inline void DebugTrace(_In_z_ _Printf_format_string_ const char* format, ...) no
 #endif
 }
 
+void CalculateNearFarWithAABB(DirectX::XMVECTOR* vSceneAABBPointsLightSpace,
+    DirectX::XMVECTOR& vLightCameraOrthographicMin, 
+    DirectX::XMVECTOR& vLightCameraOrthographicMax, 
+    FLOAT& fNearPlane, FLOAT& fFarPlane);
+
+
 void errorExit();
 
 #define UPDATE_MAIN_PASS  XMMATRIX view = mCamera.GetView();\
