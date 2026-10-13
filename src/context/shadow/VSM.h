@@ -64,7 +64,7 @@ struct VSMShadowHeapDescriptor
 	UINT m_shadowMapHeapOffset;
 	UINT m_sdkMeshModelTextureHeapOffset;
 	UINT m_nullHeapOffset;
-
+	UINT m_tmpDepthHeapOffset;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
 };
 
@@ -82,6 +82,7 @@ public:
 	void BuildDescriptorHeaps();
 
 	void CreateRtvDescriptorHeap() override;
+	void CreateDsvDescriptorHeap() override;
 
 	virtual void BuildRootSignature();
 

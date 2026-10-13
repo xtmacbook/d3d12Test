@@ -40,8 +40,8 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
                                   const Camera *viewCamra, const Camera *shadowCamera, VSMConfig *config)
 {
     m_d3dDevice = device;
-    m_csmConfig = config;
-    m_copyCsmConfig = *m_csmConfig;
+    m_vsmConfig = config;
+    m_copyVsmConfig = *m_vsmConfig;
     m_sceneBox = sceneBox;
 
     m_ppsRenderSceneVSShadersBlob =
@@ -94,7 +94,7 @@ void VarianceShadowsManager::RenderScene(ID3D12GraphicsCommandList *cmmandList, 
 void VarianceShadowsManager::BuildShadowMap()
 {
 	//最有一个参数是false，表示不创建深度视图，因为vsm不需要深度视图
-    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyCsmConfig.m_iBufferSize ,
-        m_copyCsmConfig.m_iBufferSize, m_copyCsmConfig.m_ShadowBufferFormat,false);
+    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyVsmConfig.m_iBufferSize ,
+        m_copyVsmConfig.m_iBufferSize, m_copyVsmConfig.m_ShadowBufferFormat,false);
 
 }

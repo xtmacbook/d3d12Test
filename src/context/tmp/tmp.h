@@ -79,8 +79,8 @@ private:
 
     DirectX::BoundingBox m_sceneBox;
 
-    VSMConfig *m_csmConfig; // 用户可能修改了
-    VSMConfig m_copyCsmConfig;
+    VSMConfig *m_vsmConfig; // 用户可能修改了
+    VSMConfig m_copyVsmConfig;
     ID3D12Device *m_d3dDevice = nullptr;
 
     DirectX::XMMATRIX m_matShadowProj;

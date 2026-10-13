@@ -93,7 +93,7 @@ void ShadowMapRes::DepthFilter()
     // we should not average depth values and use the Percentage closer filter(PCF),point filtering(MIN_MAG_MIP_POINT)
     // bilinearly interpolate the shadow map result
 
-    // Direct3D 11¿ªÊ¼Í¨¹ıSampleCmpLevelZero·½·¨ Ö§³ÖPCF
+    // Direct3D 11å¼€å§‹é€šè¿‡SampleCmpLevelZeroæ–¹æ³• æ”¯æŒPCF
 
     /*
      only the following formats support comparison
@@ -117,7 +117,7 @@ void ShadowMapRes::OnResize(UINT newWidth, UINT newHeight)
 void ShadowMapRes::BuildDescriptors()
 {
     DXGI_FORMAT SRVfmt = DXGI_FORMAT_R32_FLOAT;
-    DXGI_FORMAT DSVfmt = DXGI_FORMAT_D32_FLOAT;  //×¢ÒâÕâÀïÊÇÒ»¸ö"D"
+    DXGI_FORMAT DSVfmt = DXGI_FORMAT_D32_FLOAT;  //æ³¨æ„è¿™é‡Œæ˜¯ä¸€ä¸ª"D"
     DXGI_FORMAT RtVfmt = DXGI_FORMAT_D32_FLOAT;
 
     switch (m_Format)
@@ -190,7 +190,7 @@ void ShadowMapRes::BuildResource()
     {
     case SHADOW_DXGI_FORMAT_R32_TYPELESS:
         texturefmt = DXGI_FORMAT_R32_TYPELESS;
-        clearfmt = DXGI_FORMAT_R32_FLOAT;
+        clearfmt = DXGI_FORMAT_D32_FLOAT;
         break;
     case SHADOW_DXGI_FORMAT_R24G8_TYPELESS:
         texturefmt = DXGI_FORMAT_R24G8_TYPELESS;

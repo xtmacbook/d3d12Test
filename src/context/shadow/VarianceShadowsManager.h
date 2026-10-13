@@ -58,7 +58,11 @@ public:
     void BuildDescriptors(
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv1,
+        CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv1,
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
 
     void UpdateMainPassData(VSMPassConstants& constData);
     void UpdateShadowPassData(VSMPassConstants &constData);
@@ -93,10 +97,12 @@ private:
     std::shared_ptr<SDKMesh::Effect>  m_sceneEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
     std::shared_ptr<SDKMesh::Effect>  m_shadowEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
 
+    std::shared_ptr<ShadowMapRes> m_TmpDepthMap;
+    
     DirectX::BoundingBox m_sceneBox;
 
-    VSMConfig *m_csmConfig; // 用户可能修改了
-    VSMConfig m_copyCsmConfig;
+    VSMConfig *m_vsmConfig; // 用户可能修改了
+    VSMConfig m_copyVsmConfig;
     ID3D12Device *m_d3dDevice = nullptr;
 
     DirectX::XMMATRIX m_matShadowProj;

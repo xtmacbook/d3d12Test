@@ -47,8 +47,8 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
                                   const Camera *viewCamra, const Camera *shadowCamera, VSMConfig *config)
 {
     m_d3dDevice = device;
-    m_csmConfig = config;
-    m_copyCsmConfig = *m_csmConfig;
+    m_vsmConfig = config;
+    m_copyVsmConfig = *m_vsmConfig;
     m_sceneBox = sceneBox;
 
     m_ppsRenderSceneVSShadersBlob =
@@ -73,9 +73,13 @@ UINT VarianceShadowsManager::GetResouceViewCount() const
 
 void VarianceShadowsManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
                                               CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv)
+                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
+                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv1,
+                                              CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv1,
+                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
 {
     m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuRtv);
+    m_TmpDepthMap->BuildDescriptors(hCpuSrv1, hGpuSrv1, hCpuDsv);
 }
 
 void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
@@ -110,7 +114,7 @@ void VarianceShadowsManager::BuildPOS(SDKMesh::SDKMeshModel *meshModel, D3D12_GR
     // 设置shadow pso
 
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R32G32_FLOAT;
-    psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+    psoDesc.DSVFormat =  DXGI_FORMAT_D32_FLOAT;
 
     epsd.standardVS = m_ppsRenderShadowVSShadersBlob;
     epsd.opaquesPS = m_ppsRenderShadowPSShadersBlob;
@@ -146,14 +150,25 @@ void VarianceShadowsManager::RenderShadows(ID3D12GraphicsCommandList *mCommandLi
 
     // 状态转换：GENERIC_READ -> RENDER_TARGET
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                                         m_ShadowMap->Resource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+                                         m_ShadowMap->Resource(), 
+                                         D3D12_RESOURCE_STATE_GENERIC_READ, 
+                                         D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+    mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+                                         m_TmpDepthMap->Resource(), 
+                                         D3D12_RESOURCE_STATE_GENERIC_READ, 
+                                         D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
     // 清除 (1,1,0,0)
     const float clearMoments[4] = {1.0f, 1.0f, 0.0f, 0.0f};
     mCommandList->ClearRenderTargetView(m_ShadowMap->Rtv(), clearMoments, 0, nullptr);
 
+     mCommandList->ClearDepthStencilView(m_TmpDepthMap->Dsv(),
+        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+        1.0f, 0, 0, nullptr);
+
     // 绑定：只有 RTV，没有 DSV
-    mCommandList->OMSetRenderTargets(1, &m_ShadowMap->Rtv(), FALSE, nullptr);
+    mCommandList->OMSetRenderTargets(1, &m_ShadowMap->Rtv(), FALSE, &m_TmpDepthMap->Dsv() );
 
     mCommandList->RSSetViewports(1, &m_ShadowMap->Viewport());
     mCommandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
@@ -165,6 +180,10 @@ void VarianceShadowsManager::RenderShadows(ID3D12GraphicsCommandList *mCommandLi
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
                                          m_ShadowMap->Resource(),
                                          D3D12_RESOURCE_STATE_RENDER_TARGET,
+                                         D3D12_RESOURCE_STATE_GENERIC_READ));
+    mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+                                         m_TmpDepthMap->Resource(),
+                                         D3D12_RESOURCE_STATE_DEPTH_WRITE,
                                          D3D12_RESOURCE_STATE_GENERIC_READ));
 }
 
@@ -205,8 +224,13 @@ void VarianceShadowsManager::UpdateFrame(const GameTimer &gt, Camera *viewCamera
 void VarianceShadowsManager::BuildShadowMap()
 {
     // 最有一个参数是false，表示不创建深度视图，因为vsm不需要深度视图
-    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyCsmConfig.m_iBufferSize,
-                                                 m_copyCsmConfig.m_iBufferSize, m_copyCsmConfig.m_ShadowBufferFormat, false);
+    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyVsmConfig.m_iBufferSize,
+                                                 m_copyVsmConfig.m_iBufferSize,
+                                                 m_copyVsmConfig.m_ShadowBufferFormat, false);
+
+    m_TmpDepthMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyVsmConfig.m_iBufferSize,
+                                                   m_copyVsmConfig.m_iBufferSize,
+                                                   SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS);
 }
 
 void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCamera, Camera *lightCamer,
@@ -249,7 +273,7 @@ void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCam
         vLightCameraOrthographicMax = XMVectorMax(vTempTranslatedCornerPoint, vLightCameraOrthographicMax);
     }
 
-    XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6]; //world space
+    XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6]; // world space
     vDiagonal = XMVector3Length(vDiagonal);
 
     // The bound is the length of the diagonal of the frustum interval.
@@ -267,7 +291,7 @@ void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCam
     vLightCameraOrthographicMax += vBoarderOffset;
     vLightCameraOrthographicMin -= vBoarderOffset;
 
-    FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)m_copyCsmConfig.m_iBufferSize;
+    FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)m_copyVsmConfig.m_iBufferSize;
     XMVECTOR vWorldUnitsPerTexel = XMVectorSet(fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f);
 
     vLightCameraOrthographicMin /= vWorldUnitsPerTexel;

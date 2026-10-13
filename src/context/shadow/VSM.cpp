@@ -70,12 +70,21 @@ bool VSMMapContext::InitDirect3D()
 
 void VSMMapContext::BuildDescriptorHeaps()
 {
+	/*
+		MODEL_TEXTURE
+		SHADOW_MAP_TEXTURE
+		TMP_DEPTH_TEXTURE
+		NULL_TEXTURE
+	*/
+
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
  
 	UINT sdkMeshModelTextureCount = m_sdkMeshModel->GetTextureCount();
 	UINT nullCount = 1; //null srv
 
-	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount +  m_varianceShadowsMgr->GetResouceViewCount()  + nullCount;
+	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount +  
+	m_varianceShadowsMgr->GetResouceViewCount()  + 
+	nullCount + 1;//最后这个是tmpDepthTexture
 
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -85,7 +94,8 @@ void VSMMapContext::BuildDescriptorHeaps()
 
 	m_HeapDescriptorOffsets.m_sdkMeshModelTextureHeapOffset = 0;
 	m_HeapDescriptorOffsets.m_shadowMapHeapOffset = sdkMeshModelTextureCount;
-	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + 1;
+	m_HeapDescriptorOffsets.m_tmpDepthHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + m_varianceShadowsMgr->GetResouceViewCount();
+	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_tmpDepthHeapOffset + 1;
 }
 
 void VSMMapContext::CreateRtvDescriptorHeap()
@@ -414,6 +424,7 @@ void VSMMapContext::BuildResourceView()
 	auto srvCpuStart = m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	auto srvGpuStart = m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	auto rtvCpuStart = m_RtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto dsvCpuStart = m_DsvHeap ->GetCPUDescriptorHandleForHeapStart();
 
 	INT offset = 0;
 
@@ -425,11 +436,18 @@ void VSMMapContext::BuildResourceView()
 	);
 
 	UINT shadowMapHeapIndex = m_HeapDescriptorOffsets.m_shadowMapHeapOffset;
+	UINT tmpDepthHeapIndex = m_HeapDescriptorOffsets.m_tmpDepthHeapOffset;
 	{
 		m_varianceShadowsMgr->BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, SwapChainBufferCount, m_RtvDescriptorSize));
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, SwapChainBufferCount, m_RtvDescriptorSize),
+
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, tmpDepthHeapIndex, m_CbvSrvUavDescriptorSize),
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, tmpDepthHeapIndex, m_CbvSrvUavDescriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize)
+		
+		);
 	}
 
 	//some null descriptor
@@ -447,4 +465,14 @@ void VSMMapContext::BuildResourceView()
 	m_d3dDevice->CreateShaderResourceView(nullptr, &srvDesc, nullSrv);
 }
 
+void VSMMapContext::CreateDsvDescriptorHeap()
+{
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
+	dsvHeapDesc.NumDescriptors = 2; //
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	dsvHeapDesc.NodeMask = 0;
 
+	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(
+		&dsvHeapDesc, IID_PPV_ARGS(m_DsvHeap.GetAddressOf())))
+}
