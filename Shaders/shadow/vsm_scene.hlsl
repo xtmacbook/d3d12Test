@@ -32,15 +32,23 @@ VertexOut VS(VertexIn vin)
 }
 
 
-void CalculateVarianceShadow ( in float4 vShadowTexCoord,  out float fPercentLit ) 
+void CalculateVarianceShadow ( in float4 vShadowTexCoord, in float4 vShadowMapTextureCoordViewSpace, out float fPercentLit ) 
 {
     fPercentLit = 0.0f;
     // This loop could be unrolled, and texture immediate offsets could be used if the kernel size were fixed.
     // This would be a performance improvment.
-	        
+	
+   float4 vShadowTexCoordDDX=  ddx(vShadowMapTextureCoordViewSpace);
+   float4 vShadowTexCoordDDY = ddy(vShadowMapTextureCoordViewSpace);
+
+    vShadowTexCoordDDX *= m_vShadowTextureScale;
+    vShadowTexCoordDDY *= m_vShadowTextureScale;
+
     float2 mapDepth = 0;
 
-    mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
+    //mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
+    mapDepth = gShadowMap.SampleGrad (gsamAnisotropicWrap, vShadowTexCoord.xy, 
+    vShadowTexCoordDDX.xy, vShadowTexCoordDDY.xy);
     
     // The sample instruction uses gradients for some filters.
 		        
@@ -76,7 +84,7 @@ float4 PS(VertexOut pin) : SV_Target
     vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vShadowTextureScale + m_vShadowTextureOffset;
 
     float fPercentLit = 1.0f;
-    CalculateVarianceShadow ( vShadowMapTextureCoord, fPercentLit );
+    CalculateVarianceShadow ( vShadowMapTextureCoord, pin.posInShadowViewSpace, fPercentLit );
 
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
     float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);

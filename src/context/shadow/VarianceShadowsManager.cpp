@@ -5,6 +5,9 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
 
+static const XMVECTORF32 g_vHalfVector = {0.5f, 0.5f, 0.5f, 0.5f};
+static const XMVECTORF32 g_vMultiplySetzwToZero = {1.0f, 1.0f, 0.0f, 0.0f};
+
 /**
  *
  *
@@ -206,10 +209,10 @@ void VarianceShadowsManager::BuildShadowMap()
                                                  m_copyCsmConfig.m_iBufferSize, m_copyCsmConfig.m_ShadowBufferFormat, false);
 }
 
-void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCamera, Camera *lightCamer, 
-    DirectX::XMVECTOR &vLightCameraOrthographicMin, DirectX::XMVECTOR &vLightCameraOrthographicMax)
+void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCamera, Camera *lightCamer,
+                                              DirectX::XMVECTOR &vLightCameraOrthographicMin, DirectX::XMVECTOR &vLightCameraOrthographicMax)
 {
-     XMMATRIX matViewCamerProject = viewCamera->GetProj();
+    XMMATRIX matViewCamerProject = viewCamera->GetProj();
     XMMATRIX matViewCameraView = viewCamera->GetView();
     XMMATRIX matLightCameraView = lightCamer->GetView();
     XMMATRIX matInverseViewCamera = XMMatrixInverse(nullptr, matViewCameraView);
@@ -222,18 +225,17 @@ void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCam
     fFrustumIntervalBegin = 0;
     fFrustumIntervalEnd = fCameraNearFarRange;
 
-    //1. 计算不同cascade frustum在view camera坐标系下的8个点
+    // 1. 计算不同cascade frustum在view camera坐标系下的8个点
     XMVECTOR vFrustumPoints[8];
     // This function takes the began and end intervals along with the projection matrix and returns the 8
     // points that repreresent the cascade Interval
     CreateFrustumPointsFromCascadeInterval(fFrustumIntervalBegin, fFrustumIntervalEnd,
-        matViewCamerProject, vFrustumPoints);
+                                           matViewCamerProject, vFrustumPoints);
 
     vLightCameraOrthographicMin = g_vFLTMAX;
-    vLightCameraOrthographicMax = g_vFLTMIN; //每个view camera的不同cascade在light space中的orthographic 
+    vLightCameraOrthographicMax = g_vFLTMIN; // 每个view camera的不同cascade在light space中的orthographic
 
-
-    //2. 计算不同cascade frustum在 light view camera坐标系下的8个点
+    // 2. 计算不同cascade frustum在 light view camera坐标系下的8个点
     XMVECTOR vTempTranslatedCornerPoint;
     // This next section of code calculates the min and max values for the orthographic projection.
     for (int icpIndex = 0; icpIndex < 8; ++icpIndex)
@@ -247,4 +249,32 @@ void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCam
         vLightCameraOrthographicMax = XMVectorMax(vTempTranslatedCornerPoint, vLightCameraOrthographicMax);
     }
 
+    XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6]; //world space
+    vDiagonal = XMVector3Length(vDiagonal);
+
+    // The bound is the length of the diagonal of the frustum interval.
+    FLOAT fCascadeBound = XMVectorGetX(vDiagonal);
+
+    // The offset calculated will pad the ortho projection so that it is always the same size
+    // and big enough to cover the entire cascade interval.
+    XMVECTOR vBoarderOffset = (vDiagonal -
+                               (vLightCameraOrthographicMax - vLightCameraOrthographicMin)) *
+                              g_vHalfVector;
+    // Set the Z and W components to zero.
+    vBoarderOffset *= g_vMultiplySetzwToZero;
+
+    // Add the offsets to the projection.
+    vLightCameraOrthographicMax += vBoarderOffset;
+    vLightCameraOrthographicMin -= vBoarderOffset;
+
+    FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)m_copyCsmConfig.m_iBufferSize;
+    XMVECTOR vWorldUnitsPerTexel = XMVectorSet(fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f);
+
+    vLightCameraOrthographicMin /= vWorldUnitsPerTexel;
+    vLightCameraOrthographicMin = XMVectorFloor(vLightCameraOrthographicMin);
+    vLightCameraOrthographicMin *= vWorldUnitsPerTexel;
+
+    vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
+    vLightCameraOrthographicMax = XMVectorFloor(vLightCameraOrthographicMax);
+    vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
 }
