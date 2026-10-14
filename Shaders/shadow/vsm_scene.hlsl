@@ -47,32 +47,12 @@ void CalculateVarianceShadow ( in float4 vShadowTexCoord, in float4 vShadowMapTe
     float2 mapDepth = 0;
 
     //mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
-    mapDepth = gShadowMap.SampleGrad (gsamAnisotropicWrap, vShadowTexCoord.xy, 
+    mapDepth = gShadowMap.SampleGrad (gsamAnisotropicClamp, vShadowTexCoord.xy, 
     vShadowTexCoordDDX.xy, vShadowTexCoordDDY.xy);
     
     // The sample instruction uses gradients for some filters.
-		        
-    float  fAvgZ  = mapDepth.x; // Filtered z
-    float  fAvgZ2 = mapDepth.y; // Filtered z-squared
-    
-    if ( vShadowTexCoord.z <= fAvgZ ) // We put the z value in w so that we can index the texture array with Z.
-    {
-        fPercentLit = 1;
-	}
-	else 
-	{
-	    float variance = ( fAvgZ2 ) - ( fAvgZ * fAvgZ );
-        variance       = min( 1.0f, max( 0.0f, variance + 0.00001f ) );
-    
-        float mean     = fAvgZ;
-        float d        = vShadowTexCoord.z - mean; // We put the z value in w so that we can index the texture array with Z.
-        float p_max    = variance / ( variance + d*d );
-
-        // To combat light-bleeding, experiment with raising p_max to some power
-        // (Try values from 0.1 to 100.0, if you like.)
-        fPercentLit = pow( p_max, 4 );
-	    
-	}
+	
+    fPercentLit = ChebyshevUpperBound(mapDepth, vShadowTexCoord.z, 0.000001f);
     
 }
 

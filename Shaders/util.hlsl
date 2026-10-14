@@ -89,3 +89,20 @@ float LinearToSRGB(float c)
     return c <= 0.0031308f ? 12.92f * c
                            : 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
 }
+
+float ChebyshevUpperBound(float2 Moments, float Mean, float MinVariance)
+{
+    float p = (Mean <= Moments.x);
+
+    //compute variance
+    float Variance = Moments.y - (Moments.x * Moments.x);
+    Variance = min(1.0f, max(Variance, MinVariance));
+
+    float d     = Mean - Moments.x;
+    float p_max = Variance / (Variance + d*d);
+    
+    p_max = max(p, p_max); 
+    
+    return p_max;
+    //fPercentLit = pow( p_max, 4 );
+}
