@@ -23,7 +23,7 @@
 using namespace DirectX;
 
 
-
+	
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 	PSTR cmdLine, int nCmdShow)
 {

@@ -114,7 +114,7 @@ void VarianceShadowsManager::BuildPOS(SDKMesh::SDKMeshModel *meshModel, D3D12_GR
     // 设置shadow pso
 
     psoDesc.RTVFormats[0] = DXGI_FORMAT_R32G32_FLOAT;
-    psoDesc.DSVFormat =  DXGI_FORMAT_D32_FLOAT;
+    psoDesc.DSVFormat =  DXGI_FORMAT_D24_UNORM_S8_UINT;
 
     epsd.standardVS = m_ppsRenderShadowVSShadersBlob;
     epsd.opaquesPS = m_ppsRenderShadowPSShadersBlob;
