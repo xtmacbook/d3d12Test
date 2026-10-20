@@ -1,6 +1,7 @@
 #include "VarianceShadowsManager.h"
 #include "common/SDKMeshModel.h"
 #include "common/Camera.h"
+
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
@@ -48,14 +49,30 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
 {
     m_d3dDevice = device;
     m_vsmConfig = config;
-    m_copyVsmConfig = *m_vsmConfig;
     m_sceneBox = sceneBox;
+
+    D3D_SHADER_MACRO defines[] =
+    {
+        "CASCADE_COUNT_FLAG", "1",
+        "USE_WITH_CSM", "1",
+        nullptr, nullptr
+    };
 
     m_ppsRenderSceneVSShadersBlob =
         D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", nullptr, "VS", "vs_5_1");
 
-    m_ppsRenderScenePSShadersBlob =
-        D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", nullptr, "PS", "ps_5_1");
+	//with csm
+    defines[0].Definition = "3";
+    defines[1].Definition = "1";
+    m_ppsRenderScenePSShadersBlob[1] =
+        D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", defines, "PS", "ps_5_1");
+   
+    //no csm
+    defines[0].Definition = "1";
+    defines[1].Definition = "0";
+    m_ppsRenderScenePSShadersBlob[0] =
+        D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", defines, "PS", "ps_5_1");
+
 
     m_ppsRenderShadowVSShadersBlob =
         D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_shadow.hlsl", nullptr, "VS", "vs_5_1");
@@ -68,7 +85,7 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
 
 UINT VarianceShadowsManager::GetResouceViewCount() const
 {
-    return 1;
+    return MAX_VSM_CASCADES;
 }
 
 void VarianceShadowsManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
@@ -76,40 +93,79 @@ void VarianceShadowsManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpu
                                               CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
                                               CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv1,
                                               CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv1,
-                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
+                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv,
+    UINT CbvSrvUavDescriptorSize)
 {
-    m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuRtv);
-    m_TmpDepthMap->BuildDescriptors(hCpuSrv1, hGpuSrv1, hCpuDsv);
+    m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuRtv, CbvSrvUavDescriptorSize);
+
+    m_TmpDepthMap->BuildDescriptors(hCpuSrv1, hGpuSrv1, hCpuDsv, CbvSrvUavDescriptorSize);
 }
 
 void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
 {
+    constData.m_nCascadeLevels = m_vsmConfig->m_nCascadeLevels;
+     constData.m_fMaxBorderPadding = (float)(m_vsmConfig->m_iBufferSize - 1.0f) /
+        (float)m_vsmConfig->m_iBufferSize;
+    constData.m_fMinBorderPadding = (float)(1.0f) /
+        (float)m_vsmConfig->m_iBufferSize;
+    
+    constData.m_fTexelSize = 1.0f / (float)m_vsmConfig->m_iBufferSize; ;
+    constData.m_fNativeTexelSizeInX = constData.m_fTexelSize / (float)m_vsmConfig->m_nCascadeLevels; ;
+    
     XMMATRIX matTextureScale = XMMatrixScaling(0.5f, -0.5f, 1.0f);
     XMMATRIX matTextureTranslation = XMMatrixTranslation(.5f, .5f, 0.f);
 
-    XMMATRIX mShadowTexture = m_matShadowProj * matTextureScale * matTextureTranslation;
-    constData.m_vShadowTextureScale.x = XMVectorGetX(mShadowTexture.r[0]);
-    constData.m_vShadowTextureScale.y = XMVectorGetY(mShadowTexture.r[1]);
-    constData.m_vShadowTextureScale.z = XMVectorGetZ(mShadowTexture.r[2]);
-    constData.m_vShadowTextureScale.w = 1;
+    if (m_vsmConfig->m_bWithCSM)
+    {
+        for (UINT iCascadeIndex = 0; iCascadeIndex < m_vsmConfig->m_nCascadeLevels; iCascadeIndex++)
+        {
+            XMMATRIX mShadowTexture = m_matShadowProj[iCascadeIndex] * matTextureScale * matTextureTranslation;
+            constData.m_vShadowTextureScale[iCascadeIndex].x = XMVectorGetX(mShadowTexture.r[0]);
+            constData.m_vShadowTextureScale[iCascadeIndex].y = XMVectorGetY(mShadowTexture.r[1]);
+            constData.m_vShadowTextureScale[iCascadeIndex].z = XMVectorGetZ(mShadowTexture.r[2]);
+            constData.m_vShadowTextureScale[iCascadeIndex].w = 1;
 
-    XMStoreFloat3(reinterpret_cast<XMFLOAT3 *>(&constData.m_vShadowTextureOffset), mShadowTexture.r[3]);
-    constData.m_vShadowTextureOffset.w = 0;
+            XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&constData.m_vShadowTextureOffset[iCascadeIndex]), mShadowTexture.r[3]);
+            constData.m_vShadowTextureOffset[iCascadeIndex].w = 0;
+        }
+
+        memcpy(constData.m_fCascadeFrustumsEyeSpaceDepths,
+            m_fCascadePartitionsFrustum, MAX_VSM_CASCADES * 4);
+    }
+    else
+    {
+        XMMATRIX matTextureScale = XMMatrixScaling(0.5f, -0.5f, 1.0f);
+        XMMATRIX matTextureTranslation = XMMatrixTranslation(.5f, .5f, 0.f);
+
+        XMMATRIX mShadowTexture = m_matShadowProj[0] * matTextureScale * matTextureTranslation;
+        constData.m_vShadowTextureScale[0].x = XMVectorGetX(mShadowTexture.r[0]);
+        constData.m_vShadowTextureScale[0].y = XMVectorGetY(mShadowTexture.r[1]);
+        constData.m_vShadowTextureScale[0].z = XMVectorGetZ(mShadowTexture.r[2]);
+        constData.m_vShadowTextureScale[0].w = 1;
+
+        XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&constData.m_vShadowTextureOffset[0]), mShadowTexture.r[3]);
+        constData.m_vShadowTextureOffset[0].w = 0;
+    }
 }
 
-void VarianceShadowsManager::UpdateShadowPassData(VSMPassConstants &constData)
+DirectX::XMMATRIX VarianceShadowsManager::GetShadowPassData(UINT iCascadeIndex)
 {
+    return m_matShadowProj[iCascadeIndex];
 }
 
 void VarianceShadowsManager::BuildPOS(SDKMesh::SDKMeshModel *meshModel, D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc)
 {
     SDKMesh::EffectPipelineStateDescription epsd;
     epsd.standardVS = m_ppsRenderSceneVSShadersBlob;
-    epsd.opaquesPS = m_ppsRenderScenePSShadersBlob;
+    epsd.opaquesPS = m_ppsRenderScenePSShadersBlob[0];
     epsd.alphaPS = nullptr;
     epsd.device = m_d3dDevice;
     epsd.desc = psoDesc;
     m_sceneEffect = meshModel->CreateOnlyOneEffect(epsd);
+
+    epsd.opaquesPS = m_ppsRenderScenePSShadersBlob[1];
+    m_sceneWithCSMEffect = meshModel->CreateOnlyOneEffect(epsd);
+
 
     // 设置shadow pso
 
@@ -124,9 +180,9 @@ void VarianceShadowsManager::BuildPOS(SDKMesh::SDKMeshModel *meshModel, D3D12_GR
     m_shadowEffect = meshModel->CreateOnlyOneEffect(epsd);
 }
 
-ID3D12PipelineState *VarianceShadowsManager::GetSceneEffect()
+ID3D12PipelineState *VarianceShadowsManager::GetSceneEffect(int idx)
 {
-    return m_sceneEffect->m_PSO.Get();
+    return (idx == 0)? m_sceneEffect->m_PSO.Get() : m_sceneWithCSMEffect->m_PSO.Get();
 }
 
 ID3D12PipelineState *VarianceShadowsManager::GetShadowEffect()
@@ -150,41 +206,64 @@ void VarianceShadowsManager::RenderShadows(ID3D12GraphicsCommandList *mCommandLi
 
     // 状态转换：GENERIC_READ -> RENDER_TARGET
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                                         m_ShadowMap->Resource(), 
-                                         D3D12_RESOURCE_STATE_GENERIC_READ, 
-                                         D3D12_RESOURCE_STATE_RENDER_TARGET));
+        m_ShadowMap->Resource(),
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        D3D12_RESOURCE_STATE_RENDER_TARGET));
 
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                                         m_TmpDepthMap->Resource(), 
-                                         D3D12_RESOURCE_STATE_GENERIC_READ, 
-                                         D3D12_RESOURCE_STATE_DEPTH_WRITE));
+        m_TmpDepthMap->Resource(),
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
-    // 清除 (1,1,0,0)
-    const float clearMoments[4] = {1.0f, 1.0f, 0.0f, 0.0f};
-    mCommandList->ClearRenderTargetView(m_ShadowMap->Rtv(), clearMoments, 0, nullptr);
+    if (!m_vsmConfig->m_bWithCSM)
+    {
+        // 清除 (1,1,0,0)
+        const float clearMoments[4] = { 1.0f, 1.0f, 0.0f, 0.0f };
+        mCommandList->ClearRenderTargetView(m_ShadowMap->Rtv(), clearMoments, 0, nullptr);
 
-     mCommandList->ClearDepthStencilView(m_TmpDepthMap->Dsv(),
-        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
-        1.0f, 0, 0, nullptr);
+        mCommandList->ClearDepthStencilView(m_TmpDepthMap->Dsv(),
+            D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            1.0f, 0, 0, nullptr);
+        // 绑定：只有 RTV，没有 DSV
+        mCommandList->OMSetRenderTargets(1, &m_ShadowMap->Rtv(), FALSE, &m_TmpDepthMap->Dsv());
 
-    // 绑定：只有 RTV，没有 DSV
-    mCommandList->OMSetRenderTargets(1, &m_ShadowMap->Rtv(), FALSE, &m_TmpDepthMap->Dsv() );
+        mCommandList->RSSetViewports(1, &m_ShadowMap->Viewport());
+        mCommandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
 
-    mCommandList->RSSetViewports(1, &m_ShadowMap->Viewport());
-    mCommandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
+        mCommandList->SetGraphicsRootConstantBufferView(2, data.m_PassAddress);
 
-    mCommandList->SetGraphicsRootConstantBufferView(2, data.m_PassAddress);
+        data.m_drawCb(mCommandList);
+    }
+    else
+    {
+        for (int iCurrentCascade = 0; iCurrentCascade < m_vsmConfig->m_nCascadeLevels; ++iCurrentCascade)
+        {
+            const float clearMoments[4] = { 1.0f, 1.0f, 0.0f, 0.0f };
+            mCommandList->ClearRenderTargetView(m_ShadowMap->Rtv(iCurrentCascade), clearMoments, 0, nullptr);
 
-    data.m_drawCb(mCommandList);
+            mCommandList->ClearDepthStencilView(m_TmpDepthMap->Dsv(),
+                D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                1.0f, 0, 0, nullptr);
+            // 绑定：只有 RTV，没有 DSV
+            mCommandList->OMSetRenderTargets(1, &m_ShadowMap->Rtv(iCurrentCascade), FALSE, &m_TmpDepthMap->Dsv());
 
+            mCommandList->RSSetViewports(1, &m_ShadowMap->Viewport());
+            mCommandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
+
+            mCommandList->SetGraphicsRootConstantBufferView(2, data.m_PassAddress);
+
+            data.m_drawCb(mCommandList);
+        }
+    }
+   
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                                         m_ShadowMap->Resource(),
-                                         D3D12_RESOURCE_STATE_RENDER_TARGET,
-                                         D3D12_RESOURCE_STATE_GENERIC_READ));
+        m_ShadowMap->Resource(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        D3D12_RESOURCE_STATE_GENERIC_READ));
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-                                         m_TmpDepthMap->Resource(),
-                                         D3D12_RESOURCE_STATE_DEPTH_WRITE,
-                                         D3D12_RESOURCE_STATE_GENERIC_READ));
+        m_TmpDepthMap->Resource(),
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+        D3D12_RESOURCE_STATE_GENERIC_READ));
 }
 
 void VarianceShadowsManager::UpdateFrame(const GameTimer &gt, Camera *viewCamera, Camera *lightCamer)
@@ -202,39 +281,78 @@ void VarianceShadowsManager::UpdateFrame(const GameTimer &gt, Camera *viewCamera
         vSceneAABBPointsLightSpace[index] = XMVector3Transform(v, matLightCameraView);
     }
 
-    XMVECTOR vLightCameraOrthographicMin;
-    XMVECTOR vLightCameraOrthographicMax;
+    if(m_vsmConfig->m_bWithCSM)
+    {
+        XMVECTOR vLightCameraOrthographicMin;
+        XMVECTOR vLightCameraOrthographicMax;
 
-    // 计算不同cascade frustum在 light view camera坐标系下的8个点
-    CalculateFrustum(0, viewCamera, lightCamer, vLightCameraOrthographicMin, vLightCameraOrthographicMax);
-    // 计算远近裁剪面
-    FLOAT fNearPlane = 0.0f, fFarPlane = 10000.f;
-    CalculateNearFarWithAABB(vSceneAABBPointsLightSpace, vLightCameraOrthographicMin,
-                             vLightCameraOrthographicMax, fNearPlane, fFarPlane);
+        for (int iCascadeIndex = 0; iCascadeIndex < m_vsmConfig->m_nCascadeLevels; iCascadeIndex++)
+        {
+            //计算cascade frustum
+            XMVECTOR vWorldUnitsPerTexel = CalculateCascadeFrumstum(iCascadeIndex, viewCamera, lightCamer,
+                vLightCameraOrthographicMin, vLightCameraOrthographicMax);
 
-    // 获取cascade的 orthographic project
-    m_matShadowProj =
-        XMMatrixOrthographicOffCenterLH(XMVectorGetX(vLightCameraOrthographicMin),
-                                        XMVectorGetX(vLightCameraOrthographicMax),
-                                        XMVectorGetY(vLightCameraOrthographicMin),
-                                        XMVectorGetY(vLightCameraOrthographicMax),
-                                        fNearPlane, fFarPlane);
+            vLightCameraOrthographicMin /= vWorldUnitsPerTexel; //Moving the Light in Texel-Sized Increments (注意这里)
+            vLightCameraOrthographicMin = XMVectorFloor(vLightCameraOrthographicMin);
+            vLightCameraOrthographicMin *= vWorldUnitsPerTexel;
+
+            vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
+            vLightCameraOrthographicMax = XMVectorFloor(vLightCameraOrthographicMax);
+            vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
+
+
+            FLOAT fNearPlane = 0.0f, fFarPlane = 10000.f;
+            CalculateNearFarWithAABB(vSceneAABBPointsLightSpace, vLightCameraOrthographicMin,
+                vLightCameraOrthographicMax, fNearPlane, fFarPlane);
+
+            m_matShadowProj[iCascadeIndex] =
+                XMMatrixOrthographicOffCenterLH(XMVectorGetX(vLightCameraOrthographicMin),
+                    XMVectorGetX(vLightCameraOrthographicMax),
+                    XMVectorGetY(vLightCameraOrthographicMin),
+                    XMVectorGetY(vLightCameraOrthographicMax),
+                    fNearPlane, fFarPlane);
+        }
+    }
+    else
+    {
+        XMVECTOR vLightCameraOrthographicMin;
+        XMVECTOR vLightCameraOrthographicMax;
+
+        // 计算不同cascade frustum在 light view camera坐标系下的8个点
+        CalculateFrustum(viewCamera, lightCamer, vLightCameraOrthographicMin, vLightCameraOrthographicMax);
+        // 计算远近裁剪面
+        FLOAT fNearPlane = 0.0f, fFarPlane = 10000.f;
+        CalculateNearFarWithAABB(vSceneAABBPointsLightSpace, vLightCameraOrthographicMin,
+            vLightCameraOrthographicMax, fNearPlane, fFarPlane);
+
+        // 获取cascade的 orthographic project
+        m_matShadowProj[0] =
+            XMMatrixOrthographicOffCenterLH(XMVectorGetX(vLightCameraOrthographicMin),
+                                            XMVectorGetX(vLightCameraOrthographicMax),
+                                            XMVectorGetY(vLightCameraOrthographicMin),
+                                            XMVectorGetY(vLightCameraOrthographicMax),
+                                            fNearPlane, fFarPlane);
+    }
+
+    m_matShadowView = lightCamer->GetView();
+   
 }
 
 void VarianceShadowsManager::BuildShadowMap()
 {
     // 最有一个参数是false，表示不创建深度视图，因为vsm不需要深度视图
-    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyVsmConfig.m_iBufferSize,
-                                                 m_copyVsmConfig.m_iBufferSize,
-                                                 m_copyVsmConfig.m_ShadowBufferFormat, false);
+    m_ShadowMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
+        m_vsmConfig->m_iBufferSize,
+        m_vsmConfig->m_ShadowBufferFormat, false, MAX_VSM_CASCADES);
 
-    m_TmpDepthMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_copyVsmConfig.m_iBufferSize,
-                                                   m_copyVsmConfig.m_iBufferSize,
+    m_TmpDepthMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
+        m_vsmConfig->m_iBufferSize,
                                                    SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS);
 }
 
-void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCamera, Camera *lightCamer,
-                                              DirectX::XMVECTOR &vLightCameraOrthographicMin, DirectX::XMVECTOR &vLightCameraOrthographicMax)
+void VarianceShadowsManager::CalculateFrustum(Camera *viewCamera, Camera *lightCamer,
+                                              DirectX::XMVECTOR &vLightCameraOrthographicMin, 
+    DirectX::XMVECTOR &vLightCameraOrthographicMax)
 {
     XMMATRIX matViewCamerProject = viewCamera->GetProj();
     XMMATRIX matViewCameraView = viewCamera->GetView();
@@ -291,7 +409,7 @@ void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCam
     vLightCameraOrthographicMax += vBoarderOffset;
     vLightCameraOrthographicMin -= vBoarderOffset;
 
-    FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)m_copyVsmConfig.m_iBufferSize;
+    FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)m_vsmConfig->m_iBufferSize;
     XMVECTOR vWorldUnitsPerTexel = XMVectorSet(fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f);
 
     vLightCameraOrthographicMin /= vWorldUnitsPerTexel;
@@ -301,4 +419,81 @@ void VarianceShadowsManager::CalculateFrustum(int iCascadeIndex, Camera *viewCam
     vLightCameraOrthographicMax /= vWorldUnitsPerTexel;
     vLightCameraOrthographicMax = XMVectorFloor(vLightCameraOrthographicMax);
     vLightCameraOrthographicMax *= vWorldUnitsPerTexel;
+}
+
+XMVECTOR VarianceShadowsManager::CalculateCascadeFrumstum(int iCascadeIndex, Camera* viewCamera, Camera* lightCamer,
+    DirectX::XMVECTOR& vLightCameraOrthographicMin, DirectX::XMVECTOR& vLightCameraOrthographicMax)
+{
+    XMMATRIX matViewCamerProject = viewCamera->GetProj();
+    XMMATRIX matViewCameraView = viewCamera->GetView();
+    XMMATRIX matLightCameraView = lightCamer->GetView();
+    XMMATRIX matInverseViewCamera = XMMatrixInverse(nullptr, matViewCameraView);
+
+    FLOAT fCameraNearFarRange = viewCamera->GetFarZ() - viewCamera->GetNearZ();
+
+    FLOAT fFrustumIntervalBegin;
+    FLOAT fFrustumIntervalEnd;
+
+
+    if (iCascadeIndex == 0) fFrustumIntervalBegin = 0.0f;
+    else fFrustumIntervalBegin = (FLOAT)m_iCascadePartitionsZeroToOne[iCascadeIndex - 1];
+    fFrustumIntervalEnd = (FLOAT)m_iCascadePartitionsZeroToOne[iCascadeIndex];
+
+    fFrustumIntervalBegin /= (FLOAT)m_iCascadePartitionsMax; //这个时候就是百分比
+    fFrustumIntervalEnd /= (FLOAT)m_iCascadePartitionsMax;
+
+    fFrustumIntervalBegin = fFrustumIntervalBegin * fCameraNearFarRange;
+    fFrustumIntervalEnd = fFrustumIntervalEnd * fCameraNearFarRange;
+
+    //1. 计算不同cascade frustum在view camera坐标系下的8个点
+    XMVECTOR vFrustumPoints[8];
+    // This function takes the began and end intervals along with the projection matrix and returns the 8
+    // points that repreresent the cascade Interval
+    CreateFrustumPointsFromCascadeInterval(fFrustumIntervalBegin, fFrustumIntervalEnd,
+        matViewCamerProject, vFrustumPoints);
+
+    vLightCameraOrthographicMin = g_vFLTMAX;
+    vLightCameraOrthographicMax = g_vFLTMIN; //每个view camera的不同cascade在light space中的orthographic 
+
+
+    //2. 计算不同cascade frustum在 light view camera坐标系下的8个点
+    XMVECTOR vTempTranslatedCornerPoint;
+    // This next section of code calculates the min and max values for the orthographic projection.
+    for (int icpIndex = 0; icpIndex < 8; ++icpIndex)
+    {
+        // Transform the frustum from camera view space to world space.
+        vFrustumPoints[icpIndex] = XMVector4Transform(vFrustumPoints[icpIndex], matInverseViewCamera);
+        // Transform the point from world space to Light Camera Space.
+        vTempTranslatedCornerPoint = XMVector4Transform(vFrustumPoints[icpIndex], matLightCameraView);
+        // Find the closest point.
+        vLightCameraOrthographicMin = XMVectorMin(vTempTranslatedCornerPoint, vLightCameraOrthographicMin);
+        vLightCameraOrthographicMax = XMVectorMax(vTempTranslatedCornerPoint, vLightCameraOrthographicMax);
+    }
+
+    m_fCascadePartitionsFrustum[iCascadeIndex] = fFrustumIntervalEnd;
+
+
+    XMVECTOR vDiagonal = vFrustumPoints[0] - vFrustumPoints[6];
+    vDiagonal = XMVector3Length(vDiagonal);
+
+    // The bound is the length of the diagonal of the frustum interval.
+    FLOAT fCascadeBound = XMVectorGetX(vDiagonal);
+
+    // The offset calculated will pad the ortho projection so that it is always the same size 
+    // and big enough to cover the entire cascade interval.
+    XMVECTOR vBoarderOffset = (vDiagonal -
+        (vLightCameraOrthographicMax - vLightCameraOrthographicMin))
+        * g_vHalfVector;
+    // Set the Z and W components to zero.
+    vBoarderOffset *= g_vMultiplySetzwToZero;
+
+    // Add the offsets to the projection.
+    vLightCameraOrthographicMax += vBoarderOffset;
+    vLightCameraOrthographicMin -= vBoarderOffset;
+
+    // The world units per texel are used to snap the shadow the orthographic projection
+    // to texel sized increments.  This keeps the edges of the shadows from shimmering.
+    FLOAT fWorldUnitsPerTexel = fCascadeBound / (float)m_vsmConfig->m_iBufferSize;
+
+    return XMVectorSet(fWorldUnitsPerTexel, fWorldUnitsPerTexel, 0.0f, 0.0f);
 }

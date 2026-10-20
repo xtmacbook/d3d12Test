@@ -45,9 +45,13 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMapRes ::Dsv() const
     return m_hCpuDsvOrRtv;
 }
 
-CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMapRes::Rtv() const
+CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMapRes::Rtv(int idx) const
 {
-    return m_hCpuDsvOrRtv;
+    const UINT rtvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(
+        D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+   
+    return CD3DX12_CPU_DESCRIPTOR_HANDLE (m_hCpuDsvOrRtv, idx, rtvDescriptorSize);
+
 }
 
 D3D12_VIEWPORT ShadowMapRes::Viewport() const

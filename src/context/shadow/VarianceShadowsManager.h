@@ -12,6 +12,8 @@ class Camera;
 class ShadowMapRes;
 class FrameResourceInterface;
 
+#define MAX_VSM_CASCADES 3
+
 namespace SDKMesh
 {
     struct Effect;
@@ -23,28 +25,42 @@ struct VSMConfig
     INT m_nCascadeLevels;
     SHADOW_TEXTURE_FORMAT m_ShadowBufferFormat;
     INT m_iBufferSize;
+	BOOL  m_bWithCSM; // 是否使用CSM
 };
 
 struct VSMPassConstants
 {
-    DirectX::XMFLOAT4X4     m_WorldViewProj;
-	DirectX::XMFLOAT4X4     m_World;
-	DirectX::XMFLOAT4X4     m_WorldView;
-	DirectX::XMFLOAT4X4     m_Shadow;
-    DirectX::XMFLOAT4       m_vShadowTextureOffset;
-	DirectX::XMFLOAT4       m_vShadowTextureScale;
-	DirectX::XMFLOAT4       m_vLightDir;
+    DirectX::XMFLOAT4X4 m_WorldViewProj;
+    DirectX::XMFLOAT4X4 m_World;
+    DirectX::XMFLOAT4X4 m_WorldView;
+    DirectX::XMFLOAT4X4 m_Shadow;
+    DirectX::XMFLOAT4 m_vShadowTextureOffset[8];
+    DirectX::XMFLOAT4 m_vShadowTextureScale[8];
 
-    DirectX::XMUINT4        m_Bias;//float是否先先减去0.5,后加上0.5
+    INT m_nCascadeLevels;     // Number of Cascades
+    INT m_iVisualizeCascades; // 1 is to visualize the cascades in different colors. 0 is to just draw the scene.
+
+    // For Map based selection scheme, this keeps the pixels inside of the the valid range.
+    // When there is no boarder, these values are 0 and 1 respectivley.
+    FLOAT m_fMinBorderPadding;
+    FLOAT m_fMaxBorderPadding;
+
+    FLOAT m_fCascadeBlendArea;                 // Amount to overlap when blending between cascades.
+    FLOAT m_fTexelSize;                        // Shadow map texel size.
+    FLOAT m_fNativeTexelSizeInX;               // Texel size in native map ( textures are packed ).
+    FLOAT m_fPaddingForCB3;                    // Padding variables CBs must be a multiple of 16 bytes.
+    FLOAT m_fCascadeFrustumsEyeSpaceDepths[8]; // The values along Z that seperate the cascades.
+    DirectX::XMFLOAT4 m_vLightDir;
+    DirectX::XMUINT4 m_Bias; // float是否先先减去0.5,后加上0.5
 };
 
 struct VSMShadowMapDrawData
 {
-	using DrawSceneForShadowMapFunc = std::function<void(ID3D12GraphicsCommandList*)>;
+    using DrawSceneForShadowMapFunc = std::function<void(ID3D12GraphicsCommandList *)>;
 
-	DrawSceneForShadowMapFunc m_drawCb;
-	UINT m_PassRootParameterIndx;
-	D3D12_GPU_VIRTUAL_ADDRESS m_PassAddress;
+    DrawSceneForShadowMapFunc m_drawCb;
+    UINT m_PassRootParameterIndx;
+    D3D12_GPU_VIRTUAL_ADDRESS m_PassAddress;
 };
 
 class VarianceShadowsManager
@@ -63,48 +79,58 @@ public:
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv1,
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv1,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv,
+        
+        UINT CbvSrvUavDescriptorSize);
 
-    void UpdateMainPassData(VSMPassConstants& constData);
-    void UpdateShadowPassData(VSMPassConstants &constData);
+    void UpdateMainPassData(VSMPassConstants &constData);
+    DirectX::XMMATRIX GetShadowPassData(UINT iCascadeIndex);
 
     void BuildPOS(SDKMesh::SDKMeshModel *, D3D12_GRAPHICS_PIPELINE_STATE_DESC);
 
-    ID3D12PipelineState* GetSceneEffect();
-    ID3D12PipelineState* GetShadowEffect();
+    ID3D12PipelineState *GetSceneEffect(int idx = 0);
+    ID3D12PipelineState *GetShadowEffect();
 
-	void RenderScene(ID3D12GraphicsCommandList* cmmandList, VSMShadowMapDrawData& data);
-    void RenderShadows(ID3D12GraphicsCommandList* mCommandList,
-        VSMShadowMapDrawData& data);
+    void RenderScene(ID3D12GraphicsCommandList *cmmandList, VSMShadowMapDrawData &data);
+    void RenderShadows(ID3D12GraphicsCommandList *mCommandList,
+                       VSMShadowMapDrawData &data);
 
     void BuildShadowMap();
 
-    void UpdateFrame(const GameTimer& gt, Camera* viewCamera, Camera* lightCamer);
-    
-    inline DirectX::XMMATRIX getShadowProjMatrix() const { return m_matShadowProj; }
+    void UpdateFrame(const GameTimer &gt, Camera *viewCamera, Camera *lightCamer);
 
-    void CalculateFrustum(int iCascadeIndex, Camera* viewCamera, Camera* lightCamer,
-    DirectX::XMVECTOR& vLightCameraOrthographicMin, 
-    DirectX::XMVECTOR& vLightCameraOrthographicMax);
+    void CalculateFrustum(Camera *viewCamera, Camera *lightCamer,
+                          DirectX::XMVECTOR &vLightCameraOrthographicMin,
+                          DirectX::XMVECTOR &vLightCameraOrthographicMax);
+
+    DirectX::XMVECTOR CalculateCascadeFrumstum(int iCascadeIndex, Camera* viewCamera, Camera* lightCamer,
+        DirectX::XMVECTOR& vLightCameraOrthographicMin, DirectX::XMVECTOR& vLightCameraOrthographicMax);
+
+    INT																				m_iCascadePartitionsZeroToOne[MAX_VSM_CASCADES]; //这个是用户设置的： Values are 0 to 100 and represent a percent of the frstum
+    INT																				m_iCascadePartitionsMax;
+
 private:
-
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderSceneVSShadersBlob;
-    Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderScenePSShadersBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderScenePSShadersBlob[2];
 
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderShadowVSShadersBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderShadowPSShadersBlob;
 
     std::shared_ptr<ShadowMapRes> m_ShadowMap;
-    std::shared_ptr<SDKMesh::Effect>  m_sceneEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
-    std::shared_ptr<SDKMesh::Effect>  m_shadowEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
+    
+    std::shared_ptr<SDKMesh::Effect> m_sceneEffect;  // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
+    std::shared_ptr<SDKMesh::Effect> m_sceneWithCSMEffect;  // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
+    std::shared_ptr<SDKMesh::Effect> m_shadowEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
 
     std::shared_ptr<ShadowMapRes> m_TmpDepthMap;
-    
+
     DirectX::BoundingBox m_sceneBox;
 
     VSMConfig *m_vsmConfig; // 用户可能修改了
-    VSMConfig m_copyVsmConfig;
     ID3D12Device *m_d3dDevice = nullptr;
+    
+	FLOAT																			m_fCascadePartitionsFrustum[MAX_VSM_CASCADES]; //程序计算的真实值 Values are  between near and far
+    DirectX::XMMATRIX m_matShadowProj[8];
+	DirectX::XMMATRIX																m_matShadowView;
 
-    DirectX::XMMATRIX m_matShadowProj;
 };

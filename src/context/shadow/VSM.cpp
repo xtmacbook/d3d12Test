@@ -41,9 +41,17 @@ bool VSMMapContext::InitDirect3D()
 
 	m_vsmConfig = std::make_shared<VSMConfig>();
 	m_vsmConfig->m_iBufferSize = 1024;
+	m_vsmConfig->m_nCascadeLevels = 3;
+	m_vsmConfig->m_bWithCSM = true;
 	m_vsmConfig->m_ShadowBufferFormat = SHADOW_DXGI_FORMAT_R32G32_TYPELESS;
 
 	m_varianceShadowsMgr = std::make_shared< VarianceShadowsManager>();
+
+	m_varianceShadowsMgr->m_iCascadePartitionsZeroToOne[0] = 10;
+	m_varianceShadowsMgr->m_iCascadePartitionsZeroToOne[1] = 40;
+	m_varianceShadowsMgr->m_iCascadePartitionsZeroToOne[2] = 80;
+	m_varianceShadowsMgr->m_iCascadePartitionsMax = 100;
+
     m_varianceShadowsMgr->init(m_d3dDevice.Get(), sceneBoundBox, &mCamera,
 		&m_shadowLightCamera, m_vsmConfig.get());
 	m_varianceShadowsMgr->BuildShadowMap();
@@ -101,7 +109,8 @@ void VSMMapContext::CreateRtvDescriptorHeap()
 {
 	//注意这个是写入到了m_RtvHeap中,所以要在这里创建,因为要写入两个值,不能写入到depthStencilHeap中
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + 1;
+	// Reserve one RTV for each shadow-map array slice, in addition to swap-chain RTVs.
+	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + m_varianceShadowsMgr->GetResouceViewCount();
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -121,9 +130,9 @@ void VSMMapContext::ShowCustomImguiWin()
 
 	ImGui::Begin("Params It !");
 	
-	static bool bWithCSM = false;
+	static bool bWithCSM = true;
 	ImGui::Checkbox(": with CSM ", &bWithCSM);
-	//m_mainPassConstantsDataCopy.m_Bias.x = bWithCSM ? 1 : 0;
+	m_vsmConfig->m_bWithCSM = bWithCSM;
 
 	static int fit_nearFar_item_current = 0;
 	const char* fitNearFarItems[] = { "FIT_NEARFAR_AABB", "FIT_NEARFAR_SCENE_AABB"};
@@ -257,7 +266,7 @@ void VSMMapContext::OnResize(int width, int heigh)
 
 void VSMMapContext::BuildFrameResources()
 {
-	UINT cpasCount =  2; //MAX_CASCADES 是shadow 
+	UINT cpasCount = MAX_VSM_CASCADES + 1;
 
 	for (int i = 0; i < m_NumFrameResources; ++i)
 	{
@@ -306,10 +315,21 @@ void VSMMapContext::UpdatePassCB(const GameTimer& gt)
 
 	m_currFrameResource->CopyPassData(0, &mainConstantsData);
 
-	VSMPassConstants shadowConstantsData;
-	XMStoreFloat4x4(&shadowConstantsData.m_WorldViewProj, XMMatrixTranspose( XMMatrixMultiply(m_shadowLightCamera.GetView(), m_varianceShadowsMgr->getShadowProjMatrix())));
-	m_varianceShadowsMgr->UpdateShadowPassData(shadowConstantsData);
-	m_currFrameResource->CopyPassData(1, &shadowConstantsData);
+	if (!m_vsmConfig->m_bWithCSM)
+	{
+		VSMPassConstants shadowConstantsData;
+		XMStoreFloat4x4(&shadowConstantsData.m_WorldViewProj,
+			XMMatrixTranspose(XMMatrixMultiply(m_shadowLightCamera.GetView(), m_varianceShadowsMgr->GetShadowPassData(0))));
+		m_currFrameResource->CopyPassData(1, &shadowConstantsData);
+	}
+
+	for (UINT i = 0; i < m_vsmConfig->m_nCascadeLevels; i++)
+	{
+		VSMPassConstants shadowConstantsData;
+		XMStoreFloat4x4(&shadowConstantsData.m_WorldViewProj,
+			XMMatrixTranspose(XMMatrixMultiply(m_shadowLightCamera.GetView(), m_varianceShadowsMgr->GetShadowPassData(i))));
+		m_currFrameResource->CopyPassData(1 + i, &shadowConstantsData);
+	}
 }
 
 void VSMMapContext::UpdateObjectCBs(const GameTimer& gt)
@@ -385,9 +405,10 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 
 		data.m_drawCb = [&](ID3D12GraphicsCommandList*)
 			{
+				ID3D12PipelineState* scenePSO = (m_vsmConfig->m_bWithCSM) ? m_varianceShadowsMgr->GetSceneEffect(1) : m_varianceShadowsMgr->GetSceneEffect();
 				m_sdkMeshModel->DrawRenderItemsWithOnePass(allocator, m_d3dDevice.Get(),
 					m_CommandList.Get(), m_currFrameResource, m_SrvDescriptorHeap.Get(),
-					m_CbvSrvUavDescriptorSize, m_varianceShadowsMgr->GetSceneEffect());
+					m_CbvSrvUavDescriptorSize, scenePSO);
 			};
 		 
         m_varianceShadowsMgr->RenderScene(m_CommandList.Get(), data);
@@ -425,6 +446,7 @@ void VSMMapContext::BuildResourceView()
 	//build resouce view
 	auto srvCpuStart = m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	auto srvGpuStart = m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+
 	auto rtvCpuStart = m_RtvHeap->GetCPUDescriptorHandleForHeapStart();
 	auto dsvCpuStart = m_DsvHeap ->GetCPUDescriptorHandleForHeapStart();
 
@@ -447,7 +469,7 @@ void VSMMapContext::BuildResourceView()
 
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, tmpDepthHeapIndex, m_CbvSrvUavDescriptorSize),
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, tmpDepthHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize)
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize),m_CbvSrvUavDescriptorSize
 		
 		);
 	}

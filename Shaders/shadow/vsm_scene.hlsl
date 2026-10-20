@@ -1,11 +1,19 @@
 #include "vsm_base.hlsl"
 #include "../util.hlsl"
 
+#ifndef USE_WITH_CSM
+#define USE_WITH_CSM 0
+#endif
+
+#ifndef CASCADE_COUNT_FLAG
+#define CASCADE_COUNT_FLAG 3
+#endif
+
 struct VertexIn
 {
-    float3 PosL :    POSITION;
+    float3 PosL : POSITION;
     float3 NormalL : NORMAL;
-    float2 TexC :   TEXCOORD;
+    float2 TexC : TEXCOORD;
     float3 TangentU : TANGENT;
 };
 
@@ -31,31 +39,28 @@ VertexOut VS(VertexIn vin)
     return vout;
 }
 
-
-void CalculateVarianceShadow ( in float4 vShadowTexCoord, in float4 vShadowMapTextureCoordViewSpace, out float fPercentLit ) 
+void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapTextureCoordViewSpace,  int iCascade,out float fPercentLit)
 {
     fPercentLit = 0.0f;
     // This loop could be unrolled, and texture immediate offsets could be used if the kernel size were fixed.
     // This would be a performance improvment.
-	
-   float4 vShadowTexCoordDDX=  ddx(vShadowMapTextureCoordViewSpace);
-   float4 vShadowTexCoordDDY = ddy(vShadowMapTextureCoordViewSpace);
 
-    vShadowTexCoordDDX *= m_vShadowTextureScale;
-    vShadowTexCoordDDY *= m_vShadowTextureScale;
+    float4 vShadowTexCoordDDX = ddx(vShadowMapTextureCoordViewSpace);
+    float4 vShadowTexCoordDDY = ddy(vShadowMapTextureCoordViewSpace);
+
+    vShadowTexCoordDDX *= m_vCascadeScale[iCascade];
+    vShadowTexCoordDDY *= m_vCascadeScale[iCascade];
 
     float2 mapDepth = 0;
 
-    //mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
-    mapDepth = gShadowMap.SampleGrad (gsamAnisotropicClamp, vShadowTexCoord.xy, 
-    vShadowTexCoordDDX.xy, vShadowTexCoordDDY.xy);
-    
-    // The sample instruction uses gradients for some filters.
-	
-    fPercentLit = ChebyshevUpperBound(mapDepth, vShadowTexCoord.z, 0.000001f);
-    
-}
+    // mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
+    mapDepth = gShadowMap.SampleGrad(gsamAnisotropicClamp, vShadowTexCoord.xyz,
+                                     vShadowTexCoordDDX.xyz, vShadowTexCoordDDY.xyz);
 
+    // The sample instruction uses gradients for some filters.
+
+    fPercentLit = ChebyshevUpperBound(mapDepth, vShadowTexCoord.z, 0.000001f);
+}
 
 // Light bleeding reduction
 float LBR(float p)
@@ -65,30 +70,110 @@ float LBR(float p)
     return linstep(m_LBRAmount, 1, p);
 }
 
+//--------------------------------------------------------------------------------------
+// Calculate amount to blend between two cascades and the band where blending will occure.
+//--------------------------------------------------------------------------------------
+void CalculateBlendAmountForMap(in float4 vShadowMapTextureCoord,
+                                in out float fCurrentPixelsBlendBandLocation,
+                                out float fBlendBetweenCascadesAmount)
+{
+    // Calcaulte the blend band for the map based selection.
+    float2 distanceToOne = float2(1.0f - vShadowMapTextureCoord.x, 1.0f - vShadowMapTextureCoord.y);
+    fCurrentPixelsBlendBandLocation = min(vShadowMapTextureCoord.x, vShadowMapTextureCoord.y);
+    float fCurrentPixelsBlendBandLocation2 = min(distanceToOne.x, distanceToOne.y);
+    fCurrentPixelsBlendBandLocation =
+        min(fCurrentPixelsBlendBandLocation, fCurrentPixelsBlendBandLocation2);
+    fBlendBetweenCascadesAmount = fCurrentPixelsBlendBandLocation / m_fCascadeBlendArea;
+}
+
 float4 PS(VertexOut pin) : SV_Target
 {
     float4 vDiffuse = Texture.Sample(gsamLinearWrap, pin.TexC);
+    float fPercentLit = 0.0f;
 
-    float4 vShadowMapTextureCoord = pin.posInShadowViewSpace;
-    vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vShadowTextureScale + m_vShadowTextureOffset;
+    if (USE_WITH_CSM)
+    {
+        float4 vShadowMapTextureCoord = pin.posInShadowViewSpace;
+        vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[0] + m_vCascadeOffset[0];
 
-    float fPercentLit = 1.0f;
-    CalculateVarianceShadow ( vShadowMapTextureCoord, pin.posInShadowViewSpace, fPercentLit );
+        CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, 0, fPercentLit);
+        fPercentLit = LBR(fPercentLit);
+    }
+    else
+    {
+        float4 vShadowMapTextureCoord = 0.0f;
+        int iCurrentCascadeIndex = 0;
+        int iNextCascadeIndex = 1;
 
-    fPercentLit = LBR(fPercentLit);
+        int iCascadeFound = 0;
+        for (int iCascadeIndex = 0; iCascadeIndex < CASCADE_COUNT_FLAG && (iCascadeFound == 0); ++iCascadeIndex)
+        {
+            vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[iCascadeIndex];
+            vShadowMapTextureCoord += m_vCascadeOffset[iCascadeIndex];
+
+            if (min(vShadowMapTextureCoord.x, vShadowMapTextureCoord.y) > m_fMinBorderPadding && max(vShadowMapTextureCoord.x, vShadowMapTextureCoord.y) < m_fMaxBorderPadding)
+            {
+                iCurrentCascadeIndex = iCascadeIndex;
+                iCascadeFound = 1;
+            }
+        }
+
+        float4 vShadowMapTextureCoordLocal = vShadowMapTextureCoord; // 临时保存,因为下面就紧接着要真正的纹理坐标系了
+
+        vShadowMapTextureCoord.w = vShadowMapTextureCoord.z; // We put the z value in w so that we can index the texture array with Z.
+        vShadowMapTextureCoord.z = iCascadeIndex;
+
+        CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, iCurrentCascadeIndex, fPercentLit);
+
+        // blend between cascades
+        //  Repeat text coord calculations for the next cascade.
+        //  The next cascade index is used for blurring between maps.
+        //  就是当前cascade和next cascade进行blend
+        iNextCascadeIndex = min(CASCADE_COUNT_FLAG - 1, iCurrentCascadeIndex + 1);
+
+        float fBlendBetweenCascadesAmount = 1.0f;
+        float fCurrentPixelsBlendBandLocation = 1.0f;
+
+        CalculateBlendAmountForMap(vShadowMapTextureCoordLocal,
+                                   fCurrentPixelsBlendBandLocation, fBlendBetweenCascadesAmount);
+
+        if (fCurrentPixelsBlendBandLocation < m_fCascadeBlendArea)
+        {
+            // Because the Z coordinate species the texture array,
+            // the derivative will be 0 when there is no divergence
+
+            float4 vShadowMapTextureCoord_blend =
+                pin.posInShadowViewSpace * m_vCascadeScale[iNextCascadeIndex];
+            vShadowMapTextureCoord_blend += m_vCascadeOffset[iNextCascadeIndex];
+
+            vShadowMapTextureCoord_blend.w = vShadowMapTextureCoord_blend.z; // We put the z value in w so that we can index the texture array with Z.
+            vShadowMapTextureCoord_blend.z = iNextCascadeIndex;
+
+            float fDivergence = abs(ddy(vShadowMapTextureCoord_blend.z)) +
+	                            abs(ddx(vShadowMapTextureCoord_blend.z));
+
+            float fPercentLit_blend = .0f;
+
+            CalculateVarianceShadow(vShadowMapTextureCoord_blend, pin.posInShadowViewSpace,
+							iNextCascadeIndex, fPercentLit_blend);
+
+            // blend 两个cascade的percent
+            fPercentLit = lerp(fPercentLit_blend, fPercentLit, fBlendBetweenCascadesAmount);
+        }
+    }
     
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
     float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);
     float3 vLightDir3 = float3(0.0f, -1.0f, 0.0f);
     float3 vLightDir4 = float3(1.0f, 1.0f, 1.0f);
 
-    float gammaS = LinearToSRGB(0.03);  
+    float gammaS = LinearToSRGB(0.03);
 
-    // Some ambient-like lighting.
+        // Some ambient-like lighting.
     float fLighting = saturate(dot(vLightDir1, pin.NormalW)) * gammaS +
-                      saturate(dot(vLightDir2, pin.NormalW)) * gammaS +
-                      saturate(dot(vLightDir3, pin.NormalW)) * gammaS +
-                      saturate(dot(vLightDir4, pin.NormalW)) * gammaS;
+                          saturate(dot(vLightDir2, pin.NormalW)) * gammaS +
+                          saturate(dot(vLightDir3, pin.NormalW)) * gammaS +
+                          saturate(dot(vLightDir4, pin.NormalW)) * gammaS;
 
     float vShadowLighting = fLighting * LinearToSRGB(0.5);
 
@@ -101,5 +186,4 @@ float4 PS(VertexOut pin) : SV_Target
     color.w = 1.0;
 
     return color;
-
 }

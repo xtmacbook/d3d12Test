@@ -62,7 +62,7 @@ public:
     
     CD3DX12_GPU_DESCRIPTOR_HANDLE Srv() const;
     CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv() const;
-    CD3DX12_CPU_DESCRIPTOR_HANDLE Rtv() const;
+    CD3DX12_CPU_DESCRIPTOR_HANDLE Rtv(int idx  = 0) const;
     
     D3D12_VIEWPORT Viewport() const;
     D3D12_RECT ScissorRect() const;

@@ -124,5 +124,4 @@ private:
 
 	VSMPassConstants																m_mainPassConstantsDataCopy;
 
-	bool																			m_bWithCSM = true;	 //是否和csm融合一起使用
 };
