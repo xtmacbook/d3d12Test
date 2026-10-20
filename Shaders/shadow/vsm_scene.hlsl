@@ -56,6 +56,15 @@ void CalculateVarianceShadow ( in float4 vShadowTexCoord, in float4 vShadowMapTe
     
 }
 
+
+// Light bleeding reduction
+float LBR(float p)
+{
+    // Lots of options here if we don't care about being an upper bound.
+    // Use whatever falloff function works well for your scene.
+    return linstep(m_LBRAmount, 1, p);
+}
+
 float4 PS(VertexOut pin) : SV_Target
 {
     float4 vDiffuse = Texture.Sample(gsamLinearWrap, pin.TexC);
@@ -66,6 +75,8 @@ float4 PS(VertexOut pin) : SV_Target
     float fPercentLit = 1.0f;
     CalculateVarianceShadow ( vShadowMapTextureCoord, pin.posInShadowViewSpace, fPercentLit );
 
+    fPercentLit = LBR(fPercentLit);
+    
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
     float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);
     float3 vLightDir3 = float3(0.0f, -1.0f, 0.0f);

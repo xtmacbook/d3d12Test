@@ -1,4 +1,5 @@
 #include "vsm_base.hlsl"
+#include "../util.hlsl"
 
 struct VertexIn
 {
@@ -20,7 +21,9 @@ VertexOut VS(VertexIn vin)
 float2 PS(VertexOut pin) : SV_Target
 {
     float2 rt;
+   
     rt.x = pin.PosH.z;
     rt.y = rt.x * rt.x;
+    
     return rt;
 }

@@ -53,6 +53,7 @@
 #include "interface/FrameResourceContextInterface.h"
 #include "common/util.h"
 #include "common/BufferStruct.h"
+#include "VarianceShadowsManager.h"
 
 namespace SDKMesh
 {
@@ -68,7 +69,6 @@ struct VSMShadowHeapDescriptor
 	CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
 };
 
-class VarianceShadowsManager;
 class ShadowMapRes;
 struct VSMConfig;
 
@@ -122,4 +122,7 @@ private:
 	float																			m_fPCFOffset = 0.002f;
 	FLOAT																			m_fBlurBetweenCascadesAmount = 0.005f;
 
+	VSMPassConstants																m_mainPassConstantsDataCopy;
+
+	bool																			m_bWithCSM = true;	 //是否和csm融合一起使用
 };

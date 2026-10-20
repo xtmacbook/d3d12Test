@@ -31,8 +31,8 @@ cbuffer cbAllShadowData : register(b1)
     float4 m_vShadowTextureScale;
 
     float3 m_vLightDir;
-    float m_fPaddingCB4;
-
+    float  m_LBRAmount; //”√”⁄light bleeding reduction
+   // int4   m_Bias;
 };
 
 cbuffer cbMaterial : register(b2)

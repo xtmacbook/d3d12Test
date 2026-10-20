@@ -106,3 +106,13 @@ float ChebyshevUpperBound(float2 Moments, float Mean, float MinVariance)
     return p_max;
     //fPercentLit = pow( p_max, 4 );
 }
+
+float linstep(float min, float max, float v)
+{
+    return clamp((v - min) / (max - min), 0, 1);
+}
+
+float2 GetFPBias()
+{
+    return float2(0.5, 0);
+}

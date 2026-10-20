@@ -33,8 +33,9 @@ struct VSMPassConstants
 	DirectX::XMFLOAT4X4     m_Shadow;
     DirectX::XMFLOAT4       m_vShadowTextureOffset;
 	DirectX::XMFLOAT4       m_vShadowTextureScale;
-
 	DirectX::XMFLOAT4       m_vLightDir;
+
+    DirectX::XMUINT4        m_Bias;//float是否先先减去0.5,后加上0.5
 };
 
 struct VSMShadowMapDrawData

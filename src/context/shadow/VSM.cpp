@@ -8,7 +8,6 @@
 #include "common/DirectXHelpers.h"
 #include "interface/TexContextInterface.h"
 
-#include "VarianceShadowsManager.h"
 
 #ifdef USE_IMGUI
 #include "imgui.h"
@@ -122,9 +121,9 @@ void VSMMapContext::ShowCustomImguiWin()
 
 	ImGui::Begin("Params It !");
 	
-	static int fit_item_current = 0;
-	const char* fitItems[] = { "FIT_TO_CASCADES", "FIT_TO_SCENE"};
-    ImGui::Combo("FitItems", &fit_item_current, fitItems, IM_ARRAYSIZE(fitItems));
+	static bool bWithCSM = false;
+	ImGui::Checkbox(": with CSM ", &bWithCSM);
+	//m_mainPassConstantsDataCopy.m_Bias.x = bWithCSM ? 1 : 0;
 
 	static int fit_nearFar_item_current = 0;
 	const char* fitNearFarItems[] = { "FIT_NEARFAR_AABB", "FIT_NEARFAR_SCENE_AABB"};
@@ -137,12 +136,15 @@ void VSMMapContext::ShowCustomImguiWin()
 	static bool bUseDDXY = true;
     ImGui::Checkbox("DDX DDY Offset", &bUseDDXY);
 
-	static float blendAmount = 10.00f;
-	static float dragSpeed = 1.00f;
-    ImGui::DragFloat("shadow cascade blending value: ", &blendAmount, dragSpeed,0.0f,100,0);
+	static float blendAmount = 0.018;
+	static float dragSpeed = 0.05f;
+    ImGui::DragFloat("LBR Amount: ", &blendAmount, dragSpeed,0.0f,0.9);
+	m_mainPassConstantsDataCopy.m_vLightDir.w = blendAmount;
 
-	static bool bCascadeBlur = false;
-    ImGui::Checkbox(": Use shadow cascade blending ", &bCascadeBlur);
+
+	static bool bBias = false;
+    ImGui::Checkbox(": use Bias", &bBias);
+	m_mainPassConstantsDataCopy.m_Bias.x = bBias ? 1 : 0;
 
 	ImGui::End();
 
@@ -288,7 +290,7 @@ void VSMMapContext::UpdatePassCB(const GameTimer& gt)
 {
 	m_varianceShadowsMgr->UpdateFrame(gt, &mCamera, &m_shadowLightCamera);
 
-	VSMPassConstants mainConstantsData;
+	VSMPassConstants mainConstantsData = m_mainPassConstantsDataCopy;
 
 	XMMATRIX CameraViewProj = XMMatrixMultiply(mCamera.GetView(), mCamera.GetProj());
 	XMStoreFloat4x4(&mainConstantsData.m_WorldViewProj, XMMatrixTranspose(CameraViewProj));
@@ -300,7 +302,7 @@ void VSMMapContext::UpdatePassCB(const GameTimer& gt)
  
     XMVECTOR lightDir = XMVector3Normalize(-m_shadowLightCamera.GetLook());
 	XMStoreFloat3(reinterpret_cast<XMFLOAT3*>(&mainConstantsData.m_vLightDir), lightDir);
-	mainConstantsData.m_vLightDir.w = 1.0f;
+	//mainConstantsData.m_vLightDir.w = 1.0f;
 
 	m_currFrameResource->CopyPassData(0, &mainConstantsData);
 
