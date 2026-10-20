@@ -81,9 +81,9 @@ void ShadowInterface::BuildShadowMap()
 }
 
 void ShadowInterface::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
+	CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv, UINT CbvSrvUavDescriptorSize)
 {
-	m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuDsv);
+	m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuDsv, CbvSrvUavDescriptorSize);
 }
 
 ID3D12PipelineState* ShadowInterface::GetDrawSceneToShadowMapPSO()

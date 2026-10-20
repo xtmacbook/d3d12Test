@@ -4,9 +4,9 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
 ShadowMapRes::ShadowMapRes(ID3D12Device *device, UINT width, UINT height, SHADOW_TEXTURE_FORMAT formate,
-	 BOOL dsvOrRtv) 
+	 BOOL dsvOrRtv, UINT depthOrArraySize)
     : m_d3dDevice(device), m_Width(width), m_Height(height), m_Format(formate),
-    m_dsvOrRtv(dsvOrRtv)
+	m_dsvOrRtv(dsvOrRtv), m_DepthOrArraySize(depthOrArraySize)
 {
     m_Viewport.TopLeftX = 0.0f;
     m_Viewport.TopLeftY = 0.0f;
@@ -63,11 +63,12 @@ D3D12_RECT ShadowMapRes::ScissorRect() const
 void ShadowMapRes::BuildDescriptors(
     CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
     CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv)
+    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv, UINT CbvSrvUavDescriptorSize)
 {
     m_hCpuSrv = hCpuSrv;
     m_hGpuSrv = hGpuSrv;
     m_hCpuDsvOrRtv = hCpuDsvOrRtv;
+    m_CbvSrvUavDescriptorSize = CbvSrvUavDescriptorSize;
 
     BuildDescriptors();
 }
@@ -151,11 +152,26 @@ void ShadowMapRes::BuildDescriptors()
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = SRVfmt;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MostDetailedMip = 0;
-    srvDesc.Texture2D.MipLevels = 1;
-    srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-    srvDesc.Texture2D.PlaneSlice = 0;
+
+    if (m_DepthOrArraySize > 1)
+    {
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+        srvDesc.Texture2DArray.MostDetailedMip = 0;
+        srvDesc.Texture2DArray.MipLevels = 1;
+        srvDesc.Texture2DArray.FirstArraySlice = 0;
+        srvDesc.Texture2DArray.ArraySize = m_DepthOrArraySize;
+        srvDesc.Texture2DArray.PlaneSlice = 0;
+		srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+    }
+    else
+    {
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+        srvDesc.Texture2D.PlaneSlice = 0;
+    }
+
     m_d3dDevice->CreateShaderResourceView(m_ShadowMap.Get(), &srvDesc, m_hCpuSrv);
 
     if (m_dsvOrRtv)
@@ -163,8 +179,8 @@ void ShadowMapRes::BuildDescriptors()
         // Create DSV to resource so we can render to the shadow map.
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
         dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Format = DSVfmt;
+        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Texture2D.MipSlice = 0;
         m_d3dDevice->CreateDepthStencilView(m_ShadowMap.Get(), &dsvDesc, m_hCpuDsvOrRtv);
     }
@@ -172,10 +188,31 @@ void ShadowMapRes::BuildDescriptors()
     {
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
 		rtvDesc.Format = RtVfmt;
-		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-		rtvDesc.Texture2D.MipSlice = 0;
-		rtvDesc.Texture2D.PlaneSlice = 0;
-        m_d3dDevice->CreateRenderTargetView(m_ShadowMap.Get(), &rtvDesc, m_hCpuDsvOrRtv);
+        if (m_DepthOrArraySize > 1)
+        {
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+            rtvDesc.Texture2DArray.MipSlice = 0;
+
+            for (UINT i = 0; i < m_DepthOrArraySize; ++i)
+            {
+                rtvDesc.Texture2DArray.FirstArraySlice = i;
+                rtvDesc.Texture2DArray.ArraySize = 1;
+                rtvDesc.Texture2DArray.PlaneSlice = 0;
+
+                const UINT rtvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(
+                    D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+                CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_hCpuDsvOrRtv, i, rtvDescriptorSize);
+                m_d3dDevice->CreateRenderTargetView(m_ShadowMap.Get(), &rtvDesc, handle);
+
+            }
+        }
+        else
+        {
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            rtvDesc.Texture2D.MipSlice = 0;
+            rtvDesc.Texture2D.PlaneSlice = 0;
+            m_d3dDevice->CreateRenderTargetView(m_ShadowMap.Get(), &rtvDesc, m_hCpuDsvOrRtv);
+        }
     }
 }
 
@@ -223,13 +260,14 @@ void ShadowMapRes::BuildResource()
     texDesc.Alignment = 0;
     texDesc.Width = m_Width;
     texDesc.Height = m_Height;
-    texDesc.DepthOrArraySize = 1;
+    texDesc.DepthOrArraySize = m_DepthOrArraySize;
     texDesc.MipLevels = 1;
     texDesc.Format = texturefmt;
     texDesc.SampleDesc.Count = 1;
     texDesc.SampleDesc.Quality = 0;
     texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     texDesc.Flags = resFlags;
+    
 
     D3D12_CLEAR_VALUE optClear;
 

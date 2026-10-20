@@ -47,9 +47,9 @@ public:
     /*
     默认为dsv,否则为rtv
    */
-    ShadowMapRes(ID3D12Device *device,UINT width, UINT height,
+	ShadowMapRes(ID3D12Device* device, UINT width, UINT height,  
         SHADOW_TEXTURE_FORMAT format = 
-        SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS,BOOL dsvOrRtv = true);
+        SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS,BOOL dsvOrRtv = true, UINT depthOrArraySize = 1);
 
     ShadowMapRes(const ShadowMapRes &rhs) = delete;
     ShadowMapRes&operator=(const ShadowMapRes&rhs) = delete;
@@ -70,7 +70,8 @@ public:
     void BuildDescriptors(
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv,
+        UINT CbvSrvUavDescriptorSize);
 
     void SetDescriptors(
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
@@ -96,6 +97,7 @@ private:
     D3D12_RECT                  m_ScissorRect;
     UINT                        m_Width = 0;
     UINT                        m_Height = 0;
+	UINT					   m_DepthOrArraySize = 1;
     SHADOW_TEXTURE_FORMAT       m_Format;
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE m_hCpuSrv;
@@ -105,4 +107,5 @@ private:
     
     Microsoft::WRL::ComPtr<ID3D12Resource> m_ShadowMap = nullptr;
 	BOOL                        m_dsvOrRtv; //true为dsv,false为rtv
+    UINT                        m_CbvSrvUavDescriptorSize;
 };

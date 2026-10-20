@@ -421,7 +421,7 @@ void ShadowMapBase::BuildResourceView()
 		m_shadowInterface->BuildDescriptors(
 			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
 			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize));
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize), m_CbvSrvUavDescriptorSize);
 	}
 
 	//some null descriptor
