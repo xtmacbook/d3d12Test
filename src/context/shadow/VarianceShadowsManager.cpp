@@ -61,13 +61,13 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
     m_ppsRenderSceneVSShadersBlob =
         D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", nullptr, "VS", "vs_5_1");
 
-	//with csm
+	//with csm: 走 shader 的 else 分支(级联循环), CASCADE_COUNT_FLAG=3
     defines[0].Definition = "3";
     defines[1].Definition = "1";
     m_ppsRenderScenePSShadersBlob[1] =
         D3DUtil::CompileShader(SourcePath() + L"/Shaders/shadow/vsm_scene.hlsl", defines, "PS", "ps_5_1");
    
-    //no csm
+    //no csm: 走 shader 的 if 分支(单级联0)
     defines[0].Definition = "1";
     defines[1].Definition = "0";
     m_ppsRenderScenePSShadersBlob[0] =
@@ -250,7 +250,9 @@ void VarianceShadowsManager::RenderShadows(ID3D12GraphicsCommandList *mCommandLi
             mCommandList->RSSetViewports(1, &m_ShadowMap->Viewport());
             mCommandList->RSSetScissorRects(1, &m_ShadowMap->ScissorRect());
 
-            mCommandList->SetGraphicsRootConstantBufferView(2, data.m_PassAddress);
+            // 每个级联使用各自对应的 pass 常量缓冲(投影矩阵不同)
+            D3D12_GPU_VIRTUAL_ADDRESS cascadePassAddress = data.m_PassAddress + iCurrentCascade * passCBByteSize;
+            mCommandList->SetGraphicsRootConstantBufferView(2, cascadePassAddress);
 
             data.m_drawCb(mCommandList);
         }

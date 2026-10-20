@@ -58,8 +58,8 @@ void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapText
                                      vShadowTexCoordDDX.xyz, vShadowTexCoordDDY.xyz);
 
     // The sample instruction uses gradients for some filters.
-
-    fPercentLit = ChebyshevUpperBound(mapDepth, vShadowTexCoord.z, 0.000001f);
+    // .z 是纹理数组层(级联索引), 深度保存在 .w 中用于 Chebyshev 比较
+    fPercentLit = ChebyshevUpperBound(mapDepth, vShadowTexCoord.w, 0.000001f);
 }
 
 // Light bleeding reduction
@@ -91,15 +91,7 @@ float4 PS(VertexOut pin) : SV_Target
     float4 vDiffuse = Texture.Sample(gsamLinearWrap, pin.TexC);
     float fPercentLit = 0.0f;
 
-    if (USE_WITH_CSM)
-    {
-        float4 vShadowMapTextureCoord = pin.posInShadowViewSpace;
-        vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[0] + m_vCascadeOffset[0];
-
-        CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, 0, fPercentLit);
-        fPercentLit = LBR(fPercentLit);
-    }
-    else
+    if (USE_WITH_CSM > 0)
     {
         float4 vShadowMapTextureCoord = 0.0f;
         int iCurrentCascadeIndex = 0;
@@ -121,7 +113,7 @@ float4 PS(VertexOut pin) : SV_Target
         float4 vShadowMapTextureCoordLocal = vShadowMapTextureCoord; // 临时保存,因为下面就紧接着要真正的纹理坐标系了
 
         vShadowMapTextureCoord.w = vShadowMapTextureCoord.z; // We put the z value in w so that we can index the texture array with Z.
-        vShadowMapTextureCoord.z = iCascadeIndex;
+        vShadowMapTextureCoord.z = iCurrentCascadeIndex; // 用选中的级联索引作为数组层
 
         CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, iCurrentCascadeIndex, fPercentLit);
 
@@ -160,6 +152,16 @@ float4 PS(VertexOut pin) : SV_Target
             // blend 两个cascade的percent
             fPercentLit = lerp(fPercentLit_blend, fPercentLit, fBlendBetweenCascadesAmount);
         }
+    }
+    else
+    {
+        float4 vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[0] + m_vCascadeOffset[0];
+        vShadowMapTextureCoord.w = vShadowMapTextureCoord.z; // 把深度存到 w
+        vShadowMapTextureCoord.z = 0; // z 作为纹理数组层(级联0)
+        CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, 0, fPercentLit);
+        fPercentLit = LBR(fPercentLit);
+        
+       
     }
     
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
