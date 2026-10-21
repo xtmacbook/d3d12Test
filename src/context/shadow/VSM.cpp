@@ -89,9 +89,9 @@ void VSMMapContext::BuildDescriptorHeaps()
 	UINT sdkMeshModelTextureCount = m_sdkMeshModel->GetTextureCount();
 	UINT nullCount = 1; //null srv
 
-	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount +  
-	m_varianceShadowsMgr->GetResouceViewCount()  + 
-	nullCount + 1;//最后这个是tmpDepthTexture
+	// 阴影贴图是一个 Texture2DArray, 只占 1 个 SRV 描述符;
+	// 因此 SRV 堆 = 模型纹理 + shadowMapSRV(1) + tmpDepthSRV(1) + nullSRV(1)
+	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount + 1 + 1 + nullCount;
 
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -101,7 +101,8 @@ void VSMMapContext::BuildDescriptorHeaps()
 
 	m_HeapDescriptorOffsets.m_sdkMeshModelTextureHeapOffset = 0;
 	m_HeapDescriptorOffsets.m_shadowMapHeapOffset = sdkMeshModelTextureCount;
-	m_HeapDescriptorOffsets.m_tmpDepthHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + m_varianceShadowsMgr->GetResouceViewCount();
+	// GetResouceViewCount() 是级联 RTV 数量(3), 不能当作 SRV 偏移; 阴影贴图 SRV 只占 1 个
+	m_HeapDescriptorOffsets.m_tmpDepthHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + 1;
 	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_tmpDepthHeapOffset + 1;
 }
 
