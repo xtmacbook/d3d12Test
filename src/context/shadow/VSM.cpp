@@ -132,19 +132,9 @@ void VSMMapContext::ShowCustomImguiWin()
 	ImGui::Begin("Params It !");
 	
 	static bool bWithCSM = true;
-	ImGui::Checkbox(": with CSM ", &bWithCSM);
+	ImGui::Checkbox(": combine with CSM ", &bWithCSM);
 	m_vsmConfig->m_bWithCSM = bWithCSM;
 
-	static int fit_nearFar_item_current = 0;
-	const char* fitNearFarItems[] = { "FIT_NEARFAR_AABB", "FIT_NEARFAR_SCENE_AABB"};
-    ImGui::Combo("NearFarSel", &fit_nearFar_item_current, fitNearFarItems, IM_ARRAYSIZE(fitNearFarItems));
-
-	static int cascade_select_item_current = 0;
-	const char* cascadeSelItems[] = { "CASCADE_SELECTION_MAP", "CASCADE_SELECTION_INTERVAL"};
-    ImGui::Combo("cascade Sel", &cascade_select_item_current, cascadeSelItems, IM_ARRAYSIZE(cascadeSelItems));
-
-	static bool bUseDDXY = true;
-    ImGui::Checkbox("DDX DDY Offset", &bUseDDXY);
 
 	static float blendAmount = 0.018;
 	static float dragSpeed = 0.05f;

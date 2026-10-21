@@ -9,40 +9,6 @@ using Microsoft::WRL::ComPtr;
 static const XMVECTORF32 g_vHalfVector = {0.5f, 0.5f, 0.5f, 0.5f};
 static const XMVECTORF32 g_vMultiplySetzwToZero = {1.0f, 1.0f, 0.0f, 0.0f};
 
-/**
- *
- *
-m_pCascadedShadowMapVarianceTextureArray: 数组(cascade,R32G32 float array)------
-
-                            -m_pCascadedShadowMapVarianceRTVArrayAll[cascade](targetview : CreateRenderTargetView, texture formate)
-                        ------m_pCascadedShadowMapVarianceSRVArraySingle(shader resouce view)
-                        ------ m_pCascadedShadowMapVarianceSRVArrayAll[cascade] (shader resouce view)
-
-m_pCascadedShadowMapTempBlurTexture: width ,height不是数组 ---------m_pCascadedShadowMapTempBlurRTV(target view)
-                             ------------ m_pCascadedShadowMapTempBlurSRV(shader resouce view)
-
-
-m_pTemporaryShadowDepthBufferTexture（32 float） ---m_pTemporaryShadowDepthBufferDSV
-
-1. to, targetview: m_pCascadedShadowMapVarianceRTVArrayAll
-        depthview : m_pTemporaryShadowDepthBufferDSV
-
-2. blur shadow:
-     shader: vs: quadblur
-       for( cascadelevel)
-    targetview : m_pCascadedShadowMapTempBlurRTV ,
-    depthview : nullview
-    ps: psblurx
-    shaderRource: m_pCascadedShadowMapVarianceSRVArrayAll[cascade]
-    //draw
-
-    targetView : m_pCascadedShadowMapVarianceRTVArrayAll[cascade]
-    depthveiew : nullview
-    shaderRource: m_pCascadedShadowMapTempBlurSRV
-    //draw
-
- *
- */
 
 bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingBox &sceneBox,
                                   const Camera *viewCamra, const Camera *shadowCamera, VSMConfig *config)
@@ -111,6 +77,12 @@ void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
     
     constData.m_fTexelSize = 1.0f / (float)m_vsmConfig->m_iBufferSize; ;
     constData.m_fNativeTexelSizeInX = constData.m_fTexelSize / (float)m_vsmConfig->m_nCascadeLevels; ;
+
+    // 这几个字段 m_mainPassConstantsDataCopy 默认不自动清零, 这里显式初始化, 避免把垃圾值上传给 shader
+    constData.m_iVisualizeCascades = 0;
+    constData.m_fPaddingForCB3 = 0.0f;
+    // 级联之间的混合带宽度(约为 8 个 texel), 用于隐藏级联边界接缝; 可按需调整
+    constData.m_fCascadeBlendArea = 8.0f * constData.m_fTexelSize;
     
     XMMATRIX matTextureScale = XMMatrixScaling(0.5f, -0.5f, 1.0f);
     XMMATRIX matTextureTranslation = XMMatrixTranslation(.5f, .5f, 0.f);
