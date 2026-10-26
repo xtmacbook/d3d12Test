@@ -3,21 +3,21 @@
 #include "context/interface/TexContextInterface.h"
 
 #include <assert.h>
+#include <string>
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 
+
 BlurFilter::BlurFilter(ID3D12Device* device, UINT width,
-	UINT height, DXGI_FORMAT format, UINT depthOrArraySize)
+	UINT height, DXGI_FORMAT format,UINT blurRadius , UINT depthOrArraySize):
+	mWidth(width),
+	mHeight(height),
+	mFormat(format),
+	m_DepthOrArraySize(depthOrArraySize),
+	m_BlurRadius(blurRadius)
 {
-	md3dDevice = device;
-
-	mWidth = width;
-	mHeight = height;
-	mFormat = format;
-	m_DepthOrArraySize = depthOrArraySize;
-
 	BuildResources();
 }
 
@@ -52,9 +52,11 @@ void BlurFilter::BuildDescriptors()
 
 void BlurFilter::BuildCSShader()
 {
+	const std::string maxRadiusStr = std::to_string(m_BlurRadius);
 	D3D_SHADER_MACRO defines[] =
 	{
 		"USE_ARRAY", m_DepthOrArraySize > 1 ? "1" : "0",
+		"MAX_BLUR_RADIUS", maxRadiusStr.c_str(),
 		nullptr, nullptr
 	};
 
@@ -70,7 +72,8 @@ void BlurFilter::BuildRootSignature()
 	uavTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
-	slotRootParameter[0].InitAsConstants(13, 0);
+	// 1 (radius) + (2*kMaxBlurRadius+1) (weights) + 1 (slice)
+	slotRootParameter[0].InitAsConstants(1 + (2 * m_BlurRadius + 1) + 1, 0);
 	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable);
 	slotRootParameter[2].InitAsDescriptorTable(1, &uavTable);
 
@@ -158,8 +161,13 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 	int blurRadius = (int)weights.size() / 2;
 	cmdList->SetComputeRootSignature(m_BlurSignature.Get());
 	cmdList->SetComputeRoot32BitConstants(0, 1, &blurRadius, 0); //此处是使用的函数和之前的都不同，不需要buffer view
-	cmdList->SetComputeRoot32BitConstants(0, (UINT)weights.size(), weights.
-		data(), 1);
+
+	// 权重数组固定为 (2*kMaxBlurRadius+1) 个槽位, 不足的补 0, 保证 cbuffer 布局与 shader 一致
+	const UINT weightCount = (2 * m_BlurRadius + 1);
+	std::vector<float> allWeights(weightCount, 0.0f);
+	for (UINT i = 0; i < (UINT)weights.size() && i < weightCount; ++i)
+		allWeights[i] = weights[i];
+	cmdList->SetComputeRoot32BitConstants(0, weightCount, allWeights.data(), 1);
 
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(input,
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
@@ -179,7 +187,7 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 	{
 		// Select the array slice being blurred (ignored for single textures).
 		int s = (int)slice;
-		cmdList->SetComputeRoot32BitConstants(0, 1, &s, 12);
+		cmdList->SetComputeRoot32BitConstants(0, 1, &s, 1 + (2 * m_BlurRadius + 1));
 
 		for (int i = 0; i < blurCount; ++i)
 		{
@@ -239,7 +247,7 @@ std::vector<float> BlurFilter::CalcGaussWeights(float sigma)
 	// For example, for sigma = 3, the width of the bell curve is 
 	int blurRadius = (int)ceil(2.0f * sigma);
 
-	assert(blurRadius <= 5);
+	assert(blurRadius <= (int)m_BlurRadius);
 
 	std::vector<float> weights;
 	weights.resize(2 * blurRadius + 1);

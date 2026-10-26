@@ -30,7 +30,7 @@ public:
 
 	BlurFilter(ID3D12Device* device,
 		UINT width, UINT height,
-		DXGI_FORMAT format, UINT depthOrArraySize = 1);
+		DXGI_FORMAT format,UINT blurRadius = 5,UINT depthOrArraySize = 1);
 
 	void OnResize(UINT newWidth, UINT newHeight);
 
@@ -61,7 +61,8 @@ private:
 	ID3D12Device* md3dDevice = nullptr;
 	DXGI_FORMAT		mFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	UINT			m_DepthOrArraySize = 1;
-
+	UINT			m_BlurRadius;
+	
 	Microsoft::WRL::ComPtr<ID3D12Resource> mBlurMap0;
 	Microsoft::WRL::ComPtr<ID3D12Resource> mBlurMap1;
 

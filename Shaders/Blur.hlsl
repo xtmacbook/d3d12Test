@@ -1,33 +1,26 @@
 //=============================================================================
-// Performs a separable Guassian blur with a blur radius up to 5 pixels.
+// Performs a separable Guassian blur with a configurable max radius.
 // Define USE_ARRAY to blur a Texture2DArray (each slice independently).
+// The max blur radius can be customized by defining MAX_BLUR_RADIUS (default 5).
 //=============================================================================
+
+#ifndef MAX_BLUR_RADIUS
+#define MAX_BLUR_RADIUS 5
+#endif
 
 cbuffer cbSettings : register(b0)
 {
 	// We cannot have an array entry in a constant buffer that gets mapped onto
-	// root constants, so list each element.  
+	// root constants, so list each element.
 
 	int gBlurRadius;
 
-	// Support up to 11 blur weights.
-	float w0;
-	float w1;
-	float w2;
-	float w3;
-	float w4;
-	float w5;
-	float w6;
-	float w7;
-	float w8;
-	float w9;
-	float w10;
+	// Support up to (2*MAX_BLUR_RADIUS + 1) blur weights.
+	float w[2 * MAX_BLUR_RADIUS + 1];
 
 	// Which array slice is being blurred (only used when USE_ARRAY is defined).
 	int gSlice;
 };
-
-static const int gMaxBlurRadius = 5;
 
 #if USE_ARRAY
 Texture2DArray gInput            : register(t0);
@@ -38,7 +31,7 @@ RWTexture2D<float4> gOutput      : register(u0);
 #endif
 
 #define N 256
-#define CacheSize (N + 2*gMaxBlurRadius)
+#define CacheSize (N + 2 * MAX_BLUR_RADIUS)
 groupshared float4 gCache[CacheSize];
 
 #if USE_ARRAY
@@ -51,16 +44,13 @@ int2 G(in int2 xy) { return xy; }
 void HorzBlurCS(int3 groupThreadID : SV_GroupThreadID,
 				int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	// Put in an array for each indexing.
-	float weights[11] = { w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10 };
-
 	//
-	// Fill local thread storage to reduce bandwidth.  To blur 
+	// Fill local thread storage to reduce bandwidth.  To blur
 	// N pixels, we will need to load N + 2*BlurRadius pixels
 	// due to the blur radius.
 	//
-	
-	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels, 
+
+	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels,
 	// have 2*BlurRadius threads sample an extra pixel.
 	if(groupThreadID.x < gBlurRadius)
 	{
@@ -68,32 +58,31 @@ void HorzBlurCS(int3 groupThreadID : SV_GroupThreadID,
 		int x = max(dispatchThreadID.x - gBlurRadius, 0);
 		gCache[groupThreadID.x] = gInput[G(int2(x, dispatchThreadID.y))];
 	}
-	if(groupThreadID.x >= N-gBlurRadius)
+	if(groupThreadID.x >= N - gBlurRadius)
 	{
 		// Clamp out of bound samples that occur at image borders.
-		int x = min(dispatchThreadID.x + gBlurRadius, gInput.Length.x-1);
-		gCache[groupThreadID.x+2*gBlurRadius] = gInput[G(int2(x, dispatchThreadID.y))];
+		int x = min(dispatchThreadID.x + gBlurRadius, gInput.Length.x - 1);
+		gCache[groupThreadID.x + 2 * gBlurRadius] = gInput[G(int2(x, dispatchThreadID.y))];
 	}
 
 	// Clamp out of bound samples that occur at image borders.
-	gCache[groupThreadID.x+gBlurRadius] = gInput[G(min(dispatchThreadID.xy, int2(gInput.Length.xy-1)))];
+	gCache[groupThreadID.x + gBlurRadius] = gInput[G(min(dispatchThreadID.xy, int2(gInput.Length.xy - 1)))];
 
 	// Wait for all threads to finish.
 	GroupMemoryBarrierWithGroupSync();
-	
+
 	//
 	// Now blur each pixel.
 	//
 
 	float4 blurColor = float4(0, 0, 0, 0);
-	
+
 	for(int i = -gBlurRadius; i <= gBlurRadius; ++i)
 	{
 		int k = groupThreadID.x + gBlurRadius + i;
-		
-		blurColor += weights[i+gBlurRadius]*gCache[k];
+		blurColor += w[i + gBlurRadius] * gCache[k];
 	}
-	
+
 	gOutput[G(dispatchThreadID.xy)] = blurColor;
 }
 
@@ -101,16 +90,13 @@ void HorzBlurCS(int3 groupThreadID : SV_GroupThreadID,
 void VertBlurCS(int3 groupThreadID : SV_GroupThreadID,
 				int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	// Put in an array for each indexing.
-	float weights[11] = { w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10 };
-
 	//
-	// Fill local thread storage to reduce bandwidth.  To blur 
+	// Fill local thread storage to reduce bandwidth.  To blur
 	// N pixels, we will need to load N + 2*BlurRadius pixels
 	// due to the blur radius.
 	//
-	
-	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels, 
+
+	// This thread group runs N threads.  To get the extra 2*BlurRadius pixels,
 	// have 2*BlurRadius threads sample an extra pixel.
 	if(groupThreadID.y < gBlurRadius)
 	{
@@ -118,32 +104,30 @@ void VertBlurCS(int3 groupThreadID : SV_GroupThreadID,
 		int y = max(dispatchThreadID.y - gBlurRadius, 0);
 		gCache[groupThreadID.y] = gInput[G(int2(dispatchThreadID.x, y))];
 	}
-	if(groupThreadID.y >= N-gBlurRadius)
+	if(groupThreadID.y >= N - gBlurRadius)
 	{
 		// Clamp out of bound samples that occur at image borders.
-		int y = min(dispatchThreadID.y + gBlurRadius, gInput.Length.y-1);
-		gCache[groupThreadID.y+2*gBlurRadius] = gInput[G(int2(dispatchThreadID.x, y))];
+		int y = min(dispatchThreadID.y + gBlurRadius, gInput.Length.y - 1);
+		gCache[groupThreadID.y + 2 * gBlurRadius] = gInput[G(int2(dispatchThreadID.x, y))];
 	}
-	
-	// Clamp out of bound samples that occur at image borders.
-	gCache[groupThreadID.y+gBlurRadius] = gInput[G(min(dispatchThreadID.xy, int2(gInput.Length.xy-1)))];
 
+	// Clamp out of bound samples that occur at image borders.
+	gCache[groupThreadID.y + gBlurRadius] = gInput[G(min(dispatchThreadID.xy, int2(gInput.Length.xy - 1)))];
 
 	// Wait for all threads to finish.
 	GroupMemoryBarrierWithGroupSync();
-	
+
 	//
 	// Now blur each pixel.
 	//
 
 	float4 blurColor = float4(0, 0, 0, 0);
-	
+
 	for(int i = -gBlurRadius; i <= gBlurRadius; ++i)
 	{
 		int k = groupThreadID.y + gBlurRadius + i;
-		
-		blurColor += weights[i+gBlurRadius]*gCache[k];
+		blurColor += w[i + gBlurRadius] * gCache[k];
 	}
-	
+
 	gOutput[G(dispatchThreadID.xy)] = blurColor;
 }
