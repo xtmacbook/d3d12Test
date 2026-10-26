@@ -153,7 +153,7 @@ void TexContextInterface::BuildUAVTextureResouce(ID3D12Device* device, TextureOu
 	texDesc.Alignment = 0;
 	texDesc.Width = desc.Width;
 	texDesc.Height = desc.Height;
-	texDesc.DepthOrArraySize = 1;
+	texDesc.DepthOrArraySize = desc.ArraySize;
 	texDesc.MipLevels = 1;
 	texDesc.Format = desc.Format;
 	texDesc.SampleDesc.Count = 1;
@@ -176,14 +176,35 @@ void TexContextInterface::BuildUAVTextureResouceView(ID3D12Device* device, Textu
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = desc.Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = 1;
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 	uavDesc.Format = desc.Format;
-	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	uavDesc.Texture2D.MipSlice = 0;
+
+	if (desc.ArraySize > 1)
+	{
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.MipLevels = 1;
+		srvDesc.Texture2DArray.FirstArraySlice = 0;
+		srvDesc.Texture2DArray.ArraySize = desc.ArraySize;
+		srvDesc.Texture2DArray.PlaneSlice = 0;
+		srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+		uavDesc.Texture2DArray.MipSlice = 0;
+		uavDesc.Texture2DArray.FirstArraySlice = 0;
+		uavDesc.Texture2DArray.ArraySize = desc.ArraySize;
+		uavDesc.Texture2DArray.PlaneSlice = 0;
+	}
+	else
+	{
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+
+		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+		uavDesc.Texture2D.MipSlice = 0;
+	}
 
 
 	//the texture will be bound as a UAV and as a SRV(but not simultaneously).

@@ -28,6 +28,7 @@ struct TextureOutDes
 {
 	int Width;
 	int Height;
+	int ArraySize = 1;
 	DXGI_FORMAT Format;
 };
 
