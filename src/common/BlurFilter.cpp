@@ -9,13 +9,14 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 BlurFilter::BlurFilter(ID3D12Device* device, UINT width,
-	UINT height, DXGI_FORMAT format)
+	UINT height, DXGI_FORMAT format, UINT depthOrArraySize)
 {
 	md3dDevice = device;
 
 	mWidth = width;
 	mHeight = height;
 	mFormat = format;
+	m_DepthOrArraySize = depthOrArraySize;
 
 	BuildResources();
 }
@@ -38,6 +39,7 @@ void BlurFilter::BuildDescriptors()
 	TextureOutDes desc;
 	desc.Width = mWidth;
 	desc.Height = mHeight;
+	desc.ArraySize = (int)m_DepthOrArraySize;
 	desc.Format = mFormat;
 
 	TextureOutResouce outRes0{ mBlurMap0, mBlur0CpuSrv, mBlur0CpuUav };
@@ -50,8 +52,14 @@ void BlurFilter::BuildDescriptors()
 
 void BlurFilter::BuildCSShader()
 {
-	m_BlurShader["horzBlurCS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Blur.hlsl", nullptr, "HorzBlurCS", "cs_5_1");
-	m_BlurShader["vertBlurCS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Blur.hlsl", nullptr, "VertBlurCS", "cs_5_1");
+	D3D_SHADER_MACRO defines[] =
+	{
+		"USE_ARRAY", m_DepthOrArraySize > 1 ? "1" : "0",
+		nullptr, nullptr
+	};
+
+	m_BlurShader["horzBlurCS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Blur.hlsl", defines, "HorzBlurCS", "cs_5_1");
+	m_BlurShader["vertBlurCS"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/Blur.hlsl", defines, "VertBlurCS", "cs_5_1");
 }
 
 void BlurFilter::BuildRootSignature()
@@ -62,7 +70,7 @@ void BlurFilter::BuildRootSignature()
 	uavTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
 
 	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
-	slotRootParameter[0].InitAsConstants(12, 0);
+	slotRootParameter[0].InitAsConstants(13, 0);
 	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable);
 	slotRootParameter[2].InitAsDescriptorTable(1, &uavTable);
 
@@ -116,6 +124,7 @@ void BlurFilter::BuildResources()
 	TextureOutDes desc;
 	desc.Width = mWidth;
 	desc.Height = mHeight;
+	desc.ArraySize = (int)m_DepthOrArraySize;
 	desc.Format = mFormat;
 
 	TexContextInterface::BuildUAVTextureResouce(md3dDevice, desc,  mBlurMap0 );
@@ -166,46 +175,53 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 		Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
 
-	for (int i = 0; i < blurCount; ++i)
+	for (UINT slice = 0; slice < m_DepthOrArraySize; ++slice)
 	{
-		cmdList->SetPipelineState(m_BlurPSOs["horzBlur"].Get());
-		cmdList->SetComputeRootDescriptorTable(1, mBlur0GpuSrv);
-		cmdList->SetComputeRootDescriptorTable(2, mBlur1GpuUav);
-		// How many groups do we need to dispatch to cover a row of pixels, where
-		// each group covers 256 pixels (the 256 is defined in the ComputeShader).
-		
-		UINT numGroupsX = (UINT)ceilf(mWidth / 256.0f);
+		// Select the array slice being blurred (ignored for single textures).
+		int s = (int)slice;
+		cmdList->SetComputeRoot32BitConstants(0, 1, &s, 12);
 
-		cmdList->Dispatch(numGroupsX, mHeight, 1);
+		for (int i = 0; i < blurCount; ++i)
+		{
+			cmdList->SetPipelineState(m_BlurPSOs["horzBlur"].Get());
+			cmdList->SetComputeRootDescriptorTable(1, mBlur0GpuSrv);
+			cmdList->SetComputeRootDescriptorTable(2, mBlur1GpuUav);
+			// How many groups do we need to dispatch to cover a row of pixels, where
+			// each group covers 256 pixels (the 256 is defined in the ComputeShader).
+			
+			UINT numGroupsX = (UINT)ceilf(mWidth / 256.0f);
 
-		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-			mBlurMap0.Get(),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-			mBlurMap1.Get(),
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-			D3D12_RESOURCE_STATE_GENERIC_READ));
-		//
-		// Vertical Blur pass.
-		//
-		cmdList->SetPipelineState(m_BlurPSOs["vertBlur"].Get());
-		cmdList->SetComputeRootDescriptorTable(1, mBlur1GpuSrv);
-		cmdList->SetComputeRootDescriptorTable(2, mBlur0GpuUav);
-		// How many groups do we need to dispatch to cover a column of pixels,
-		// where each group covers 256 pixels (the 256 is defined in the
-		// ComputeShader).
-		UINT numGroupsY = (UINT)ceilf(mHeight / 256.0f);
-		cmdList->Dispatch(mWidth, numGroupsY, 1);
+			cmdList->Dispatch(numGroupsX, mHeight, 1);
 
-		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-			mBlurMap0.Get(),
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-			D3D12_RESOURCE_STATE_GENERIC_READ));
-		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-			mBlurMap1.Get(),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+				mBlurMap0.Get(),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+				mBlurMap1.Get(),
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_GENERIC_READ));
+			//
+			// Vertical Blur pass.
+			//
+			cmdList->SetPipelineState(m_BlurPSOs["vertBlur"].Get());
+			cmdList->SetComputeRootDescriptorTable(1, mBlur1GpuSrv);
+			cmdList->SetComputeRootDescriptorTable(2, mBlur0GpuUav);
+			// How many groups do we need to dispatch to cover a column of pixels,
+			// where each group covers 256 pixels (the 256 is defined in the
+			// ComputeShader).
+			UINT numGroupsY = (UINT)ceilf(mHeight / 256.0f);
+			cmdList->Dispatch(mWidth, numGroupsY, 1);
+
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+				mBlurMap0.Get(),
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+				D3D12_RESOURCE_STATE_GENERIC_READ));
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+				mBlurMap1.Get(),
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+		}
 	}
 
 }

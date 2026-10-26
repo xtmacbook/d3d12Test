@@ -60,14 +60,6 @@ namespace SDKMesh
 	struct SDKMeshModel;
 }
 
-struct VSMShadowHeapDescriptor
-{
-	UINT m_shadowMapHeapOffset;
-	UINT m_sdkMeshModelTextureHeapOffset;
-	UINT m_nullHeapOffset;
-	UINT m_tmpDepthHeapOffset;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
-};
 
 class ShadowMapRes;
 struct VSMConfig;
@@ -123,5 +115,4 @@ private:
 	FLOAT																			m_fBlurBetweenCascadesAmount = 0.005f;
 
 	VSMPassConstants																m_mainPassConstantsDataCopy;
-
 };
