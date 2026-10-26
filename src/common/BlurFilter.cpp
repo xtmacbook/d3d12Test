@@ -16,7 +16,8 @@ BlurFilter::BlurFilter(ID3D12Device* device, UINT width,
 	mHeight(height),
 	mFormat(format),
 	m_DepthOrArraySize(depthOrArraySize),
-	m_BlurRadius(blurRadius)
+	m_BlurRadius(blurRadius),
+	md3dDevice(device)
 {
 	BuildResources();
 }
@@ -157,7 +158,7 @@ void BlurFilter::BuildDescriptors(
 void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* input, 
 	int blurCount)
 {
-	std::vector<float> weights = CalcGaussWeights(2.5f);
+	std::vector<float> weights = CalcGaussWeights(m_BlurRadius * 0.5);
 	int blurRadius = (int)weights.size() / 2;
 	cmdList->SetComputeRootSignature(m_BlurSignature.Get());
 	cmdList->SetComputeRoot32BitConstants(0, 1, &blurRadius, 0); //此处是使用的函数和之前的都不同，不需要buffer view
