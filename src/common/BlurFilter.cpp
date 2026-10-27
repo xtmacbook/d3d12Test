@@ -233,6 +233,16 @@ void BlurFilter::Execute(ID3D12GraphicsCommandList* cmdList, ID3D12Resource* inp
 		}
 	}
 
+		// Restore the ping-pong maps to COMMON so the next call's
+	// COMMON -> COPY_DEST / COMMON -> UNORDERED_ACCESS barriers are valid.
+	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+		mBlurMap0.Get(),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_COMMON));
+	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+		mBlurMap1.Get(),
+		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+		D3D12_RESOURCE_STATE_COMMON));
 }
 
 ID3D12Resource* BlurFilter::Output()

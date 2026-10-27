@@ -16,11 +16,42 @@ cbuffer cbSettings : register(b0)
 	int gBlurRadius;
 
 	// Support up to (2*MAX_BLUR_RADIUS + 1) blur weights.
-	float w[2 * MAX_BLUR_RADIUS + 1];
+	// Root constants cannot index a cbuffer array, so we list each weight
+	// as a separate scalar to keep the layout flat/predictable.
+	float w0;
+	float w1;
+	float w2;
+	float w3;
+	float w4;
+	float w5;
+	float w6;
+	float w7;
+	float w8;
+	float w9;
+	float w10;
 
 	// Which array slice is being blurred (only used when USE_ARRAY is defined).
 	int gSlice;
 };
+
+float W(in int idx)
+{
+	switch(idx)
+	{
+		case 0: return w0;
+		case 1: return w1;
+		case 2: return w2;
+		case 3: return w3;
+		case 4: return w4;
+		case 5: return w5;
+		case 6: return w6;
+		case 7: return w7;
+		case 8: return w8;
+		case 9: return w9;
+		case 10: return w10;
+	}
+	return 0.0f;
+}
 
 #if USE_ARRAY
 Texture2DArray gInput            : register(t0);
@@ -80,7 +111,7 @@ void HorzBlurCS(int3 groupThreadID : SV_GroupThreadID,
 	for(int i = -gBlurRadius; i <= gBlurRadius; ++i)
 	{
 		int k = groupThreadID.x + gBlurRadius + i;
-		blurColor += w[i + gBlurRadius] * gCache[k];
+		blurColor += W(i + gBlurRadius) * gCache[k];
 	}
 
 	gOutput[G(dispatchThreadID.xy)] = blurColor;
@@ -126,7 +157,7 @@ void VertBlurCS(int3 groupThreadID : SV_GroupThreadID,
 	for(int i = -gBlurRadius; i <= gBlurRadius; ++i)
 	{
 		int k = groupThreadID.y + gBlurRadius + i;
-		blurColor += w[i + gBlurRadius] * gCache[k];
+		blurColor += W(i + gBlurRadius) * gCache[k];
 	}
 
 	gOutput[G(dispatchThreadID.xy)] = blurColor;
