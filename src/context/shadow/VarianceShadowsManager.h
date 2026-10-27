@@ -11,6 +11,7 @@
 class Camera;
 class ShadowMapRes;
 class FrameResourceInterface;
+class BlurFilter;
 
 #define MAX_VSM_CASCADES 3
 
@@ -26,6 +27,25 @@ struct VSMConfig
     SHADOW_TEXTURE_FORMAT m_ShadowBufferFormat;
     INT m_iBufferSize;
 	BOOL  m_bWithCSM; // 是否使用CSM
+};
+
+struct VSMShadowHeapDescriptor
+{
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_descriptorHeap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_RtvHeap;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_DsvHeap;
+
+	UINT m_shadowMapHeapOffset;
+	UINT m_sdkMeshModelTextureHeapOffset;
+	UINT m_nullHeapOffset;
+	UINT m_blurHeapOffset;
+	UINT m_tmpDepthHeapOffset;
+
+    UINT m_CbvSrvUavDescriptorSize;
+	UINT m_RtvDescriptorSize;
+	UINT m_DsvDescriptorSize;
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
 };
 
 struct VSMPassConstants
@@ -66,22 +86,16 @@ struct VSMShadowMapDrawData
 class VarianceShadowsManager
 {
 public:
+    VarianceShadowsManager();
+    ~VarianceShadowsManager();
+
     bool init(ID3D12Device *, const DirectX::BoundingBox &sceneBox,
               const Camera *viewCamra, const Camera *shadowCamera,
               VSMConfig *config);
 
     UINT GetResouceViewCount() const;
-
-    void BuildDescriptors(
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-        CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
-
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv1,
-        CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv1,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv,
-        
-        UINT CbvSrvUavDescriptorSize);
+    
+    void BuildDescriptors(VSMShadowHeapDescriptor desc);
 
     void UpdateMainPassData(VSMPassConstants &constData);
     DirectX::XMMATRIX GetShadowPassData(UINT iCascadeIndex);
@@ -94,6 +108,10 @@ public:
     void RenderScene(ID3D12GraphicsCommandList *cmmandList, VSMShadowMapDrawData &data);
     void RenderShadows(ID3D12GraphicsCommandList *mCommandList,
                        VSMShadowMapDrawData &data);
+
+    void OnResize(int width, int heigh);
+
+    void BuildRootSignature();
 
     void BuildShadowMap();
 
@@ -108,7 +126,7 @@ public:
 
     INT																				m_iCascadePartitionsZeroToOne[MAX_VSM_CASCADES]; //这个是用户设置的： Values are 0 to 100 and represent a percent of the frstum
     INT																				m_iCascadePartitionsMax;
-
+    bool                                                                            m_blurShadow = false;
 private:
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderSceneVSShadersBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderScenePSShadersBlob[2];
@@ -132,5 +150,7 @@ private:
 	FLOAT																			m_fCascadePartitionsFrustum[MAX_VSM_CASCADES]; //程序计算的真实值 Values are  between near and far
     DirectX::XMMATRIX m_matShadowProj[8];
 	DirectX::XMMATRIX																m_matShadowView;
+    
+	std::unique_ptr<BlurFilter> m_BlurFilter;
 
 };

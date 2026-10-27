@@ -1,10 +1,15 @@
 #include "VarianceShadowsManager.h"
+
 #include "common/SDKMeshModel.h"
 #include "common/Camera.h"
+#include "common/BlurFilter.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;
 using Microsoft::WRL::ComPtr;
+
+VarianceShadowsManager::VarianceShadowsManager() = default;
+VarianceShadowsManager::~VarianceShadowsManager() = default;
 
 static const XMVECTORF32 g_vHalfVector = {0.5f, 0.5f, 0.5f, 0.5f};
 static const XMVECTORF32 g_vMultiplySetzwToZero = {1.0f, 1.0f, 0.0f, 0.0f};
@@ -54,17 +59,35 @@ UINT VarianceShadowsManager::GetResouceViewCount() const
     return MAX_VSM_CASCADES;
 }
 
-void VarianceShadowsManager::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
-                                              CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv,
-                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv1,
-                                              CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv1,
-                                              CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv,
-    UINT CbvSrvUavDescriptorSize)
+void VarianceShadowsManager::BuildDescriptors(VSMShadowHeapDescriptor desc)
 {
-    m_ShadowMap->BuildDescriptors(hCpuSrv, hGpuSrv, hCpuRtv, CbvSrvUavDescriptorSize);
+    UINT shadowMapHeapIndex = desc.m_shadowMapHeapOffset;
+	UINT tmpDepthHeapIndex = desc.m_tmpDepthHeapOffset;
 
-    m_TmpDepthMap->BuildDescriptors(hCpuSrv1, hGpuSrv1, hCpuDsv, CbvSrvUavDescriptorSize);
+    auto srvCpuStart = desc.m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	auto srvGpuStart = desc.m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+
+	auto rtvCpuStart = desc.m_RtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto dsvCpuStart = desc.m_DsvHeap ->GetCPUDescriptorHandleForHeapStart();
+
+    m_ShadowMap->BuildDescriptors(
+            CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, shadowMapHeapIndex, desc.m_CbvSrvUavDescriptorSize),
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, shadowMapHeapIndex, desc.m_CbvSrvUavDescriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, 2, desc.m_RtvDescriptorSize),
+            desc.m_CbvSrvUavDescriptorSize);
+
+    m_TmpDepthMap->BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, tmpDepthHeapIndex, desc.m_CbvSrvUavDescriptorSize),
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, tmpDepthHeapIndex, desc.m_CbvSrvUavDescriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, desc.m_DsvDescriptorSize),desc.m_CbvSrvUavDescriptorSize);
+    
+    m_BlurFilter->BuildDescriptors(
+		CD3DX12_CPU_DESCRIPTOR_HANDLE(
+			srvCpuStart,
+			desc.m_blurHeapOffset, desc.m_CbvSrvUavDescriptorSize),
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(
+			srvGpuStart,
+			desc.m_blurHeapOffset, desc.m_CbvSrvUavDescriptorSize),
+		desc.m_CbvSrvUavDescriptorSize);
 }
 
 void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
@@ -150,6 +173,10 @@ void VarianceShadowsManager::BuildPOS(SDKMesh::SDKMeshModel *meshModel, D3D12_GR
     epsd.device = m_d3dDevice;
     epsd.desc = psoDesc;
     m_shadowEffect = meshModel->CreateOnlyOneEffect(epsd);
+
+    //blur pso
+	m_BlurFilter->BuildCSShader();
+	m_BlurFilter->BuildComputePipeLineState();
 }
 
 ID3D12PipelineState *VarianceShadowsManager::GetSceneEffect(int idx)
@@ -231,13 +258,40 @@ void VarianceShadowsManager::RenderShadows(ID3D12GraphicsCommandList *mCommandLi
     }
    
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-        m_ShadowMap->Resource(),
-        D3D12_RESOURCE_STATE_RENDER_TARGET,
-        D3D12_RESOURCE_STATE_GENERIC_READ));
-    mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
         m_TmpDepthMap->Resource(),
         D3D12_RESOURCE_STATE_DEPTH_WRITE,
         D3D12_RESOURCE_STATE_GENERIC_READ));
+
+    if(m_blurShadow)
+    {
+    // 阴影贴图保持 RENDER_TARGET,由 BlurFilter::Execute 内部转为 COPY_SOURCE 再拷贝
+        m_BlurFilter->Execute(mCommandList, m_ShadowMap->Resource(), 1);
+        
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
+            D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
+        
+        mCommandList->CopyResource(m_ShadowMap->Resource(), m_BlurFilter->Output());
+
+        // 拷贝回后转为可读状态,供主 Pass 作为 SRV 采样
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
+            D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+    }
+    else
+    {
+        // 不 blur 时直接转为可读状态,供主 Pass 作为 SRV 采样
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+    }
+}
+
+void VarianceShadowsManager::OnResize(int width, int heigh)
+{
+	m_BlurFilter->OnResize(width, heigh);
+}
+
+void VarianceShadowsManager::BuildRootSignature()
+{
+    m_BlurFilter->BuildRootSignature();
 }
 
 void VarianceShadowsManager::UpdateFrame(const GameTimer &gt, Camera *viewCamera, Camera *lightCamer)
@@ -322,6 +376,10 @@ void VarianceShadowsManager::BuildShadowMap()
     m_TmpDepthMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
         m_vsmConfig->m_iBufferSize,
                                                    SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS);
+
+    m_BlurFilter = 
+		std::make_unique<BlurFilter>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
+             m_vsmConfig->m_iBufferSize,DXGI_FORMAT_R32G32_FLOAT,1, MAX_VSM_CASCADES);
 }
 
 void VarianceShadowsManager::CalculateFrustum(Camera *viewCamera, Camera *lightCamer,

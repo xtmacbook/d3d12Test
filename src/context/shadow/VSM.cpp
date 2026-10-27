@@ -42,7 +42,7 @@ bool VSMMapContext::InitDirect3D()
 	m_vsmConfig = std::make_shared<VSMConfig>();
 	m_vsmConfig->m_iBufferSize = 1024;
 	m_vsmConfig->m_nCascadeLevels = 3;
-	m_vsmConfig->m_bWithCSM = true;
+	m_vsmConfig->m_bWithCSM = false;
 	m_vsmConfig->m_ShadowBufferFormat = SHADOW_DXGI_FORMAT_R32G32_TYPELESS;
 
 	m_varianceShadowsMgr = std::make_shared< VarianceShadowsManager>();
@@ -88,22 +88,32 @@ void VSMMapContext::BuildDescriptorHeaps()
  
 	UINT sdkMeshModelTextureCount = m_sdkMeshModel->GetTextureCount();
 	UINT nullCount = 1; //null srv
-
+	UINT blurCount = 4;
 	// 阴影贴图是一个 Texture2DArray, 只占 1 个 SRV 描述符;
 	// 因此 SRV 堆 = 模型纹理 + shadowMapSRV(1) + tmpDepthSRV(1) + nullSRV(1)
-	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount + 1 + 1 + nullCount;
+	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount + 1 + 1 + nullCount + blurCount;
 
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(
 		&srvHeapDesc, IID_PPV_ARGS(&m_SrvDescriptorHeap)));
+	
+	m_HeapDescriptorOffsets.m_descriptorHeap = m_SrvDescriptorHeap.Get();
+	m_HeapDescriptorOffsets.m_RtvHeap = m_RtvHeap.Get();
+	m_HeapDescriptorOffsets.m_DsvHeap = m_DsvHeap.Get();
+
+	m_HeapDescriptorOffsets.m_CbvSrvUavDescriptorSize = m_CbvSrvUavDescriptorSize;
+	m_HeapDescriptorOffsets.m_RtvDescriptorSize = m_RtvDescriptorSize;
+	m_HeapDescriptorOffsets.m_DsvDescriptorSize = m_DsvDescriptorSize;
 
 	m_HeapDescriptorOffsets.m_sdkMeshModelTextureHeapOffset = 0;
 	m_HeapDescriptorOffsets.m_shadowMapHeapOffset = sdkMeshModelTextureCount;
 	// GetResouceViewCount() 是级联 RTV 数量(3), 不能当作 SRV 偏移; 阴影贴图 SRV 只占 1 个
 	m_HeapDescriptorOffsets.m_tmpDepthHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + 1;
 	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_tmpDepthHeapOffset + 1;
+	m_HeapDescriptorOffsets.m_blurHeapOffset = m_HeapDescriptorOffsets.m_nullHeapOffset + 1;
+
 }
 
 void VSMMapContext::CreateRtvDescriptorHeap()
@@ -131,7 +141,7 @@ void VSMMapContext::ShowCustomImguiWin()
 
 	ImGui::Begin("Params It !");
 	
-	static bool bWithCSM = true;
+	static bool bWithCSM = false;
 	ImGui::Checkbox(": combine with CSM ", &bWithCSM);
 	m_vsmConfig->m_bWithCSM = bWithCSM;
 
@@ -146,9 +156,11 @@ void VSMMapContext::ShowCustomImguiWin()
     ImGui::Checkbox(": use Bias", &bBias);
 	m_mainPassConstantsDataCopy.m_Bias.x = bBias ? 1 : 0;
 
-	ImGui::End();
+	static bool bBlur = false;
+    ImGui::Checkbox(": use Blur", &bBlur);
+	m_varianceShadowsMgr->m_blurShadow = bBlur;
 
-	
+	ImGui::End();
 #endif
 }
 
@@ -238,6 +250,8 @@ void VSMMapContext::BuildRootSignature()
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(m_RootSignature.GetAddressOf())));
+
+	m_varianceShadowsMgr->BuildRootSignature();
 }
 
 void VSMMapContext::OnResize(int width, int heigh)
@@ -449,21 +463,9 @@ void VSMMapContext::BuildResourceView()
 		offset,
 		m_CbvSrvUavDescriptorSize
 	);
-
-	UINT shadowMapHeapIndex = m_HeapDescriptorOffsets.m_shadowMapHeapOffset;
-	UINT tmpDepthHeapIndex = m_HeapDescriptorOffsets.m_tmpDepthHeapOffset;
-	{
-		m_varianceShadowsMgr->BuildDescriptors(
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, shadowMapHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, SwapChainBufferCount, m_RtvDescriptorSize),
-
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, tmpDepthHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, tmpDepthHeapIndex, m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, m_DsvDescriptorSize),m_CbvSrvUavDescriptorSize
-		
-		);
-	}
+	
+	m_varianceShadowsMgr->BuildDescriptors(m_HeapDescriptorOffsets);
+	 
 
 	//some null descriptor
 	auto nullSrv = CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, m_HeapDescriptorOffsets.m_nullHeapOffset, m_CbvSrvUavDescriptorSize);
