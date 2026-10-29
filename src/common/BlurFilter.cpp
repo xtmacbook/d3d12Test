@@ -14,10 +14,10 @@ BlurFilter::BlurFilter(ID3D12Device* device, UINT width,
 	UINT height, DXGI_FORMAT format,UINT blurRadius , UINT depthOrArraySize):
 	mWidth(width),
 	mHeight(height),
-	mFormat(format),
+	m_Format(format),
 	m_DepthOrArraySize(depthOrArraySize),
 	m_BlurRadius(blurRadius),
-	md3dDevice(device)
+	m_d3dDevice(device)
 {
 	BuildResources();
 }
@@ -41,13 +41,13 @@ void BlurFilter::BuildDescriptors()
 	desc.Width = mWidth;
 	desc.Height = mHeight;
 	desc.ArraySize = (int)m_DepthOrArraySize;
-	desc.Format = mFormat;
+	desc.Format = m_Format;
 
 	TextureOutResouce outRes0{ mBlurMap0, mBlur0CpuSrv, mBlur0CpuUav };
 	TextureOutResouce outRes1{ mBlurMap1, mBlur1CpuSrv, mBlur1CpuUav };
 
-	TexContextInterface::BuildUAVTextureResouceView(md3dDevice, desc, mBlurMap0, mBlur0CpuSrv, mBlur0CpuUav);
-	TexContextInterface::BuildUAVTextureResouceView(md3dDevice, desc, mBlurMap1, mBlur1CpuSrv, mBlur1CpuUav);
+	TexContextInterface::BuildUAVTextureResouceView(m_d3dDevice, desc, mBlurMap0, mBlur0CpuSrv, mBlur0CpuUav);
+	TexContextInterface::BuildUAVTextureResouceView(m_d3dDevice, desc, mBlurMap1, mBlur1CpuSrv, mBlur1CpuUav);
 
 }
 
@@ -96,7 +96,7 @@ void BlurFilter::BuildRootSignature()
 	}
 	ThrowIfFailed(hr);
 
-	ThrowIfFailed(md3dDevice->CreateRootSignature(
+	ThrowIfFailed(m_d3dDevice->CreateRootSignature(
 		0,
 		serializedRootSig->GetBufferPointer(),
 		serializedRootSig->GetBufferSize(),
@@ -114,13 +114,13 @@ void BlurFilter::BuildComputePipeLineState()
 		m_BlurShader["horzBlurCS"]->GetBufferSize()
 	};
 	computePsoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(md3dDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_BlurPSOs["horzBlur"])));
+	ThrowIfFailed(m_d3dDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_BlurPSOs["horzBlur"])));
 
 	computePsoDesc.CS = {
 		reinterpret_cast<BYTE*>(m_BlurShader["vertBlurCS"]->GetBufferPointer()),
 		m_BlurShader["vertBlurCS"]->GetBufferSize()
 	};
-	ThrowIfFailed(md3dDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_BlurPSOs["vertBlur"])));
+	ThrowIfFailed(m_d3dDevice->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&m_BlurPSOs["vertBlur"])));
 }
 
 void BlurFilter::BuildResources()
@@ -129,10 +129,10 @@ void BlurFilter::BuildResources()
 	desc.Width = mWidth;
 	desc.Height = mHeight;
 	desc.ArraySize = (int)m_DepthOrArraySize;
-	desc.Format = mFormat;
+	desc.Format = m_Format;
 
-	TexContextInterface::BuildUAVTextureResouce(md3dDevice, desc,  mBlurMap0 );
-	TexContextInterface::BuildUAVTextureResouce(md3dDevice, desc,  mBlurMap1);
+	TexContextInterface::BuildUAVTextureResouce(m_d3dDevice, desc,  mBlurMap0 );
+	TexContextInterface::BuildUAVTextureResouce(m_d3dDevice, desc,  mBlurMap1);
 }
 
 void BlurFilter::BuildDescriptors(

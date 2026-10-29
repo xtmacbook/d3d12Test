@@ -58,8 +58,8 @@ private:
 	UINT mWidth = 0;
 	UINT mHeight = 0;
 
-	ID3D12Device* md3dDevice = nullptr;
-	DXGI_FORMAT		mFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	ID3D12Device* 	m_d3dDevice = nullptr;
+	DXGI_FORMAT		m_Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	UINT			m_DepthOrArraySize = 1;
 	UINT			m_BlurRadius;
 	
