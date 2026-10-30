@@ -17,10 +17,9 @@
 
 struct SATHeapDescriptor
 {
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_descriptorHeap;
+    ID3D12DescriptorHeap*	m_descriptorHeap;
 
-    UINT   m_InputSrvOffset;
-    UINT   m_GenerateSATUavOffset;
+    UINT   m_GenerateSATUavOffset = 0;
     UINT   m_RowBufUavOffset;
     UINT   m_BlockSumUavOffset;
     UINT   m_BlockOffUavOffset;
@@ -43,12 +42,14 @@ struct SATHeapDescriptor
 	void BuildRootSignature();
 	void BuildComputePipeLineState();
 
-	void UdateDescriptors(SATHeapDescriptor heapDescriptor);
+	void UdateDescriptors(ID3D12DescriptorHeap* heapDescriptor,UINT offset);
 
 	void Execute(ID3D12GraphicsCommandList* cmdList,
-		ID3D12Resource* input);
+		ID3D12Resource* input,CD3DX12_GPU_DESCRIPTOR_HANDLE);
 
 	ID3D12Resource* SATResource();
+	
+	UINT  GetCSUDescriptorCount()const;
 
 private:
 	UINT            m_Width = 0;
@@ -64,7 +65,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_BlockSumSource;
 	Microsoft::WRL::ComPtr<ID3D12Resource> m_BlockOffSource;
     
-    CD3DX12_GPU_DESCRIPTOR_HANDLE   m_InputSrv;
     CD3DX12_GPU_DESCRIPTOR_HANDLE   m_GenerateSATUav;
 
     CD3DX12_GPU_DESCRIPTOR_HANDLE   m_RowBufUav;

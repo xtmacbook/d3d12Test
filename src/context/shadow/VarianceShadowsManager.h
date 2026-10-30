@@ -32,21 +32,14 @@ struct VSMConfig
 
 struct VSMShadowHeapDescriptor
 {
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_descriptorHeap;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_RtvHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>			m_DsvHeap;
+    ID3D12DescriptorHeap*	        m_DescriptorHeap;
+    ID3D12DescriptorHeap*			m_RtvHeap;
+	ID3D12DescriptorHeap*			m_DsvHeap;
 
-	UINT m_shadowMapHeapOffset;
-	UINT m_sdkMeshModelTextureHeapOffset;
-	UINT m_nullHeapOffset;
-	UINT m_blurHeapOffset;
-	UINT m_tmpDepthHeapOffset;
-
-    UINT m_CbvSrvUavDescriptorSize;
-	UINT m_RtvDescriptorSize;
-	UINT m_DsvDescriptorSize;
-
-    CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
+	UINT m_ShadowMapOffset = 0;
+	UINT m_TmpDepthHeapOffset = 1;
+	UINT m_BlurHeapOffset;
+    UINT m_SATOffset;
 };
 
 struct VSMPassConstants
@@ -94,9 +87,14 @@ public:
               const Camera *viewCamra, const Camera *shadowCamera,
               VSMConfig *config);
 
-    UINT GetResouceViewCount() const;
+    UINT GetRtvDescriptorCount() const;
+    // constant-buffer, shader-resource, and unordered-access 
+    UINT GetCSUDescriptorCount() const;
     
-    void BuildDescriptors(VSMShadowHeapDescriptor desc);
+    CD3DX12_GPU_DESCRIPTOR_HANDLE GetShadowMapGPUHandle();
+
+    void BuildDescriptors(ID3D12DescriptorHeap* heapDescriptor, UINT heapOffset,
+        ID3D12DescriptorHeap*RtvHeap,ID3D12DescriptorHeap*DsvHeap);
 
     void UpdateMainPassData(VSMPassConstants &constData);
     DirectX::XMMATRIX GetShadowPassData(UINT iCascadeIndex);
@@ -142,7 +140,7 @@ private:
     std::shared_ptr<SDKMesh::Effect> m_shadowEffect; // 目前所有的mesh中的part使用相同的pso，具体模型可能不同
 
     std::shared_ptr<ShadowMapRes> m_TmpDepthMap;
-
+    VSMShadowHeapDescriptor       m_heapDescriptor;
     DirectX::BoundingBox m_sceneBox;
 
     VSMConfig *m_vsmConfig; // 用户可能修改了

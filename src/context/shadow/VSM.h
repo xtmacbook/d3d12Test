@@ -64,7 +64,15 @@ namespace SDKMesh
 class ShadowMapRes;
 struct VSMConfig;
 
+struct VSMHeapDescritpor
+{
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	m_descriptorHeap;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE m_nullSrvGpuHandle;
 
+	UINT m_NullOffset;
+	UINT m_HeapOffset;
+	
+};
 class VSMMapContext :public D3DContext,
 	public FrameResourceContextInterface
 {
@@ -107,12 +115,12 @@ private:
 
 	Camera																			m_shadowLightCamera;
 	std::shared_ptr< VarianceShadowsManager>										m_varianceShadowsMgr = nullptr;
-	VSMShadowHeapDescriptor															m_HeapDescriptorOffsets;
 	std::shared_ptr< VSMConfig>														m_vsmConfig;
 
 	//vsm config
 	float																			m_fPCFOffset = 0.002f;
 	FLOAT																			m_fBlurBetweenCascadesAmount = 0.005f;
+	VSMHeapDescritpor																m_heapDescriptor;
 
 	VSMPassConstants																m_mainPassConstantsDataCopy;
 };

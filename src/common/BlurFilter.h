@@ -34,6 +34,8 @@ public:
 
 	void OnResize(UINT newWidth, UINT newHeight);
 
+	UINT GetCSUDescriptorCount()const;
+	
 	void BuildResources();
 	void BuildDescriptors();
 

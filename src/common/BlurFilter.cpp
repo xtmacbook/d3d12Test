@@ -35,6 +35,11 @@ void BlurFilter::OnResize(UINT newWidth, UINT newHeight)
 	}
 }
 
+UINT BlurFilter::GetCSUDescriptorCount() const
+{
+    return 4;
+}
+
 void BlurFilter::BuildDescriptors()
 {
 	TextureOutDes desc;

@@ -55,40 +55,68 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
     return true;
 }
 
-UINT VarianceShadowsManager::GetResouceViewCount() const
+UINT VarianceShadowsManager::GetRtvDescriptorCount() const
 {
     return MAX_VSM_CASCADES;
 }
 
-void VarianceShadowsManager::BuildDescriptors(VSMShadowHeapDescriptor desc)
+UINT VarianceShadowsManager::GetCSUDescriptorCount() const
 {
-    UINT shadowMapHeapIndex = desc.m_shadowMapHeapOffset;
-	UINT tmpDepthHeapIndex = desc.m_tmpDepthHeapOffset;
+    //shadowMapSRV(1) + tmpDepthSRV(1) + blurCount
+    return 1 + 1 + m_BlurFilter->GetCSUDescriptorCount() + m_Sat->GetCSUDescriptorCount();
+}
 
-    auto srvCpuStart = desc.m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	auto srvGpuStart = desc.m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+CD3DX12_GPU_DESCRIPTOR_HANDLE VarianceShadowsManager::GetShadowMapGPUHandle()
+{
+    const UINT descriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	auto srvGpuStart = m_heapDescriptor.m_DescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    return CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, m_heapDescriptor.m_ShadowMapOffset, descriptorSize);
+}
 
-	auto rtvCpuStart = desc.m_RtvHeap->GetCPUDescriptorHandleForHeapStart();
-	auto dsvCpuStart = desc.m_DsvHeap ->GetCPUDescriptorHandleForHeapStart();
+void VarianceShadowsManager::BuildDescriptors(ID3D12DescriptorHeap* heapDescriptor, UINT heapOffset,
+ID3D12DescriptorHeap*RtvHeap,ID3D12DescriptorHeap*DsvHeap)
+{
+    const UINT descriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    const UINT rtvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    const UINT dsvDescriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+
+    m_heapDescriptor.m_RtvHeap =RtvHeap;
+    m_heapDescriptor.m_DsvHeap =DsvHeap;
+    m_heapDescriptor.m_DescriptorHeap = heapDescriptor;
+
+    m_heapDescriptor.m_ShadowMapOffset = heapOffset;
+    m_heapDescriptor.m_TmpDepthHeapOffset = m_heapDescriptor.m_ShadowMapOffset + 1;
+    m_heapDescriptor.m_BlurHeapOffset = m_heapDescriptor.m_TmpDepthHeapOffset + 1;
+    m_heapDescriptor.m_SATOffset = m_heapDescriptor.m_BlurHeapOffset + m_BlurFilter->GetCSUDescriptorCount();
+
+
+    auto srvCpuStart = heapDescriptor->GetCPUDescriptorHandleForHeapStart();
+	auto srvGpuStart = heapDescriptor->GetGPUDescriptorHandleForHeapStart();
+
+	auto rtvCpuStart = m_heapDescriptor.m_RtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto dsvCpuStart = m_heapDescriptor.m_DsvHeap ->GetCPUDescriptorHandleForHeapStart();
 
     m_ShadowMap->BuildDescriptors(
-            CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, shadowMapHeapIndex, desc.m_CbvSrvUavDescriptorSize),
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, shadowMapHeapIndex, desc.m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, 2, desc.m_RtvDescriptorSize),
-            desc.m_CbvSrvUavDescriptorSize);
+            CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, m_heapDescriptor.m_ShadowMapOffset, descriptorSize),
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, m_heapDescriptor.m_ShadowMapOffset, descriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvCpuStart, 2, rtvDescriptorSize),
+            descriptorSize);
 
-    m_TmpDepthMap->BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, tmpDepthHeapIndex, desc.m_CbvSrvUavDescriptorSize),
-			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, tmpDepthHeapIndex, desc.m_CbvSrvUavDescriptorSize),
-			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, desc.m_DsvDescriptorSize),desc.m_CbvSrvUavDescriptorSize);
+    m_TmpDepthMap->BuildDescriptors(
+            CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, m_heapDescriptor.m_TmpDepthHeapOffset, descriptorSize),
+			CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, m_heapDescriptor.m_TmpDepthHeapOffset, descriptorSize),
+			CD3DX12_CPU_DESCRIPTOR_HANDLE(dsvCpuStart, 1, dsvDescriptorSize),descriptorSize);
     
     m_BlurFilter->BuildDescriptors(
 		CD3DX12_CPU_DESCRIPTOR_HANDLE(
 			srvCpuStart,
-			desc.m_blurHeapOffset, desc.m_CbvSrvUavDescriptorSize),
+			m_heapDescriptor.m_BlurHeapOffset, descriptorSize),
 		CD3DX12_GPU_DESCRIPTOR_HANDLE(
 			srvGpuStart,
-			desc.m_blurHeapOffset, desc.m_CbvSrvUavDescriptorSize),
-		desc.m_CbvSrvUavDescriptorSize);
+			m_heapDescriptor.m_BlurHeapOffset, descriptorSize),
+		descriptorSize);
+    
+    m_Sat->UdateDescriptors(heapDescriptor,m_heapDescriptor.m_SATOffset);
 }
 
 void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
@@ -178,6 +206,10 @@ void VarianceShadowsManager::BuildPOS(SDKMesh::SDKMeshModel *meshModel, D3D12_GR
     //blur pso
 	m_BlurFilter->BuildCSShader();
 	m_BlurFilter->BuildComputePipeLineState();
+
+    //sat
+    m_Sat->BuildCSShader();
+    m_Sat->BuildComputePipeLineState();
 }
 
 ID3D12PipelineState *VarianceShadowsManager::GetSceneEffect(int idx)
@@ -293,6 +325,7 @@ void VarianceShadowsManager::OnResize(int width, int heigh)
 void VarianceShadowsManager::BuildRootSignature()
 {
     m_BlurFilter->BuildRootSignature();
+    m_Sat->BuildRootSignature();
 }
 
 void VarianceShadowsManager::UpdateFrame(const GameTimer &gt, Camera *viewCamera, Camera *lightCamer)
@@ -375,12 +408,14 @@ void VarianceShadowsManager::BuildShadowMap()
         m_vsmConfig->m_ShadowBufferFormat, false, MAX_VSM_CASCADES);
 
     m_TmpDepthMap = std::make_shared<ShadowMapRes>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
-        m_vsmConfig->m_iBufferSize,
-                                                   SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS);
+        m_vsmConfig->m_iBufferSize, SHADOW_TEXTURE_FORMAT::SHADOW_DXGI_FORMAT_R24G8_TYPELESS);
 
     m_BlurFilter = 
 		std::make_unique<BlurFilter>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
              m_vsmConfig->m_iBufferSize,DXGI_FORMAT_R32G32_FLOAT,1, MAX_VSM_CASCADES);
+
+    m_Sat = std::make_unique<SAT>(m_d3dDevice, m_vsmConfig->m_iBufferSize,
+             m_vsmConfig->m_iBufferSize,DXGI_FORMAT_R32G32_FLOAT, MAX_VSM_CASCADES);
 }
 
 void VarianceShadowsManager::CalculateFrustum(Camera *viewCamera, Camera *lightCamer,

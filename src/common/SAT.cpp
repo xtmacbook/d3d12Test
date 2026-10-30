@@ -63,10 +63,12 @@ void SAT::BuildResources()
 
     auto createStructuredBuffer = [this](ComPtr<ID3D12Resource>& out, UINT64 byteSize)
     {
+        D3D12_RESOURCE_DESC bufDesc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
+        bufDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
             D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(byteSize),
+            &bufDesc,
             D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS(&out)));
@@ -150,20 +152,22 @@ void SAT::BuildComputePipeLineState()
     }
 }
 
-void SAT::UdateDescriptors(SATHeapDescriptor heapDescriptor)
+void SAT::UdateDescriptors(ID3D12DescriptorHeap* heapDescriptor,UINT offset)
 {
-    m_HeapDescriptor = heapDescriptor;
+    m_HeapDescriptor.m_descriptorHeap = heapDescriptor;
 
     const UINT descriptorSize = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    auto cpuStart = heapDescriptor.m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    auto gpuStart = heapDescriptor.m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    auto cpuStart = m_HeapDescriptor.m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    auto gpuStart = m_HeapDescriptor.m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 
-    // input SRV: caller creates the shadow-map SRV at this offset; we only record the GPU handle.
-    m_InputSrv = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, heapDescriptor.m_InputSrvOffset, descriptorSize);
+    m_HeapDescriptor.m_GenerateSATUavOffset = offset;
+    m_HeapDescriptor.m_RowBufUavOffset = m_HeapDescriptor.m_GenerateSATUavOffset + 1;
+    m_HeapDescriptor.m_BlockSumUavOffset = m_HeapDescriptor.m_RowBufUavOffset + 1;
+    m_HeapDescriptor.m_BlockOffUavOffset = m_HeapDescriptor.m_BlockSumUavOffset + 1;
 
     // ---- SAT texture UAV ----
-    CD3DX12_CPU_DESCRIPTOR_HANDLE satCpu(cpuStart, heapDescriptor.m_GenerateSATUavOffset, descriptorSize);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE satCpu(cpuStart, m_HeapDescriptor.m_GenerateSATUavOffset, descriptorSize);
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.Format = m_Format;
     if (m_DepthOrArraySize > 1)
@@ -179,7 +183,7 @@ void SAT::UdateDescriptors(SATHeapDescriptor heapDescriptor)
         uavDesc.Texture2D.MipSlice = 0;
     }
     m_d3dDevice->CreateUnorderedAccessView(m_GeneratedSATSource.Get(), nullptr, &uavDesc, satCpu);
-    m_GenerateSATUav = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, heapDescriptor.m_GenerateSATUavOffset, descriptorSize);
+    m_GenerateSATUav = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, m_HeapDescriptor.m_GenerateSATUavOffset, descriptorSize);
 
     // ---- three structured-buffer UAVs ----
     const UINT tilesPerRow = (UINT)std::ceil((float)m_Width  / (float)kGroupSize);
@@ -200,24 +204,25 @@ void SAT::UdateDescriptors(SATHeapDescriptor heapDescriptor)
         gpu = CD3DX12_GPU_DESCRIPTOR_HANDLE(gpuStart, offset, descriptorSize);
     };
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rowCpu(cpuStart, heapDescriptor.m_RowBufUavOffset, descriptorSize);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rowCpu(cpuStart, m_HeapDescriptor.m_RowBufUavOffset, descriptorSize);
     createBufferUav(m_RowBufSource, rowCpu, m_RowBufUav,
-        heapDescriptor.m_RowBufUavOffset, (UINT)m_Width * m_Height * m_DepthOrArraySize);
+        m_HeapDescriptor.m_RowBufUavOffset, (UINT)m_Width * m_Height * m_DepthOrArraySize);
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE sumCpu(cpuStart, heapDescriptor.m_BlockSumUavOffset, descriptorSize);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE sumCpu(cpuStart, m_HeapDescriptor.m_BlockSumUavOffset, descriptorSize);
     createBufferUav(m_BlockSumSource, sumCpu, m_BlockSumUav,
-        heapDescriptor.m_BlockSumUavOffset, blockPerLayer * m_DepthOrArraySize);
+        m_HeapDescriptor.m_BlockSumUavOffset, blockPerLayer * m_DepthOrArraySize);
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE offCpu(cpuStart, heapDescriptor.m_BlockOffUavOffset, descriptorSize);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE offCpu(cpuStart, m_HeapDescriptor.m_BlockOffUavOffset, descriptorSize);
     createBufferUav(m_BlockOffSource, offCpu, m_BlockOffUav,
-        heapDescriptor.m_BlockOffUavOffset, blockPerLayer * m_DepthOrArraySize);
+        m_HeapDescriptor.m_BlockOffUavOffset, blockPerLayer * m_DepthOrArraySize);
 
     // Note: the four UAV descriptors must be CONSECUTIVE starting at
     // m_GenerateSATUavOffset, so SetComputeRootDescriptorTable(2, m_GenerateSATUav)
     // can be used as u0..u3.
 }
 
-void SAT::Execute(ID3D12GraphicsCommandList *cmdList, ID3D12Resource *input)
+void SAT::Execute(ID3D12GraphicsCommandList *cmdList, ID3D12Resource *input,
+    CD3DX12_GPU_DESCRIPTOR_HANDLE inputGpuHandle)
 {
     const UINT tilesPerRow = (UINT)std::ceil((float)m_Width  / (float)kGroupSize);
     const UINT tilesPerCol = (UINT)std::ceil((float)m_Height / (float)kGroupSize);
@@ -236,7 +241,7 @@ void SAT::Execute(ID3D12GraphicsCommandList *cmdList, ID3D12Resource *input)
     }
 
     cmdList->SetComputeRootSignature(m_PSignature.Get());
-    cmdList->SetComputeRootDescriptorTable(1, m_InputSrv);
+    cmdList->SetComputeRootDescriptorTable(1, inputGpuHandle);
     cmdList->SetComputeRootDescriptorTable(2, m_GenerateSATUav);   // u0..u3
 
     auto uavBarrier = [&cmdList](ID3D12Resource* r)
@@ -304,4 +309,9 @@ void SAT::Execute(ID3D12GraphicsCommandList *cmdList, ID3D12Resource *input)
 ID3D12Resource *SAT::SATResource()
 {
     return m_GeneratedSATSource.Get();
+}
+
+UINT SAT::GetCSUDescriptorCount() const
+{
+    return 4;
 }

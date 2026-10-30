@@ -67,7 +67,8 @@ D3D12_RECT ShadowMapRes::ScissorRect() const
 void ShadowMapRes::BuildDescriptors(
     CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
     CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv, UINT CbvSrvUavDescriptorSize)
+    CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsvOrRtv, 
+    UINT CbvSrvUavDescriptorSize)
 {
     m_hCpuSrv = hCpuSrv;
     m_hGpuSrv = hGpuSrv;

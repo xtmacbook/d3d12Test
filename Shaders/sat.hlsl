@@ -99,7 +99,7 @@ void RowStage2(uint3 GT : SV_GroupThreadID, uint3 G : SV_GroupID)
     }
 
     if (tile < g_TilesPerRow)
-        g_BlockOff[TI(int2(tile,row))] = s_Data[GT.x] - v;
+        g_BlockOff[RI(int2(tile,row))] = s_Data[GT.x] - v;
 }
 
 [numthreads(GROUP_SIZE, 1, 1)]

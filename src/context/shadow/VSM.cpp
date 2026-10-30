@@ -88,32 +88,20 @@ void VSMMapContext::BuildDescriptorHeaps()
  
 	UINT sdkMeshModelTextureCount = m_sdkMeshModel->GetTextureCount();
 	UINT nullCount = 1; //null srv
-	UINT blurCount = 4;
 	// 阴影贴图是一个 Texture2DArray, 只占 1 个 SRV 描述符;
-	// 因此 SRV 堆 = 模型纹理 + shadowMapSRV(1) + tmpDepthSRV(1) + nullSRV(1)
-	srvHeapDesc.NumDescriptors = sdkMeshModelTextureCount + 1 + 1 + nullCount + blurCount;
+	// 因此 SRV 堆 = 模型纹理 +  nullSRV(1) 
+	srvHeapDesc.NumDescriptors = 
+	sdkMeshModelTextureCount + nullCount + m_varianceShadowsMgr->GetCSUDescriptorCount();
 
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
 	ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(
 		&srvHeapDesc, IID_PPV_ARGS(&m_SrvDescriptorHeap)));
-	
-	m_HeapDescriptorOffsets.m_descriptorHeap = m_SrvDescriptorHeap.Get();
-	m_HeapDescriptorOffsets.m_RtvHeap = m_RtvHeap.Get();
-	m_HeapDescriptorOffsets.m_DsvHeap = m_DsvHeap.Get();
 
-	m_HeapDescriptorOffsets.m_CbvSrvUavDescriptorSize = m_CbvSrvUavDescriptorSize;
-	m_HeapDescriptorOffsets.m_RtvDescriptorSize = m_RtvDescriptorSize;
-	m_HeapDescriptorOffsets.m_DsvDescriptorSize = m_DsvDescriptorSize;
-
-	m_HeapDescriptorOffsets.m_sdkMeshModelTextureHeapOffset = 0;
-	m_HeapDescriptorOffsets.m_shadowMapHeapOffset = sdkMeshModelTextureCount;
-	// GetResouceViewCount() 是级联 RTV 数量(3), 不能当作 SRV 偏移; 阴影贴图 SRV 只占 1 个
-	m_HeapDescriptorOffsets.m_tmpDepthHeapOffset = m_HeapDescriptorOffsets.m_shadowMapHeapOffset + 1;
-	m_HeapDescriptorOffsets.m_nullHeapOffset = m_HeapDescriptorOffsets.m_tmpDepthHeapOffset + 1;
-	m_HeapDescriptorOffsets.m_blurHeapOffset = m_HeapDescriptorOffsets.m_nullHeapOffset + 1;
-
+	m_heapDescriptor.m_descriptorHeap = m_SrvDescriptorHeap;
+	m_heapDescriptor.m_NullOffset = sdkMeshModelTextureCount;
+	m_heapDescriptor.m_HeapOffset = sdkMeshModelTextureCount + nullCount;
 }
 
 void VSMMapContext::CreateRtvDescriptorHeap()
@@ -121,7 +109,7 @@ void VSMMapContext::CreateRtvDescriptorHeap()
 	//注意这个是写入到了m_RtvHeap中,所以要在这里创建,因为要写入两个值,不能写入到depthStencilHeap中
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	// Reserve one RTV for each shadow-map array slice, in addition to swap-chain RTVs.
-	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + m_varianceShadowsMgr->GetResouceViewCount();
+	rtvHeapDesc.NumDescriptors = SwapChainBufferCount + m_varianceShadowsMgr->GetRtvDescriptorCount();
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -378,7 +366,7 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 		 	m_sdkMeshModel->DrawRenderItemsWithShadowPass(allocator, m_d3dDevice.Get(),
 		 		m_CommandList.Get(), m_currFrameResource, m_SrvDescriptorHeap.Get(),
 		 		m_CbvSrvUavDescriptorSize, m_varianceShadowsMgr->GetShadowEffect(),
-		 		m_HeapDescriptorOffsets.m_nullSrvGpuHandle);
+		 		m_heapDescriptor.m_nullSrvGpuHandle);
 		 	};
 
 		 m_varianceShadowsMgr ->RenderShadows(m_CommandList.Get(), data);
@@ -399,10 +387,8 @@ void VSMMapContext::DrawFrameResource(ID3D12CommandAllocator* allocator)
 
 		m_CommandList->RSSetViewports(1, &m_ScreenViewport);
 		m_CommandList->RSSetScissorRects(1, &m_ScissorRect);
-
-		CD3DX12_GPU_DESCRIPTOR_HANDLE shadowMapTex(m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-		shadowMapTex.Offset(m_HeapDescriptorOffsets.m_shadowMapHeapOffset, m_CbvSrvUavDescriptorSize);
-		m_CommandList->SetGraphicsRootDescriptorTable(5, shadowMapTex);
+		 
+		m_CommandList->SetGraphicsRootDescriptorTable(5, m_varianceShadowsMgr->GetShadowMapGPUHandle() );
 
 		VSMShadowMapDrawData data;
 		data.m_PassAddress = passAddress;
@@ -464,13 +450,15 @@ void VSMMapContext::BuildResourceView()
 		m_CbvSrvUavDescriptorSize
 	);
 	
-	m_varianceShadowsMgr->BuildDescriptors(m_HeapDescriptorOffsets);
+	m_varianceShadowsMgr->BuildDescriptors(m_heapDescriptor.m_descriptorHeap.Get(),
+	m_heapDescriptor.m_HeapOffset,m_RtvHeap.Get(),m_DsvHeap.Get());
 	 
 
 	//some null descriptor
-	auto nullSrv = CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, m_HeapDescriptorOffsets.m_nullHeapOffset, m_CbvSrvUavDescriptorSize);
-	m_HeapDescriptorOffsets.m_nullSrvGpuHandle =
-		CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, m_HeapDescriptorOffsets.m_nullHeapOffset, m_CbvSrvUavDescriptorSize);
+	auto nullSrv = CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, m_heapDescriptor.m_NullOffset, m_CbvSrvUavDescriptorSize);
+	
+	m_heapDescriptor.m_nullSrvGpuHandle =
+		CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, m_heapDescriptor.m_NullOffset, m_CbvSrvUavDescriptorSize);
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
