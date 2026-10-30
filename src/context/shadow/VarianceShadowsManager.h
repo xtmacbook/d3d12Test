@@ -12,6 +12,7 @@ class Camera;
 class ShadowMapRes;
 class FrameResourceInterface;
 class BlurFilter;
+class SAT;
 
 #define MAX_VSM_CASCADES 3
 
@@ -152,5 +153,6 @@ private:
 	DirectX::XMMATRIX																m_matShadowView;
     
 	std::unique_ptr<BlurFilter> m_BlurFilter;
+	std::unique_ptr<SAT> m_Sat;
 
 };

@@ -3,6 +3,7 @@
 #include "common/SDKMeshModel.h"
 #include "common/Camera.h"
 #include "common/BlurFilter.h"
+#include "common/SAT.h"
 
 using namespace DirectX;
 using namespace DirectX::PackedVector;

@@ -90,6 +90,7 @@ float LinearToSRGB(float c)
                            : 1.055f * pow(c, 1.0f / 2.4f) - 0.055f;
 }
 
+///参考自:GPU Gems chapter:8
 float ChebyshevUpperBound(float2 Moments, float Mean, float MinVariance)
 {
     float p = (Mean <= Moments.x);
@@ -106,6 +107,64 @@ float ChebyshevUpperBound(float2 Moments, float Mean, float MinVariance)
     return p_max;
     //fPercentLit = pow( p_max, 4 );
 }
+
+// Compute the filter size in pixels
+float2 GetFilterSize(float2 dx, float2 dy, float2 TexSize)
+{
+    return 2 * (abs(dx) + abs(dy)) * TexSize;
+}
+
+
+/*
+    具体看: GPU Gems3 :chapter 8
+    tex:  是纹理对象
+    texels:是纹理元素
+
+    比如一个纹理大小是: 1024 x 1024 那么它就是一个纹理(tex),其中有1024x1024个texls
+
+    其中MinFilterWidth,MaxSizeDerivatives,TexSize都是texels为单位的。如果是1024x1024大小的纹理，
+    则 参数TexSize就是1024x1024。
+
+    其他的参数都是归一化后的值
+    MaxDerivates参数 MaxSizeDerivatives为(32x32)
+
+     这个函数获取两个值: Title的大小(Title就是Filter 区域范围组成的Title)
+                        以tc为中心 Title大小的范围,这个范围左上角Texels的(中心)位置
+
+
+    关于ddx的例子,注意不是这个函数的步骤只是一些额外的介绍：
+
+    第 1 步：两个相邻屏幕像素
+        取屏幕上水平相邻的两个像素，第 5 行、第 100 列和第 101 列。它们经过光照空间投影后：
+        - 像素(100,5 对应的纹理坐标为 (0.65, 0.425)
+        - 像素(101,5)：对应的纹理坐标为  (0.655, 0.425)
+    第 2 步：求 dtdx 
+        dtdx = 像素(101,5) - 像素(100,5) = (0.655 - 0.65, 0.425 - 0.425) = (0.005, 0.000)
+        单位：纹理坐标 / 像素。屏幕 x 挪 1 像素 → 光照纹理坐标横移 0.005。
+    第 3 步：换成实际 texel
+        0.005 × 1024 = 5.12 texel。即：这个屏幕像素在阴影贴图上横跨约 5 texel（放大看是缩小，一处像素投到多点）。
+    第 4 步：算滤波核大小（Util.fx:44）
+        GetFilterSize = 2 × (|dtdx| + |dtdy|) × TexSize = 2 × (0.005 + 0) × 1024 ≈ 10.24 texel
+
+*/
+
+float2 GetFilterTile(float2 tc, float2 dx, float2 dy, float2 TexSize,
+                     float2 MinFilterWidth, float2 MaxSizeDerivatives,
+                     out float2 Size)
+{
+    float2 TexelSize = 1 / TexSize;
+
+    // Compute the filter size based on derivatives
+    float2 SizeDerivatives = min(GetFilterSize(dx, dy, TexSize),
+                                 MaxSizeDerivatives);
+    
+    // Force an integer tile size (in pixels) so that bilinear weights are consistent
+    Size = round(max(SizeDerivatives, MinFilterWidth)) * TexelSize;
+    
+    // Compute upper left corner of the tile
+    return (tc - 0.5 * (Size - TexelSize));
+}
+
 
 float linstep(float min, float max, float v)
 {

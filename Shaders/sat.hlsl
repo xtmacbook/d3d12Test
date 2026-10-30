@@ -22,27 +22,26 @@ cbuffer cb : register(b0)
     uint g_Height;        // column count
     uint g_TilesPerRow;   // ceil(g_Width / GROUP_SIZE)
     uint g_TilesPerCol;   // ceil(g_Height / GROUP_SIZE)
-
-    int gSlice;
+    uint g_Slice;
 };
 
 #if USE_ARRAY
 Texture2DArray<float2>   g_Input      : register(t0);// input moments
 RWTexture2DArray<float2> g_SAT        : register(u0); // final summed area table
 #else
-Texture2D<float2> gInput         : register(t0);
-RWTexture2D<float2> gOutput      : register(u0);
+Texture2D<float2> gInput              : register(t0);
+RWTexture2D<float2> gOutput           : register(u0);
 #endif
 
-RWStructuredBuffer<float2> g_RowBuf;     // row-scanned
-RWStructuredBuffer<float2> g_BlockSum;   // per-tile sums
-RWStructuredBuffer<float2> g_BlockOff;   // exclusive-scanned tile offsets
+RWStructuredBuffer<float2> g_RowBuf     : register(u1);// row-scanned 其实和输入input大小相同
+RWStructuredBuffer<float2> g_BlockSum   : register(u2);   // per-tile sums
+RWStructuredBuffer<float2> g_BlockOff   : register(u3);   // exclusive-scanned tile offsets
 
 #if USE_ARRAY
-int3 Tx(in int2 xy) { return int3(xy, gSlice); }
-int FI(in int2 xy) {return gSlice * g_Width * g_Height + xy.y * g_Width + xy.x ;}
-int RI(in int2 xy) {return gSlice * (g_TilesPerRow * g_Height) + xy.y * g_TilesPerRow + xy.x ;}
-int CT(in int2 xy) {return gSlice * (g_Width * g_TilesPerCol) + xy.x * g_TilesPerCol + xy.y ;}
+int3 Tx(in int2 xy) { return int3(xy, g_Slice); }
+int FI(in int2 xy) {return g_Slice * g_Width * g_Height + xy.y * g_Width + xy.x ;}
+int RI(in int2 xy) {return g_Slice * (g_TilesPerRow * g_Height) + xy.y * g_TilesPerRow + xy.x ;}
+int CT(in int2 xy) {return g_Slice * (g_Width * g_TilesPerCol) + xy.x * g_TilesPerCol + xy.y ;}
 #else
 int2 Tx(in int2 xy) { return xy; }
 int FI(in int2 xy) {return xy.y * g_Width + xy.x;}

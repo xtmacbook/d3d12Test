@@ -45,6 +45,7 @@ set (COMMON_SOURCE
     src/common/SDKMeshModel.cpp
     src/common/SDKMeshEffect.cpp
     src/common/Camera.cpp
+    src/common/SAT.cpp
 )
 
 set (COMMON_SOURCE_HEADS
@@ -73,6 +74,7 @@ set (COMMON_SOURCE_HEADS
     src/common/SDKMeshModel.h
     src/common/SDKMeshEffect.h
     src/common/Camera.h
+    src/common/SAT.h
 )
 
 set (CONTEXT_INTERFACE_SOURCE
