@@ -65,7 +65,6 @@ struct VSMPassConstants
     FLOAT m_fPaddingForCB3;                    // Padding variables CBs must be a multiple of 16 bytes.
     FLOAT m_fCascadeFrustumsEyeSpaceDepths[8]; // The values along Z that seperate the cascades.
     DirectX::XMFLOAT4 m_vLightDir;
-    DirectX::XMUINT4 m_Bias; // float是否先先减去0.5,后加上0.5
 };
 
 struct VSMShadowMapDrawData
@@ -126,6 +125,7 @@ public:
     INT																				m_iCascadePartitionsZeroToOne[MAX_VSM_CASCADES]; //这个是用户设置的： Values are 0 to 100 and represent a percent of the frstum
     INT																				m_iCascadePartitionsMax;
     bool                                                                            m_blurShadow = false;
+    bool                                                                            m_satShadow = false;
 private:
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderSceneVSShadersBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> m_ppsRenderScenePSShadersBlob[2];

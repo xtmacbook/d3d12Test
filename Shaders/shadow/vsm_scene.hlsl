@@ -51,15 +51,15 @@ void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapText
     vShadowTexCoordDDX *= m_vCascadeScale[iCascade];
     vShadowTexCoordDDY *= m_vCascadeScale[iCascade];
 
-    float2 mapDepth = 0;
+    float2 moments = 0;
 
     // mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
-    mapDepth = gShadowMap.SampleGrad(gsamAnisotropicClamp, vShadowTexCoord.xyz,
-                                     vShadowTexCoordDDX.xyz, vShadowTexCoordDDY.xyz);
+    moments = gShadowMap.SampleGrad(gsamAnisotropicClamp, vShadowTexCoord.xyz,
+                                     vShadowTexCoordDDX.xyz, vShadowTexCoordDDY.xyz) + GetFPBias();
 
     // The sample instruction uses gradients for some filters.
     // .z 是纹理数组层(级联索引), 深度保存在 .w 中用于 Chebyshev 比较
-    fPercentLit = ChebyshevUpperBound(mapDepth, vShadowTexCoord.w, 0.000001f);
+    fPercentLit = ChebyshevUpperBound(moments, vShadowTexCoord.w, 0.000001f);
 }
 
 // Light bleeding reduction

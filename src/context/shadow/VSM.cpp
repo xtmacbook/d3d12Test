@@ -128,25 +128,23 @@ void VSMMapContext::ShowCustomImguiWin()
 #ifdef USE_IMGUI
 
 	ImGui::Begin("Params It !");
-	
-	static bool bWithCSM = false;
-	ImGui::Checkbox(": combine with CSM ", &bWithCSM);
-	m_vsmConfig->m_bWithCSM = bWithCSM;
-
 
 	static float blendAmount = 0.018;
 	static float dragSpeed = 0.05f;
     ImGui::DragFloat("LBR Amount: ", &blendAmount, dragSpeed,0.0f,0.9);
 	m_mainPassConstantsDataCopy.m_vLightDir.w = blendAmount;
 
-
-	static bool bBias = false;
-    ImGui::Checkbox(": use Bias", &bBias);
-	m_mainPassConstantsDataCopy.m_Bias.x = bBias ? 1 : 0;
+	static bool bWithCSM = false;
+	ImGui::Checkbox(": combine with CSM ", &bWithCSM);
+	m_vsmConfig->m_bWithCSM = bWithCSM;
 
 	static bool bBlur = false;
     ImGui::Checkbox(": use Blur", &bBlur);
 	m_varianceShadowsMgr->m_blurShadow = bBlur;
+
+	static bool bSAT = false;
+    ImGui::Checkbox(": use SAT", &bSAT);
+	m_varianceShadowsMgr->m_satShadow = bSAT;
 
 	ImGui::End();
 #endif

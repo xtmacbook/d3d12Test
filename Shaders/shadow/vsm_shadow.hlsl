@@ -20,10 +20,10 @@ VertexOut VS(VertexIn vin)
 
 float2 PS(VertexOut pin) : SV_Target
 {
-    float2 rt;
+    float2 Moments;
    
-    rt.x = pin.PosH.z;
-    rt.y = rt.x * rt.x;
+    Moments.x = pin.PosH.z;
+    Moments.y = Moments.x * Moments.x;
     
-    return rt;
-}
+    return Moments - GetFPBias();
+} 
