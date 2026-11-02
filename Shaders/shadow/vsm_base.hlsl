@@ -23,7 +23,6 @@ cbuffer cbAllShadowData : register(b1)
     matrix m_mWorldViewProjection;
     matrix m_mWorld;
     matrix m_mWorldView;
-
     matrix m_mShadow;
 
     float4 m_vCascadeOffset[8];
@@ -35,8 +34,9 @@ cbuffer cbAllShadowData : register(b1)
     float m_fMaxBorderPadding;
 
     float m_fCascadeBlendArea; // Amount to overlap when blending between cascades.
-    float m_fTexelSize;        // Padding variables exist because CBs must be a multiple of 16 bytes.
+    float2 m_fTexelSize;        // Padding variables exist because CBs must be a multiple of 16 bytes.
     float m_fNativeTexelSizeInX;
+   
     float4 m_fCascadeFrustumsEyeSpaceDepthsData[2]; // The values along Z that seperate the cascades.
     // This code creates an array based pointer that points towards the vectorized input data.
     // This is the only way to index arbitrary arrays of data.

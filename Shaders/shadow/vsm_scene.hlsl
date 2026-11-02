@@ -1,5 +1,5 @@
 #include "vsm_base.hlsl"
-#include "../util.hlsl"
+#include "../util.hlsl" 
 
 #ifndef USE_WITH_CSM
 #define USE_WITH_CSM 0
@@ -7,6 +7,10 @@
 
 #ifndef CASCADE_COUNT_FLAG
 #define CASCADE_COUNT_FLAG 3
+#endif
+
+#ifndef USE_WITH_SAT
+#define USE_WITH_SAT 0
 #endif
 
 struct VertexIn
@@ -39,7 +43,16 @@ VertexOut VS(VertexIn vin)
     return vout;
 }
 
-void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapTextureCoordViewSpace,  int iCascade,out float fPercentLit)
+float ShadowContribSAT(float3 tc,
+                       float2 dx,
+                       float2 dy,
+                       float Distance)
+                       {
+                        
+                       }
+
+void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapTextureCoordViewSpace,
+                             int iCascade, out float fPercentLit)
 {
     fPercentLit = 0.0f;
     // This loop could be unrolled, and texture immediate offsets could be used if the kernel size were fixed.
@@ -51,15 +64,24 @@ void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapText
     vShadowTexCoordDDX *= m_vCascadeScale[iCascade];
     vShadowTexCoordDDY *= m_vCascadeScale[iCascade];
 
-    float2 moments = 0;
+    if (USE_WITH_SAT > 0)
+    {
+        fPercentLit = ShadowContribSAT(vShadowTexCoord.xyz, vShadowTexCoordDDX.xy, 
+        vShadowTexCoordDDY.xy, vShadowTexCoord.w);
+    }
+    else
+    {
+        float2 moments = 0;
 
-    // mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
-    moments = gShadowMap.SampleGrad(gsamAnisotropicClamp, vShadowTexCoord.xyz,
-                                     vShadowTexCoordDDX.xyz, vShadowTexCoordDDY.xyz) + GetFPBias();
+        // mapDepth = gShadowMap.Sample(gsamAnisotropicWrap, vShadowTexCoord.xy);
+        moments = gShadowMap.SampleGrad(gsamAnisotropicClamp, vShadowTexCoord.xyz,
+                                        vShadowTexCoordDDX.xyz, vShadowTexCoordDDY.xyz) +
+                  GetFPBias();
 
-    // The sample instruction uses gradients for some filters.
-    // .z 是纹理数组层(级联索引), 深度保存在 .w 中用于 Chebyshev 比较
-    fPercentLit = ChebyshevUpperBound(moments, vShadowTexCoord.w, 0.000001f);
+        // The sample instruction uses gradients for some filters.
+        // .z 是纹理数组层(级联索引), 深度保存在 .w 中用于 Chebyshev 比较
+        fPercentLit = ChebyshevUpperBound(moments, vShadowTexCoord.w, 0.000001f);
+    }
 }
 
 // Light bleeding reduction
@@ -113,7 +135,7 @@ float4 PS(VertexOut pin) : SV_Target
         float4 vShadowMapTextureCoordLocal = vShadowMapTextureCoord; // 临时保存,因为下面就紧接着要真正的纹理坐标系了
 
         vShadowMapTextureCoord.w = vShadowMapTextureCoord.z; // We put the z value in w so that we can index the texture array with Z.
-        vShadowMapTextureCoord.z = iCurrentCascadeIndex; // 用选中的级联索引作为数组层
+        vShadowMapTextureCoord.z = iCurrentCascadeIndex;     // 用选中的级联索引作为数组层
 
         CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, iCurrentCascadeIndex, fPercentLit);
 
@@ -142,12 +164,12 @@ float4 PS(VertexOut pin) : SV_Target
             vShadowMapTextureCoord_blend.z = iNextCascadeIndex;
 
             float fDivergence = abs(ddy(vShadowMapTextureCoord_blend.z)) +
-	                            abs(ddx(vShadowMapTextureCoord_blend.z));
+                                abs(ddx(vShadowMapTextureCoord_blend.z));
 
             float fPercentLit_blend = .0f;
 
             CalculateVarianceShadow(vShadowMapTextureCoord_blend, pin.posInShadowViewSpace,
-							iNextCascadeIndex, fPercentLit_blend);
+                                    iNextCascadeIndex, fPercentLit_blend);
 
             // blend 两个cascade的percent
             fPercentLit = lerp(fPercentLit_blend, fPercentLit, fBlendBetweenCascadesAmount);
@@ -157,13 +179,11 @@ float4 PS(VertexOut pin) : SV_Target
     {
         float4 vShadowMapTextureCoord = pin.posInShadowViewSpace * m_vCascadeScale[0] + m_vCascadeOffset[0];
         vShadowMapTextureCoord.w = vShadowMapTextureCoord.z; // 把深度存到 w
-        vShadowMapTextureCoord.z = 0; // z 作为纹理数组层(级联0)
+        vShadowMapTextureCoord.z = 0;                        // z 作为纹理数组层(级联0)
         CalculateVarianceShadow(vShadowMapTextureCoord, pin.posInShadowViewSpace, 0, fPercentLit);
         fPercentLit = LBR(fPercentLit);
-        
-       
     }
-    
+
     float3 vLightDir1 = float3(-1.0f, 1.0f, -1.0f);
     float3 vLightDir2 = float3(1.0f, 1.0f, -1.0f);
     float3 vLightDir3 = float3(0.0f, -1.0f, 0.0f);
@@ -171,11 +191,11 @@ float4 PS(VertexOut pin) : SV_Target
 
     float gammaS = LinearToSRGB(0.03);
 
-        // Some ambient-like lighting.
+    // Some ambient-like lighting.
     float fLighting = saturate(dot(vLightDir1, pin.NormalW)) * gammaS +
-                          saturate(dot(vLightDir2, pin.NormalW)) * gammaS +
-                          saturate(dot(vLightDir3, pin.NormalW)) * gammaS +
-                          saturate(dot(vLightDir4, pin.NormalW)) * gammaS;
+                      saturate(dot(vLightDir2, pin.NormalW)) * gammaS +
+                      saturate(dot(vLightDir3, pin.NormalW)) * gammaS +
+                      saturate(dot(vLightDir4, pin.NormalW)) * gammaS;
 
     float vShadowLighting = fLighting * LinearToSRGB(0.5);
 

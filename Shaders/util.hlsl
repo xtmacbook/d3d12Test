@@ -37,7 +37,7 @@ float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, floa
 //--------------------------------------------------------------------------------------
 void CalculateRightAndUpTexelDepthDeltas ( in float3 vShadowTexDDX,
                                            in float3 vShadowTexDDY,
-                                           float fTexeSize,
+                                           float2 fTexeSize,
                                            out float fUpTextDepthWeight,
                                            out float fRightTextDepthWeight) 
  
@@ -63,8 +63,8 @@ void CalculateRightAndUpTexelDepthDeltas ( in float3 vShadowTexDDX,
         matScreentoShadow._22 * fInvDeterminant, matScreentoShadow._12 * -fInvDeterminant, 
         matScreentoShadow._21 * -fInvDeterminant, matScreentoShadow._11 * fInvDeterminant );
 
-    float2 vRightShadowTexelLocation = float2( fTexeSize, 0.0f );
-    float2 vUpShadowTexelLocation = float2( 0.0f, fTexeSize );  
+    float2 vRightShadowTexelLocation = float2( fTexeSize.x, 0.0f );
+    float2 vUpShadowTexelLocation = float2( 0.0f, fTexeSize.y );  
     
     // Transform the right pixel by the shadow space to screen space matrix.
     float2 vRightTexelDepthRatio = mul( vRightShadowTexelLocation,  matShadowToScreen );

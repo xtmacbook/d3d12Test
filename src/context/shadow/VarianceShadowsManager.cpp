@@ -27,6 +27,7 @@ bool VarianceShadowsManager::init(ID3D12Device *device, const DirectX::BoundingB
     {
         "CASCADE_COUNT_FLAG", "1",
         "USE_WITH_CSM", "1",
+        "USE_WITH_SAT","0",
         nullptr, nullptr
     };
 
@@ -127,14 +128,13 @@ void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
     constData.m_fMinBorderPadding = (float)(1.0f) /
         (float)m_vsmConfig->m_iBufferSize;
     
-    constData.m_fTexelSize = 1.0f / (float)m_vsmConfig->m_iBufferSize; ;
-    constData.m_fNativeTexelSizeInX = constData.m_fTexelSize / (float)m_vsmConfig->m_nCascadeLevels; ;
+    constData.m_fTexelSize = DirectX::XMFLOAT2(1.0f / (float)m_vsmConfig->m_iBufferSize, 1.0f / (float)m_vsmConfig->m_iBufferSize);
+    constData.m_fNativeTexelSizeInX = constData.m_fTexelSize.x / (float)m_vsmConfig->m_nCascadeLevels ;
 
     // 这几个字段 m_mainPassConstantsDataCopy 默认不自动清零, 这里显式初始化, 避免把垃圾值上传给 shader
     constData.m_iVisualizeCascades = 0;
-    constData.m_fPaddingForCB3 = 0.0f;
     // 级联之间的混合带宽度(约为 8 个 texel), 用于隐藏级联边界接缝; 可按需调整
-    constData.m_fCascadeBlendArea = 8.0f * constData.m_fTexelSize;
+    constData.m_fCascadeBlendArea = 8.0f * constData.m_fTexelSize.x;
     
     XMMATRIX matTextureScale = XMMatrixScaling(0.5f, -0.5f, 1.0f);
     XMMATRIX matTextureTranslation = XMMatrixTranslation(.5f, .5f, 0.f);
@@ -314,6 +314,31 @@ void VarianceShadowsManager::RenderShadows(ID3D12GraphicsCommandList *mCommandLi
         // 不 blur 时直接转为可读状态,供主 Pass 作为 SRV 采样
         mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_ShadowMap->Resource(),
             D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
+    }
+
+    if (m_satShadow)
+    {
+        // ---- SAT 生成: 读取 m_ShadowMap(GENERIC_READ) 的矩, 结果写入 m_SATResource(COMMON) ----
+        m_Sat->Execute(mCommandList, m_ShadowMap->Resource(), GetShadowMapGPUHandle());
+
+        // 把 SAT 结果拷回 m_ShadowMap, 供主 Pass 采样
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+            m_ShadowMap->Resource(),
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            D3D12_RESOURCE_STATE_COPY_DEST));
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+            m_Sat->SATResource(),
+            D3D12_RESOURCE_STATE_COMMON,
+            D3D12_RESOURCE_STATE_COPY_SOURCE));
+        mCommandList->CopyResource(m_ShadowMap->Resource(), m_Sat->SATResource());
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+            m_ShadowMap->Resource(),
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_GENERIC_READ));
+        mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+            m_Sat->SATResource(),
+            D3D12_RESOURCE_STATE_COPY_SOURCE,
+            D3D12_RESOURCE_STATE_COMMON));
     }
 }
 

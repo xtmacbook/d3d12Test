@@ -88,12 +88,12 @@ void SAT::BuildCSShader()
         nullptr, nullptr
     };
 
-    m_Shader["RowStage1"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/sat.hlsl", defines, "RowStage1", "cs_5_1");
-    m_Shader["RowStage2"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/sat.hlsl", defines, "RowStage2", "cs_5_1");
-    m_Shader["RowStage3"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/sat.hlsl", defines, "RowStage3", "cs_5_1");
-    m_Shader["ColStage1"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/sat.hlsl", defines, "ColStage1", "cs_5_1");
-    m_Shader["ColStage2"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/sat.hlsl", defines, "ColStage2", "cs_5_1");
-    m_Shader["ColStage3"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/sat.hlsl", defines, "ColStage3", "cs_5_1");
+    m_Shader["RowStage1"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/satGenerator.hlsl", defines, "RowStage1", "cs_5_1");
+    m_Shader["RowStage2"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/satGenerator.hlsl", defines, "RowStage2", "cs_5_1");
+    m_Shader["RowStage3"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/satGenerator.hlsl", defines, "RowStage3", "cs_5_1");
+    m_Shader["ColStage1"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/satGenerator.hlsl", defines, "ColStage1", "cs_5_1");
+    m_Shader["ColStage2"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/satGenerator.hlsl", defines, "ColStage2", "cs_5_1");
+    m_Shader["ColStage3"] = D3DUtil::CompileShader(SourcePath() + L"/Shaders/satGenerator.hlsl", defines, "ColStage3", "cs_5_1");
 }
 
 void SAT::BuildRootSignature()
