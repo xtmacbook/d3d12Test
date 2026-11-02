@@ -34,7 +34,7 @@ cbuffer cbAllShadowData : register(b1)
     float m_fMaxBorderPadding;
 
     float m_fCascadeBlendArea; // Amount to overlap when blending between cascades.
-    float2 m_fTexelSize;        // Padding variables exist because CBs must be a multiple of 16 bytes.
+    float2 m_fTexSize;        // Padding variables exist because CBs must be a multiple of 16 bytes.
     float m_fNativeTexelSizeInX;
    
     float4 m_fCascadeFrustumsEyeSpaceDepthsData[2]; // The values along Z that seperate the cascades.

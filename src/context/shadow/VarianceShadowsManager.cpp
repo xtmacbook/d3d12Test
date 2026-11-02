@@ -128,13 +128,13 @@ void VarianceShadowsManager::UpdateMainPassData(VSMPassConstants &constData)
     constData.m_fMinBorderPadding = (float)(1.0f) /
         (float)m_vsmConfig->m_iBufferSize;
     
-    constData.m_fTexelSize = DirectX::XMFLOAT2(1.0f / (float)m_vsmConfig->m_iBufferSize, 1.0f / (float)m_vsmConfig->m_iBufferSize);
-    constData.m_fNativeTexelSizeInX = constData.m_fTexelSize.x / (float)m_vsmConfig->m_nCascadeLevels ;
+    constData.m_fTexSize = DirectX::XMFLOAT2((float)m_vsmConfig->m_iBufferSize, (float)m_vsmConfig->m_iBufferSize);
+    constData.m_fNativeTexelSizeInX = 1.0 / (float)m_vsmConfig->m_nCascadeLevels * constData.m_fTexSize.x;
 
     // 这几个字段 m_mainPassConstantsDataCopy 默认不自动清零, 这里显式初始化, 避免把垃圾值上传给 shader
     constData.m_iVisualizeCascades = 0;
     // 级联之间的混合带宽度(约为 8 个 texel), 用于隐藏级联边界接缝; 可按需调整
-    constData.m_fCascadeBlendArea = 8.0f * constData.m_fTexelSize.x;
+    constData.m_fCascadeBlendArea = 8.0f /  constData.m_fTexSize.x;
     
     XMMATRIX matTextureScale = XMMatrixScaling(0.5f, -0.5f, 1.0f);
     XMMATRIX matTextureTranslation = XMMatrixTranslation(.5f, .5f, 0.f);

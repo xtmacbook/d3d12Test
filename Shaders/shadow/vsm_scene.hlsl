@@ -1,5 +1,5 @@
 #include "vsm_base.hlsl"
-#include "../util.hlsl" 
+#include "../util.hlsl"
 
 #ifndef USE_WITH_CSM
 #define USE_WITH_CSM 0
@@ -44,12 +44,33 @@ VertexOut VS(VertexIn vin)
 }
 
 float ShadowContribSAT(float3 tc,
-                       float2 dx,
-                       float2 dy,
+                       float3 dx,
+                       float3 dy,
                        float Distance)
-                       {
-                        
-                       }
+{
+    float2 TexelSize = 1 / m_fTexSize;
+    float MinFilterWidth = 4.75;
+    // Compute the filter tile information
+    // Don't clamp the filter area since we have constant-time filtering!
+    float2 Size;
+    float2 CoordsUL = GetFilterTile(tc.xy, dx.xy, dy.xy, m_fTexSize,
+                                    MinFilterWidth, m_fTexSize.x, Size);
+
+    // Compute bilinear weights and coordinates
+    float4 BilWeights;
+    float2 BilCoordsUL = GetBilCoordsAndWeights(CoordsUL, m_fTexSize, BilWeights);
+    float4 Tile = BilCoordsUL.xyxy + float4(0, 0, Size.xy);
+
+    // Read the moments and compute a Chebyshev upper bound
+    float ShadowContrib = BilinearChebyshev(Tile, BilWeights, Distance, g_VSMMinVariance);
+
+    [flatten] if (g_LBR)
+    {
+        ShadowContrib = LBR(ShadowContrib);
+    }
+
+    return ShadowContrib;
+}
 
 void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapTextureCoordViewSpace,
                              int iCascade, out float fPercentLit)
@@ -66,8 +87,8 @@ void CalculateVarianceShadow(in float4 vShadowTexCoord, in float4 vShadowMapText
 
     if (USE_WITH_SAT > 0)
     {
-        fPercentLit = ShadowContribSAT(vShadowTexCoord.xyz, vShadowTexCoordDDX.xy, 
-        vShadowTexCoordDDY.xy, vShadowTexCoord.w);
+        fPercentLit = ShadowContribSAT(vShadowTexCoord.xyz, vShadowTexCoordDDX.xyz,
+                                       vShadowTexCoordDDY.xyz, vShadowTexCoord.w);
     }
     else
     {

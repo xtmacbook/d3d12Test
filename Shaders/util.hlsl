@@ -165,7 +165,6 @@ float2 GetFilterTile(float2 tc, float2 dx, float2 dy, float2 TexSize,
     return (tc - 0.5 * (Size - TexelSize));
 }
 
-
 float linstep(float min, float max, float v)
 {
     return clamp((v - min) / (max - min), 0, 1);
@@ -174,4 +173,41 @@ float linstep(float min, float max, float v)
 float2 GetFPBias()
 {
     return float2(0.5, 0);
+}
+
+// Returns coordinates for the four pixels surround a given fragment.
+// Given and returned Coords are normalized
+// These are given by (in Fetch4 order) - where "R" is the returned value:
+//   - R + (1, 0)
+//   - R + (0, 1)
+//   - R + (1, 1)
+//   - R
+// Also returns bilinear weights in the output parameter.
+float2 GetBilCoordsAndWeights(float2 Coords, float2 TexSize, out float4 Weights)
+{
+    float2 TexelSize = 1 / TexSize;
+    float2 TexelCoords = Coords * TexSize;
+    
+    // Compute weights
+    Weights.xy = frac(TexelCoords + 0.5);
+    Weights.zw = 1 - Weights.xy;
+    Weights = Weights.xzxz * Weights.wyyw;
+    
+    // Compute upper-left pixel coordinates
+    // NOTE: D3D texel alignment...
+    return (floor(TexelCoords - 0.5) + 0.5) * TexelSize;
+}
+
+float BilinearChebyshev(float4 Coords, float4 BilWeights, float Distance,
+                        float MinVariance)
+{
+    float2 X, Y, Z, W;
+    SampleMomentsBilinear(Coords, X, Y, Z, W);
+    
+    // Manual bilinear interpolation
+    float2 I;
+    I.x = dot(BilWeights, float4(X.x, Y.x, Z.x, W.x));
+    I.y = dot(BilWeights, float4(X.y, Y.y, Z.y, W.y));
+    
+    return ChebyshevUpperBound(I, Distance, MinVariance);
 }

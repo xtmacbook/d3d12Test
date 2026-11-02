@@ -60,7 +60,7 @@ struct VSMPassConstants
     FLOAT m_fMaxBorderPadding;
 
     FLOAT m_fCascadeBlendArea;                 // Amount to overlap when blending between cascades.
-    DirectX::XMFLOAT2 m_fTexelSize;                        // Shadow map texel size.
+    DirectX::XMFLOAT2 m_fTexSize;                        // Shadow map texel size.
     FLOAT m_fNativeTexelSizeInX;               // Texel size in native map ( textures are packed ).
     
     FLOAT m_fCascadeFrustumsEyeSpaceDepths[8]; // The values along Z that seperate the cascades.
